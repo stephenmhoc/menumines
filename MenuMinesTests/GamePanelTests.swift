@@ -149,6 +149,27 @@ struct GamePanelTests {
         #expect(!state.isPaused)
     }
 
+    @Test("Every window opens at the size of its content")
+    func windowsFitTheirContent() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let opens: [() -> Void] = [
+            AppWindows.showSettings,
+            AboutWindow.show,
+            { AppWindows.showStats(gameState: todaysDaily()) }
+        ]
+
+        for open in opens {
+            open()
+            try await settle()
+            let window = try #require(NSApp.windows.first { $0.isVisible && $0.styleMask.contains(.titled) })
+            #expect(window.contentLayoutRect.height >= 200, "\(window.title) is \(window.contentLayoutRect.height)pt tall")
+            window.close()
+            try await settle()
+        }
+    }
+
     @Test("Opening a window moves the panel out of the way and brings the window forward")
     func windowsComeForward() async throws {
         let cleanup = setupCleanPersistenceState(continuousPlay: true)

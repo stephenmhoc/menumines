@@ -132,6 +132,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        // A grouped form scrolls, so it has no height of its own to give the window.
+        .fixedSize(horizontal: false, vertical: true)
         .frame(width: Layout.width)
     }
 

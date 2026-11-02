@@ -40,6 +40,10 @@ enum AppWindows {
         window.title = title
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
+        // Sized first, because centering uses the height the window has at the time.
+        if let contentView = window.contentView {
+            window.setContentSize(contentView.fittingSize)
+        }
         window.center()
 
         let controller = NSWindowController(window: window)

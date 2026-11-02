@@ -13,6 +13,9 @@ struct SettingsViewLayoutTests {
         hostingView.layoutSubtreeIfNeeded()
         let fittingSize = hostingView.fittingSize
 
+        // A form that reports no height collapses the window to its title bar.
+        #expect(fittingSize.height >= 200, "Settings reports only \(fittingSize.height)pt")
+
         // The direct build adds an Updates section this target cannot compile, so leave
         // headroom rather than tuning this to the exact App Store measurement.
         #expect(
