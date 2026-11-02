@@ -347,6 +347,8 @@ jobs:
           rm -f "$RUNNER_TEMP/mac_installer_distribution.cer"
           rm -f "$RUNNER_TEMP/mac_installer_distribution.pem"
           rm -f "$RUNNER_TEMP/mac_installer_distribution.p12"
+          rm -f "$RUNNER_TEMP/apple_distribution_cert.p12"
+          rm -f "$RUNNER_TEMP/mac_installer_cert.p12"
           rm -f "$RUNNER_TEMP/mac.provisionprofile"
           rm -f "$RUNNER_TEMP/ExportOptions.plist"
           rm -rf ~/.private_keys

@@ -28,6 +28,10 @@ final class GameState {
     internal(set) var isPaused: Bool = false
     /// The current puzzle day, so that anything showing it updates when the day changes.
     private(set) var currentDaySeed: Int64 = seedFromDate(Date())
+    /// Goes up when a game ends in play. A status can't say this: it also changes when the
+    /// player goes back to a game that finished hours ago, and a loss on the first move goes
+    /// from not started straight to lost.
+    private(set) var finishedGameCount = 0
     /// Count of correctly marked mines at the time of winning (before auto-flagging).
     /// Used for share text to show player's actual skill.
     /// Persisted, because winning auto-flags every mine — recomputing it from a restored
@@ -613,6 +617,7 @@ final class GameState {
     /// Replays record nothing.
     private func handleGameComplete(won: Bool) {
         stopTimer()
+        finishedGameCount += 1
 
         if puzzleType == .daily {
             // Only mark daily completion and record daily stats for daily puzzles

@@ -295,22 +295,28 @@ private class ClickableNSView: NSView {
     var onRightClick: (() -> Void)?
     var onPressedChanged: ((Bool) -> Void)?
 
+    /// Decided on the way down. Letting go of Control before the mouse must not turn a
+    /// control-click into a reveal, which could lose the game.
+    private var isPrimaryPress = false
+
     override func mouseDown(with event: NSEvent) {
-        if event.modifierFlags.contains(.control) {
-            // Control+Click is the macOS convention for secondary click
-            flag()
-        } else {
+        // Control+Click is the macOS convention for secondary click
+        isPrimaryPress = !event.modifierFlags.contains(.control)
+        if isPrimaryPress {
             onPressedChanged?(true)
+        } else {
+            flag()
         }
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard !event.modifierFlags.contains(.control) else { return }
+        guard isPrimaryPress else { return }
         onPressedChanged?(contains(event))
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard !event.modifierFlags.contains(.control) else { return }
+        guard isPrimaryPress else { return }
+        isPrimaryPress = false
         onPressedChanged?(false)
         if contains(event) {
             onLeftClick?()

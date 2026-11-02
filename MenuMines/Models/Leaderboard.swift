@@ -133,7 +133,8 @@ enum Leaderboard {
             leaderboardIDs: [dailyTimeID]
         ) { error in
             guard let error else { return }
-            MainActor.assumeIsolated {
+            // GameKit doesn't promise which thread this arrives on.
+            Task { @MainActor in
                 queue(score)
                 Telemetry.report(error, area: "game_center", step: "submit")
             }

@@ -237,6 +237,85 @@ struct DailyLifecycleTests {
         #expect(state.status == .playing)
     }
 
+    @Test("A loss on the very first move still counts as finishing a game")
+    @MainActor
+    func firstMoveLossIsAFinish() throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let seed = seedFromDate(Date())
+        let state = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .daily)
+        let mine = try #require(
+            (0..<Board.rows).flatMap { row in (0..<Board.cols).map { (row, $0) } }
+                .first { state.board.cells[$0.0][$0.1].hasMine }
+        )
+
+        state.reveal(row: mine.0, col: mine.1)
+
+        #expect(state.status == .lost)
+        #expect(state.finishedGameCount == 1)
+    }
+
+    @Test("Going back to a finished daily isn't a new finish")
+    @MainActor
+    func returningToFinishedDailyIsNotAFinish() throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let seed = seedFromDate(Date())
+        let state = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .daily)
+        let mine = try #require(
+            (0..<Board.rows).flatMap { row in (0..<Board.cols).map { (row, $0) } }
+                .first { state.board.cells[$0.0][$0.1].hasMine }
+        )
+        state.reveal(row: mine.0, col: mine.1)
+        state.startPractice(seed: yesterdaySeed())
+
+        state.returnToToday()
+
+        #expect(state.status == .lost)
+        #expect(state.finishedGameCount == 1)
+    }
+
+    @Test("Finishing yesterday's game doesn't undo today's completion")
+    func completionOnlyMovesForward() {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        markDailyPuzzleComplete(forSeed: seedFromDate(Date()))
+        markDailyPuzzleComplete(forSeed: yesterdaySeed())
+
+        #expect(isDailyPuzzleComplete())
+    }
+
+    @Test("When Macs disagree about today, this one drops its own version")
+    @MainActor
+    func conflictingResultReplacesLocalVersion() {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer {
+            cleanup()
+            StatsStore.shared.reset()
+            UserDefaults.standard.removeObject(forKey: "statsResetAt")
+        }
+
+        let seed = seedFromDate(Date())
+        // Other tests can leave a result for today behind, which would win the merge.
+        StatsStore.shared.reset()
+        // Ahead of the clock, so both results fall after that reset.
+        let finishedHere = Date().addingTimeInterval(120)
+        StatsStore.shared.merge(dailyResults: [daily(seed, won: true, at: finishedHere)])
+        let snapshot = GameSnapshot(
+            board: Board(dailySeed: seed), status: .won, elapsedTime: 10, flagCount: 0,
+            selectedRow: 0, selectedCol: 0, dailySeed: seed
+        )
+        GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { snapshot.save() }
+
+        StatsStore.shared.merge(dailyResults: [daily(seed, won: false, at: finishedHere.addingTimeInterval(-60))])
+
+        #expect(getStats(forSeed: seed)?.won == false)
+        #expect(GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { GameSnapshot.loadAnyDay() } == nil)
+    }
+
     @Test("Reset clears the play tally")
     func testResetClearsTally() {
         let cleanup = setupCleanPersistenceState(continuousPlay: false)

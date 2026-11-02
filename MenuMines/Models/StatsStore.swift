@@ -315,6 +315,12 @@ final class StatsStore {
         saveResults()
 
         if let today = bySeed[seedFromDate(Date())] {
+            adoptAgreedStats(
+                forSeed: today.dailySeed,
+                won: today.won,
+                elapsedTime: today.elapsedTime,
+                flagCount: today.won ? Board.mineCount : 0
+            )
             markCompleteAndRecordStats(
                 forSeed: today.dailySeed,
                 won: today.won,

@@ -74,7 +74,12 @@ func markDailyPuzzleComplete(for date: Date) {
 }
 
 /// Marks the daily puzzle for a specific seed as complete.
+///
+/// Only moves forward. Finishing a game carried over from yesterday mustn't undo a today that
+/// another Mac already completed.
 func markDailyPuzzleComplete(forSeed seed: Int64) {
+    let current = UserDefaults.standard.object(forKey: dailyCompletionKey) as? Int64 ?? 0
+    guard seed >= current else { return }
     UserDefaults.standard.set(seed, forKey: dailyCompletionKey)
 }
 
@@ -194,6 +199,25 @@ func getStats(forSeed seed: Int64) -> DailyStats? {
 @discardableResult
 func markCompleteAndRecordStats(for date: Date, won: Bool, elapsedTime: TimeInterval, flagCount: Int) -> Bool {
     markCompleteAndRecordStats(forSeed: seedFromDate(date), won: won, elapsedTime: elapsedTime, flagCount: flagCount)
+}
+
+/// Replaces a day's stats with the result every Mac agreed on.
+///
+/// If this Mac finished the day differently, its saved boards show a game that no longer
+/// counts, so they go too, and a relaunch rebuilds the board from the stats.
+func adoptAgreedStats(forSeed seed: Int64, won: Bool, elapsedTime: TimeInterval, flagCount: Int) {
+    guard let existing = getStats(forSeed: seed) else { return }
+    guard existing.won != won || existing.elapsedTime != elapsedTime else { return }
+
+    UserDefaults.standard.removeObject(forKey: statsKey(for: seed))
+    UserDefaults.standard.removeObject(forKey: dailyStatsRecordedKey)
+    recordStats(forSeed: seed, won: won, elapsedTime: elapsedTime, flagCount: flagCount)
+
+    guard existing.won != won else { return }
+    if let snapshot = GameSnapshot.loadAnyDay(), snapshot.dailySeed == seed, snapshot.status != .playing {
+        GameSnapshot.clear()
+    }
+    GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { GameSnapshot.clear() }
 }
 
 /// Atomically marks the daily puzzle seed as complete and records stats.

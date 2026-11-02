@@ -369,7 +369,8 @@ end
 # Run once by hand, and again when the certificates near their expiry. Goes straight to GitHub's
 # secrets, so the private keys never stay on this machine.
 def create_certs
-  repo = "smeriwether/menumines"
+  repo = `gh repo view --json nameWithOwner -q .nameWithOwner`.strip
+  abort "Couldn't work out this repository." if repo.empty?
   password = SecureRandom.hex(24)
   ENV["KEYCHAIN_PASSWORD"] = password
   client = AppStoreConnectClient.new

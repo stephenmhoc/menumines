@@ -265,6 +265,7 @@ enum GamePersistenceCoordinator {
         state.elapsedTime = stats.elapsedTime
         // Stats restoration uses a fresh board without flags, so trust the stored count
         state.flagCount = stats.flagCount
+        state.markedMinesAtWin = stats.won ? stats.flagCount : 0
 
         // Rebuild what the finished board looked like, as near as a result can say
         if stats.won {

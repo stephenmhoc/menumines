@@ -127,11 +127,19 @@ enum StatsSync {
     /// Called when another Mac's results change something here.
     static var onResultsChanged: (() -> Void)?
 
+    /// False on a Mac's first run until the cloud's history has had a chance to arrive.
+    /// Publishing a month before that would replace it with whatever this Mac knows.
+    private static var mayPublish = true
+
     #if ICLOUD_SYNC_ENABLED
     private static var cloud: DailyResultsCloud? {
         DailyResultsCloud(cloud: NSUbiquitousKeyValueStore.default, stats: .shared)
     }
     private static var observer: NSObjectProtocol?
+    private static let historyReceivedKey = "iCloudHistoryReceived"
+    /// How long a first run waits to hear from iCloud. An account with no history sends
+    /// nothing, so this can't wait forever.
+    private static let firstRunWait: Duration = .seconds(60)
 
     /// Begins syncing, merging whatever the cloud already knows about.
     static func start() {
@@ -147,7 +155,21 @@ enum StatsSync {
         }
 
         NSUbiquitousKeyValueStore.default.synchronize()
+        mayPublish = UserDefaults.standard.bool(forKey: historyReceivedKey)
         sync()
+
+        if !mayPublish {
+            Task {
+                try? await Task.sleep(for: firstRunWait)
+                allowPublishing()
+                sync()
+            }
+        }
+    }
+
+    private static func allowPublishing() {
+        mayPublish = true
+        UserDefaults.standard.set(true, forKey: historyReceivedKey)
     }
 
     private static func handleExternalChange(reason: Int?) {
@@ -161,6 +183,7 @@ enum StatsSync {
                 onResultsChanged?()
             }
         default:
+            allowPublishing()
             sync()
         }
     }
@@ -171,7 +194,8 @@ enum StatsSync {
 
     /// Exchanges results with the cloud.
     static func sync() {
-        if cloud?.sync() == true {
+        let changed = mayPublish ? cloud?.sync() : cloud?.pull()
+        if changed == true {
             onResultsChanged?()
         }
     }

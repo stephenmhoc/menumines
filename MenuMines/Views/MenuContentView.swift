@@ -218,23 +218,15 @@ struct MenuContentView: View {
                 isBoardFocused = true
             }
         }
+        .onChange(of: gameState.finishedGameCount) {
+            let won = gameState.status == .won
+            showCelebration = won
+            announceGameResult(won: won)
+        }
         .onChange(of: gameState.status) { oldStatus, newStatus in
-            // Only a game finishing just now is worth celebrating. Going back to one that
-            // finished hours ago changes the status too.
-            let justFinished = oldStatus == .playing
-
             switch newStatus {
-            case .won:
+            case .won, .lost:
                 isFlagMode = false
-                if justFinished {
-                    showCelebration = true
-                    announceGameResult(won: true)
-                }
-            case .lost:
-                isFlagMode = false
-                if justFinished {
-                    announceGameResult(won: false)
-                }
             case .playing:
                 // Clear celebration when resetting from won state
                 if oldStatus == .won {

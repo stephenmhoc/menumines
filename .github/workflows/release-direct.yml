@@ -17,7 +17,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-direct-${{ github.ref }}
+  # One at a time across tags, because each run numbers itself from the published appcast.
+  group: release-direct
   cancel-in-progress: false
 
 env:
