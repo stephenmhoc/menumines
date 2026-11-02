@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1500"
+   LastUpgradeVersion = "1430"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
-      buildArchitectures = "Automatic">
+      runPostActionsOnFailure = "NO">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA38618B4B928DB1C297A974"
+               BlueprintIdentifier = "43D4BD78E43FB28144404F50"
                BuildableName = "MenuMinesDirect.app"
                BlueprintName = "MenuMinesDirect"
                ReferencedContainer = "container:MenuMines.xcodeproj">
@@ -28,23 +28,21 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
+      onlyGenerateCoverageForSpecifiedTargets = "NO">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "43D4BD78E43FB28144404F50"
+            BuildableName = "MenuMinesDirect.app"
+            BlueprintName = "MenuMinesDirect"
+            ReferencedContainer = "container:MenuMines.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A100002F229E002F"
-               BuildableName = "MenuMinesTests.xctest"
-               BlueprintName = "MenuMinesTests"
-               ReferencedContainer = "container:MenuMines.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release-Direct"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -57,15 +55,17 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AA38618B4B928DB1C297A974"
+            BlueprintIdentifier = "43D4BD78E43FB28144404F50"
             BuildableName = "MenuMinesDirect.app"
             BlueprintName = "MenuMinesDirect"
             ReferencedContainer = "container:MenuMines.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
-      buildConfiguration = "Release-Direct"
+      buildConfiguration = "Release"
       shouldUseLaunchSchemeArgsEnv = "YES"
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
@@ -74,7 +74,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AA38618B4B928DB1C297A974"
+            BlueprintIdentifier = "43D4BD78E43FB28144404F50"
             BuildableName = "MenuMinesDirect.app"
             BlueprintName = "MenuMinesDirect"
             ReferencedContainer = "container:MenuMines.xcodeproj">

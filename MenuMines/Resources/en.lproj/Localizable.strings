@@ -2,9 +2,9 @@
 "reset_button" = "Reset";
 "reset_accessibility_combined" = "Reset game. Status: %@";
 "reset_accessibility_hint" = "Click to reset today's puzzle";
-"reset_locked_hint" = "Reset is locked after completing today's puzzle";
+"reset_locked_hint" = "Today's puzzle can't be reset once it's started";
 "about_menu_item" = "About MenuMines";
-"settings_menu_item" = "Settings...";
+"settings_menu_item" = "Settings…";
 "quit_menu_item" = "Quit MenuMines";
 "footer_menu_accessibility_label" = "App menu";
 "puzzle_type_daily" = "Daily";
@@ -44,18 +44,19 @@
 "menu_bar_accessibility_lost" = "MenuMines, game over";
 
 /* Share feature */
-"share_button" = "Share";
+"share_button" = "Share Result";
+"copy_result_button" = "Copy";
+"share_preview_title" = "MenuMines result";
+"share_header_replay" = "MenuMines replay - %@";
+"share_header_random" = "MenuMines - Random board";
 "share_copied" = "Copied!";
 "share_header" = "MenuMines - %@";
 "share_solved" = "Solved in %@ 🚩 %d/%d";
 "share_failed" = "Failed in %@ 🚩 %d/%d";
-"share_marked" = "Marked: %d/%d";
 
 /* Stats feature */
 "stats_menu_item" = "Stats…";
 "stats_window_title" = "Stats";
-"stats_title" = "Stats";
-"stats_subtitle" = "Daily puzzle";
 "stats_games_played" = "Games Played";
 "stats_wins" = "Wins";
 "stats_win_rate" = "Win Rate";
@@ -72,7 +73,7 @@
 "stats_reset_confirmation_cancel" = "Cancel";
 "stats_reset_confirmation_confirm" = "Reset";
 "stats_empty_message" = "Play a game to see your stats!";
-"stats_empty_subtitle" = "Stats are stored locally.";
+"stats_empty_subtitle" = "Finished puzzles appear here.";
 "stats_section_daily" = "Daily Puzzles";
 "stats_section_all" = "All Games";
 "stats_tab_summary" = "Summary";
@@ -102,7 +103,7 @@
 "controls_reveal" = "Reveal cell";
 "controls_flag" = "Toggle flag";
 "controls_flag_mode" = "Flag mode";
-"controls_reset" = "Reset game";
+"controls_key_space" = "Space";
 
 /* Accessibility announcements */
 "announcement_win" = "Congratulations! You won in %d seconds";
@@ -111,10 +112,13 @@
 "announcement_selection_changed" = "Row %d, Column %d, %@";
 
 /* Cell accessibility hints */
-"cell_hint_reveal_or_flag" = "Double-tap to reveal, or press F to flag";
-"cell_hint_flag_mode" = "Flag mode is on. Double-tap to flag, or use the flag button to reveal again.";
-"cell_hint_remove_flag" = "Press F to remove flag";
-"cell_hint_chord_ready" = "Double-tap to reveal adjacent covered cells";
+"cell_hint_reveal_or_flag" = "Press to reveal, or use the Flag action";
+"cell_hint_flag_mode" = "Flag mode is on. Press to flag, or turn off flag mode to reveal again.";
+"cell_hint_remove_flag" = "Use the Flag action to remove the flag";
+"cell_hint_chord_ready" = "Press to reveal adjacent covered cells";
+
+"cell_action_flag" = "Flag";
+"board_accessibility_label" = "Game board";
 
 /* Cell state descriptions for accessibility */
 "cell_accessibility_label" = "Row %d, Column %d, %@";
@@ -169,6 +173,17 @@
 "puzzle_type_practice" = "Replay";
 "stats_calendar_replay_hint" = "Click a past day to replay that board. Replays are not recorded.";
 "stats_calendar_day_replay" = "Replay %@";
-"replay_started_title" = "Replaying %@";
-"replay_started_message" = "Open MenuMines from the menu bar to play. This replay is not recorded.";
+"replay_started_message" = "%@ is ready. Open MenuMines from the menu bar to play. Today's game is saved, and this replay isn't recorded.";
+"return_to_today_button" = "Back to Today";
+"return_to_today_help" = "Leave this replay and go back to today's puzzle";
 "share_play_line" = "⚡️ %d clicks · 🔗 %d chords · 🌊 %d opened at once";
+
+/* Next puzzle */
+"next_puzzle_countdown" = "Next in %@";
+
+/* Crash reports */
+"settings_send_crash_reports" = "Send crash reports";
+"settings_send_crash_reports_footer" = "Helps fix problems. Reports describe the failure, and never your games.";
+
+/* Game Center */
+"leaderboard_button" = "Leaderboard";

@@ -1,13 +1,11 @@
 import AppKit
 import Combine
-import Sentry
 import SwiftUI
 
 @main
 struct MenuMinesApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var gameState: GameState
-
-    private static var eventMonitor: Any?
 
     #if DEBUG
     private static var isScreenshotExportMode: Bool {
@@ -19,36 +17,6 @@ struct MenuMinesApp: App {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
 
-    private static var isDebugBuild: Bool {
-        #if DEBUG
-        return true
-        #else
-        return false
-        #endif
-    }
-
-    private static var sentryDsn: String? {
-        guard let dsn = Bundle.main.object(forInfoDictionaryKey: "SENTRY_DSN") as? String else {
-            return nil
-        }
-        let trimmed = dsn.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-
-    private static func startSentryIfNeeded() {
-        guard !isDebugBuild, !isRunningTests else { return }
-        guard let dsn = sentryDsn else { return }
-
-        SentrySDK.start { options in
-            options.dsn = dsn
-            options.tracesSampleRate = 1.0
-            options.enableAutoSessionTracking = true
-            options.beforeSend = { event in
-                isModalWaitReportedAsHang(event) ? nil : event
-            }
-        }
-    }
-
     private static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
             Constants.SettingsKeys.continuousPlay: true
@@ -56,7 +24,7 @@ struct MenuMinesApp: App {
     }
 
     init() {
-        Self.startSentryIfNeeded()
+        Telemetry.start()
         Self.registerDefaults()
 
         #if DEBUG
@@ -84,63 +52,9 @@ struct MenuMinesApp: App {
         }
         #endif
 
-        Self.setupKeyboardMonitor(for: state)
-        Self.setupTerminationObserver(for: state)
-
-        Task { @MainActor in
-            StatsSync.start()
-            Leaderboard.authenticate()
-        }
-    }
-
-    private static func setupTerminationObserver(for gameState: GameState) {
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.willTerminateNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            gameState.save()
-        }
-    }
-
-    private static func shouldHandleGameKey(_ event: NSEvent) -> Bool {
-        shouldRouteKeyToBoard(
-            modifiers: event.modifierFlags,
-            isMenuVisible: MenuBarPresentation.isVisible,
-            // Settings, Stats and About are titled windows; the menu bar popover is not.
-            keyWindowIsTitled: NSApp.keyWindow?.styleMask.contains(.titled) == true
-        )
-    }
-
-    private static func setupKeyboardMonitor(for gameState: GameState) {
-        guard eventMonitor == nil else { return }
-
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard shouldHandleGameKey(event) else { return event }
-
-            // Arrow keys for navigation
-            switch event.keyCode {
-            case 123: gameState.moveSelection(.left)
-            case 124: gameState.moveSelection(.right)
-            case 125: gameState.moveSelection(.down)
-            case 126: gameState.moveSelection(.up)
-            default:
-                // Character-based keys
-                if let chars = event.charactersIgnoringModifiers?.lowercased() {
-                    switch chars {
-                    case " ":
-                        gameState.revealSelected()
-                    case "f":
-                        gameState.toggleFlagSelected()
-                    default:
-                        return event
-                    }
-                } else {
-                    return event
-                }
-            }
-            return nil
-        }
+        // Hosted tests launch this app, and must not sign in or start syncing.
+        guard !Self.isRunningTests else { return }
+        AppDelegate.gameState = state
     }
 
     var body: some Scene {
@@ -171,6 +85,43 @@ struct MenuMinesApp: App {
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
+    }
+}
+
+/// Owns everything that has to outlive the popover, and starts it once the app is up.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Set before launch finishes. Nil when there's nothing to run, as under test.
+    @MainActor static var gameState: GameState?
+
+    private var dayWatcher: DayWatcher?
+    private var windowObserver: NSObjectProtocol?
+
+    @MainActor
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let gameState = Self.gameState else { return }
+
+        StatsSync.onResultsChanged = { [weak gameState] in gameState?.adoptSyncedCompletion() }
+        StatsSync.start()
+        Leaderboard.authenticate()
+        UpdateManager.start()
+
+        let dayWatcher = DayWatcher { [weak gameState] in gameState?.dayMayHaveChanged() }
+        dayWatcher.start()
+        self.dayWatcher = dayWatcher
+
+        windowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { WindowActivation.yieldFocusIfNoWindowsRemain() }
+        }
+    }
+
+    @MainActor
+    func applicationWillTerminate(_ notification: Notification) {
+        Self.gameState?.pauseTimer()
+        Self.gameState?.save()
     }
 }
 
@@ -240,7 +191,7 @@ private enum AppStoreScreenshotVariant: String, CaseIterable {
     var bullets: [String] {
         switch self {
         case .daily:
-            return ["Same daily board", "First click is safe", "No setup required"]
+            return ["Same daily board", "Safe opening every day", "No setup required"]
         case .playing:
             return ["Keyboard friendly", "Flag mode included", "Unlimited random boards"]
         case .complete:
@@ -877,72 +828,20 @@ enum WindowActivation {
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
     }
-}
 
-/// Tracks whether the menu bar popover is on screen.
-///
-/// Keyboard shortcuts are registered process-wide, so they need a way to tell whether the
-/// board is actually in front of the player. Updated from `MenuContentView`'s appearance.
-enum MenuBarPresentation {
-    private(set) nonisolated(unsafe) static var isVisible = false
-
-    /// - Important: Must be called from the main thread.
-    static func setVisible(_ visible: Bool) {
-        isVisible = visible
+    /// Gives focus back to the player's previous app once our last window has closed.
+    ///
+    /// An agent app stays active with nothing on screen otherwise, so keys go nowhere until
+    /// the player clicks another window. The closing window still counts as visible during
+    /// this notification, so the check waits a turn.
+    static func yieldFocusIfNoWindowsRemain() {
+        DispatchQueue.main.async {
+            let hasTitledWindow = NSApp.windows.contains { $0.isVisible && $0.styleMask.contains(.titled) }
+            if !hasTitledWindow {
+                NSApp.hide(nil)
+            }
+        }
     }
-}
-
-/// Whether an app-hang report is really a modal dialog waiting on the user.
-///
-/// `NSAlert.runModal()` blocks the main thread in a nested run loop until someone clicks a
-/// button, which the hang detector cannot distinguish from a genuine stall. Sparkle's update
-/// prompts arrive this way and would otherwise bury real hangs in noise, so they are dropped
-/// here rather than by turning hang tracking off entirely.
-func isModalWaitReportedAsHang(_ event: Event) -> Bool {
-    guard let exception = event.exceptions?.first else { return false }
-
-    let frameFunctions = (exception.stacktrace?.frames ?? []).compactMap(\.function)
-    return isModalWaitStack(
-        exceptionType: exception.type,
-        mechanismType: exception.mechanism?.type,
-        frameFunctions: frameFunctions
-    )
-}
-
-/// Pure form of ``isModalWaitReportedAsHang(_:)``, split out so it can be tested without
-/// building a Sentry event.
-func isModalWaitStack(
-    exceptionType: String?,
-    mechanismType: String?,
-    frameFunctions: [String]
-) -> Bool {
-    let isHangReport = mechanismType?.caseInsensitiveCompare("AppHang") == .orderedSame
-        || exceptionType?.localizedCaseInsensitiveContains("hang") == true
-    guard isHangReport else { return false }
-
-    // -[NSAlert runModal], -[NSApplication runModalForWindow:], _NSTryRunModal,
-    // -[NSApplication _doModalLoop:peek:]
-    let modalMarkers = ["runmodal", "_domodalloop"]
-    return frameFunctions.contains { function in
-        let lowercased = function.lowercased()
-        return modalMarkers.contains { lowercased.contains($0) }
-    }
-}
-
-/// Decides whether a key press belongs to the game board.
-///
-/// The board's shortcuts are bare keys — arrows, Space, F — but a local event monitor sees
-/// every key the process receives. Ungated, Space pressed to activate a button in the Stats
-/// window reveals a cell, and ⌘F flags one; both mutate a board the player cannot see and
-/// can lose the daily puzzle without any visible cause.
-func shouldRouteKeyToBoard(
-    modifiers: NSEvent.ModifierFlags,
-    isMenuVisible: Bool,
-    keyWindowIsTitled: Bool
-) -> Bool {
-    guard modifiers.isDisjoint(with: [.command, .control, .option]) else { return false }
-    guard isMenuVisible else { return false }
-    return !keyWindowIsTitled
 }
 
 /// Menu bar icon view showing state-specific icon with subtle indicators.
@@ -959,7 +858,8 @@ struct MenuBarIconView: View {
         return menuBarIconState(
             gameStatus: gameState.status,
             isPaused: gameState.isPaused,
-            isDailyComplete: isDailyPuzzleComplete()
+            isDailyComplete: isDailyPuzzleComplete(forSeed: gameState.currentDaySeed),
+            puzzleType: gameState.puzzleType
         )
     }
 

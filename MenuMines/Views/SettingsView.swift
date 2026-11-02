@@ -1,4 +1,3 @@
-import Sentry
 import ServiceManagement
 import SwiftUI
 
@@ -17,6 +16,7 @@ struct SettingsView: View {
     @AppStorage(Constants.SettingsKeys.confirmBeforeReset) private var confirmBeforeReset = false
     @AppStorage(Constants.SettingsKeys.continuousPlay) private var continuousPlay = true
     @AppStorage(Constants.SettingsKeys.showStreaks) private var showStreaks = true
+    @AppStorage(Constants.SettingsKeys.sendCrashReports) private var sendsCrashReports = true
 
     private var launchAtLogin: Binding<Bool> {
         Binding(
@@ -31,14 +31,18 @@ struct SettingsView: View {
                 } catch {
                     // The toggle silently snaps back when this fails, so without a report
                     // there is no trace of it anywhere.
-                    SentrySDK.capture(error: error) { scope in
-                        scope.setTag(value: "launch_at_login", key: "operation")
-                        scope.setContext(value: [
-                            "requested_enabled": newValue,
-                            "service_status": SMAppService.mainApp.status.rawValue
-                        ], key: "login_item")
-                    }
+                    Telemetry.report(error, area: "login_item", step: newValue ? "register" : "unregister")
                 }
+            }
+        )
+    }
+
+    private var sendCrashReports: Binding<Bool> {
+        Binding(
+            get: { sendsCrashReports },
+            set: { enabled in
+                sendsCrashReports = enabled
+                Telemetry.setEnabled(enabled)
             }
         )
     }
@@ -82,6 +86,16 @@ struct SettingsView: View {
                     Text(String(localized: "settings_continuous_play"))
                     Text(String(localized: "settings_continuous_play_footer"))
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            if Telemetry.isAvailable {
+                Section {
+                    Toggle(isOn: sendCrashReports) {
+                        Text(String(localized: "settings_send_crash_reports"))
+                        Text(String(localized: "settings_send_crash_reports_footer"))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 

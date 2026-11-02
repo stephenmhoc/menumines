@@ -1,5 +1,4 @@
 import Foundation
-import Sentry
 
 // MARK: - GameSnapshot
 
@@ -18,11 +17,12 @@ struct GameSnapshot: Codable {
     let clickCount: Int
     let chordCount: Int
     let largestOpening: Int
+    let playLog: [PlayStep]
 
     /// Coding keys for backward-compatible decoding.
     private enum CodingKeys: String, CodingKey {
         case board, status, elapsedTime, flagCount, selectedRow, selectedCol, dailySeed, puzzleType
-        case markedMinesAtWin, clickCount, chordCount, largestOpening
+        case markedMinesAtWin, clickCount, chordCount, largestOpening, playLog
     }
 
     /// Custom decoder to provide backward compatibility for existing snapshots written
@@ -41,11 +41,13 @@ struct GameSnapshot: Codable {
         clickCount = try container.decodeIfPresent(Int.self, forKey: .clickCount) ?? 0
         chordCount = try container.decodeIfPresent(Int.self, forKey: .chordCount) ?? 0
         largestOpening = try container.decodeIfPresent(Int.self, forKey: .largestOpening) ?? 0
+        playLog = try container.decodeIfPresent([PlayStep].self, forKey: .playLog) ?? []
     }
 
     init(board: Board, status: GameStatus, elapsedTime: TimeInterval, flagCount: Int,
          selectedRow: Int, selectedCol: Int, dailySeed: Int64, puzzleType: PuzzleType = .daily,
-         markedMinesAtWin: Int = 0, clickCount: Int = 0, chordCount: Int = 0, largestOpening: Int = 0) {
+         markedMinesAtWin: Int = 0, clickCount: Int = 0, chordCount: Int = 0, largestOpening: Int = 0,
+         playLog: [PlayStep] = []) {
         self.board = board
         self.status = status
         self.elapsedTime = elapsedTime
@@ -58,6 +60,7 @@ struct GameSnapshot: Codable {
         self.clickCount = clickCount
         self.chordCount = chordCount
         self.largestOpening = largestOpening
+        self.playLog = playLog
     }
 
     private static let baseStorageKey = "gameSnapshot"
@@ -83,15 +86,7 @@ struct GameSnapshot: Codable {
             let data = try JSONEncoder().encode(self)
             UserDefaults.standard.set(data, forKey: Self.storageKey)
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setTag(value: "snapshot_save", key: "operation")
-                scope.setContext(value: [
-                    "daily_seed": dailySeed,
-                    "status": status.rawValue,
-                    "elapsed_time": elapsedTime,
-                    "flag_count": flagCount
-                ], key: "game_state")
-            }
+            Telemetry.report(error, area: "persistence", step: "snapshot_save")
         }
     }
 
@@ -120,13 +115,7 @@ struct GameSnapshot: Codable {
             return snapshot
         } catch {
             // Snapshot corruption detected - log to Sentry and clear
-            SentrySDK.capture(error: error) { scope in
-                scope.setTag(value: "snapshot_load", key: "operation")
-                scope.setContext(value: [
-                    "data_size_bytes": data.count,
-                    "today_seed": seedFromDate(Date())
-                ], key: "persistence")
-            }
+            Telemetry.report(error, area: "persistence", step: "snapshot_load")
             clear()
             return nil
         }
@@ -144,7 +133,7 @@ struct GameSnapshot: Codable {
 /// Single entry point for restore eliminates scattered logic.
 ///
 /// Decision tree for restore:
-/// 1. continuousPlay ON → fresh game (daily or random based on completion)
+/// 1. continuousPlay ON → today's game if it's under way, otherwise a fresh game
 /// 2. continuousPlay OFF → restore exact saved state
 enum GamePersistenceCoordinator {
 
@@ -162,12 +151,26 @@ enum GamePersistenceCoordinator {
         }
     }
 
+    /// Restores today's puzzle in whatever state it was left, including a completed one.
+    /// Used to come back from a replay, or to show a result from another Mac.
+    static func restoreToday() -> GameState {
+        restoreSavedState(todaySeed: seedFromDate(Date()))
+    }
+
     // MARK: - Private Decision Logic
 
-    /// continuousPlay ON: Always start fresh.
+    /// continuousPlay ON: Keep today's game if there is one under way, otherwise start fresh.
+    /// Continuous play is about what comes after the daily. Losing a game to a restart or an
+    /// update would also hand the player a fresh clock on a board they've already seen.
+    /// - If daily is under way: restore it
     /// - If daily complete: fresh random puzzle
     /// - If daily not complete: fresh daily puzzle
     private static func restoreFreshGame(todaySeed: Int64) -> GameState {
+        if let snapshot = GameSnapshot.loadAnyDay(), snapshot.dailySeed == todaySeed,
+           snapshot.status == .playing, snapshot.puzzleType == .daily {
+            return restoreFromSnapshot(snapshot)
+        }
+
         GameSnapshot.clear()
 
         if isDailyPuzzleComplete() {
@@ -226,18 +229,13 @@ enum GamePersistenceCoordinator {
         let state = GameState(board: snapshot.board, dailySeed: snapshot.dailySeed, puzzleType: snapshot.puzzleType)
         state.status = snapshot.status
         state.elapsedTime = snapshot.elapsedTime
+        // Nothing is timing a restored game until the popover opens.
+        state.isPaused = snapshot.status == .playing
 
         // Use board's flag count as source of truth
         let actualFlagCount = snapshot.board.flagCount
         if snapshot.flagCount != actualFlagCount {
-            SentrySDK.capture(message: "Flag count mismatch in snapshot") { scope in
-                scope.setLevel(.warning)
-                scope.setContext(value: [
-                    "stored_count": snapshot.flagCount,
-                    "actual_count": actualFlagCount,
-                    "daily_seed": snapshot.dailySeed
-                ], key: "flag_mismatch")
-            }
+            Telemetry.warn("Flag count mismatch in snapshot", area: "persistence")
         }
         state.flagCount = actualFlagCount
 
@@ -247,6 +245,7 @@ enum GamePersistenceCoordinator {
         state.clickCount = snapshot.clickCount
         state.chordCount = snapshot.chordCount
         state.largestOpening = snapshot.largestOpening
+        state.playLog = snapshot.playLog
         return state
     }
 
@@ -257,10 +256,7 @@ enum GamePersistenceCoordinator {
 
         guard stats.seed == seed else {
             // Data corruption - stats seed doesn't match expected seed
-            SentrySDK.capture(message: "Stats seed mismatch: expected \(seed), got \(stats.seed)") { scope in
-                scope.setLevel(.warning)
-                scope.setContext(value: ["expectedSeed": seed, "actualSeed": stats.seed], key: "seedMismatch")
-            }
+            Telemetry.warn("Stats seed mismatch", area: "persistence")
             return nil
         }
 
@@ -270,8 +266,11 @@ enum GamePersistenceCoordinator {
         // Stats restoration uses a fresh board without flags, so trust the stored count
         state.flagCount = stats.flagCount
 
-        // For lost games, reveal all mines so display is correct
-        if !stats.won {
+        // Rebuild what the finished board looked like, as near as a result can say
+        if stats.won {
+            state.board.revealAllSafeCells()
+            state.board.flagAllMines()
+        } else {
             state.board.revealAllMines()
         }
 
@@ -282,7 +281,7 @@ enum GamePersistenceCoordinator {
 
     /// Creates a fresh daily puzzle for the given seed.
     private static func createDailyPuzzle(seed: Int64) -> GameState {
-        let board = Board(seed: seed)
+        let board = Board(dailySeed: seed)
         return GameState(board: board, dailySeed: seed, puzzleType: .daily)
     }
 

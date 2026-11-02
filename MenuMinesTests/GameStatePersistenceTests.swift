@@ -54,7 +54,7 @@ struct GameStatePersistenceTests {
 
         let board = Board(seed: 12345)
         // Use yesterday's seed
-        let staleSeed = seedFromDate(Date()) - 1
+        let staleSeed = yesterdaySeed()
         let snapshot = GameSnapshot(
             board: board,
             status: .playing,
@@ -210,16 +210,16 @@ struct GameStatePersistenceTests {
         }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board)
+        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
 
         // Start and save (but don't complete)
         gameState.reveal(row: 0, col: 0)
         gameState.save()
-        #expect(GameSnapshot.load() != nil, "Snapshot should exist while playing")
+        #expect(GameSnapshot.loadAnyDay() != nil, "Snapshot should exist while playing")
 
-        // Reset (should work since game not complete)
+        // Reset (allowed because a game carried over from yesterday isn't ranked)
         gameState.reset()
-        #expect(GameSnapshot.load() == nil, "Snapshot should be cleared after reset")
+        #expect(GameSnapshot.loadAnyDay() == nil, "Snapshot should be cleared after reset")
     }
 
     @Test("GameState restored creates fresh game when no snapshot")
@@ -236,6 +236,7 @@ struct GameStatePersistenceTests {
             UserDefaults.standard.removeObject(forKey: "dailyStats_\(todaySeed)")
         }
 
+        GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { GameSnapshot.clear() }
         let gameState = GameState.restored()
 
         #expect(gameState.status == .notStarted)
@@ -299,6 +300,7 @@ struct GameStatePersistenceTests {
     @Test("GameState restored does not restore stale snapshot when game was completed")
     func testGameStateRestoredIgnoresStaleSnapshot() {
         GameSnapshot.clear()
+        GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { GameSnapshot.clear() }
         UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed")
         UserDefaults.standard.removeObject(forKey: "dailyStatsRecordedSeed")
         let todaySeed = seedFromDate(Date())
@@ -313,7 +315,7 @@ struct GameStatePersistenceTests {
         // Create a snapshot with yesterday's seed and a completed game (won)
         // Completed games should roll over to today's puzzle
         let board = Board(seed: 12345)
-        let staleSeed = seedFromDate(Date()) - 1
+        let staleSeed = yesterdaySeed()
         let staleSnapshot = GameSnapshot(
             board: board,
             status: .won, // Completed game should trigger rollover
@@ -477,7 +479,7 @@ struct GameStatePersistenceTests {
         UserDefaults.standard.set(true, forKey: settingKey)
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board)
+        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
 
         // Start but don't complete
         guard let safe = findSafeCell(in: gameState.board) else {
@@ -714,7 +716,7 @@ struct GameStatePersistenceTests {
         defer { UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed") }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board)
+        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
 
         // Play the game (don't complete it)
         gameState.reveal(row: 0, col: 0)
@@ -744,13 +746,13 @@ struct GameStatePersistenceTests {
         #expect(gameState.selectedCol == 0)
     }
 
-    @Test("Reset restores all cells to hidden")
+    @Test("Reset restores the canonical starting board")
     func testResetRestoresAllCellsToHidden() {
         UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed")
         defer { UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed") }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board)
+        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
 
         gameState.reveal(row: 0, col: 0)
         gameState.reveal(row: 1, col: 1)
@@ -771,7 +773,7 @@ struct GameStatePersistenceTests {
         defer { UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed") }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board)
+        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
 
         gameState.reveal(row: 0, col: 0)
         gameState.pauseTimer()
@@ -1036,7 +1038,7 @@ struct GameStatePersistenceTests {
 
     // MARK: - Continuous Play Persistence Tests (GamePersistenceCoordinator)
 
-    @Test("continuousPlay ON + in-progress daily restores fresh daily puzzle")
+    @Test("continuousPlay ON + in-progress daily restores that game")
     func testContinuousPlayOnInProgressGetsFreshDaily() {
         GameSnapshot.clear()
         let settingKey = Constants.SettingsKeys.continuousPlay
@@ -1070,12 +1072,12 @@ struct GameStatePersistenceTests {
         // Verify snapshot exists
         #expect(GameSnapshot.load() != nil, "Snapshot should exist")
 
-        // Restore with continuousPlay ON should get a fresh daily puzzle
+        // Continuous play governs what comes after the daily, not whether it survives a relaunch
         let restoredState = GameState.restored()
 
-        #expect(restoredState.status == .notStarted, "continuousPlay ON should start fresh")
+        #expect(restoredState.status == .playing, "The game under way should come back")
         #expect(restoredState.puzzleType == .daily, "Should be a daily puzzle")
-        #expect(restoredState.elapsedTime == 0, "Should have zero elapsed time")
+        #expect(restoredState.board == gameState.board, "Should be the same board")
     }
 
     @Test("continuousPlay ON + completed daily restores fresh random puzzle")

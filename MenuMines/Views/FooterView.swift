@@ -8,9 +8,14 @@ struct FooterView: View {
     let puzzleType: PuzzleType
     let canReset: Bool
     let isFlagMode: Bool
+    /// Finished text for the result, once there is one.
+    var shareText: String?
+    /// When the next daily arrives, once today's is finished.
+    var nextPuzzleDate: Date?
     let onReset: () -> Void
     let onToggleFlagMode: () -> Void
-    let onShare: () -> Void
+    let onCopy: () -> Void
+    var onReturnToToday: () -> Void = {}
     let onAbout: () -> Void
 
     @State private var showCopiedFeedback = false
@@ -40,10 +45,17 @@ struct FooterView: View {
 
     var body: some View {
         HStack {
-            // Left side: puzzle type while playing, share action after completion.
+            // Left side: where the player is, or what they can do with a finished game.
+            if puzzleType == .practice {
+                Button(String(localized: "return_to_today_button"), action: onReturnToToday)
+                    .buttonStyle(.bordered)
+                    .fixedSize()
+                    .help(String(localized: "return_to_today_help"))
+            }
+
             if isGameComplete {
-                Button(showCopiedFeedback ? String(localized: "share_copied") : String(localized: "share_button")) {
-                    onShare()
+                Button(showCopiedFeedback ? String(localized: "share_copied") : String(localized: "copy_result_button")) {
+                    onCopy()
                     showCopiedFeedback = true
                     AccessibilityNotification.Announcement(String(localized: "share_copied")).post()
                     Task {
@@ -53,8 +65,12 @@ struct FooterView: View {
                 }
                 .buttonStyle(.bordered)
                 .fixedSize()
-                .accessibilityLabel(String(localized: "share_button"))
-            } else {
+                .accessibilityLabel(String(localized: "copy_result_button"))
+
+                if let shareText {
+                    ResultShareButton(text: shareText)
+                }
+            } else if puzzleType != .practice {
                 HStack(spacing: 4) {
                     Image(systemName: puzzleTypeIconName)
                         .font(.caption)
@@ -66,6 +82,10 @@ struct FooterView: View {
                 .fixedSize()
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(String(format: String(localized: "puzzle_type_accessibility_label"), puzzleTypeLabel))
+            }
+
+            if let nextPuzzleDate {
+                NextPuzzleCountdown(date: nextPuzzleDate)
             }
 
             Spacer()
@@ -90,12 +110,17 @@ struct FooterView: View {
             }
             .buttonStyle(.borderless)
             .fixedSize()
+            .help(String(localized: "controls_button_accessibility"))
             .popover(isPresented: $showControls) {
                 ControlsPopoverView()
             }
             .accessibilityLabel(String(localized: "controls_button_accessibility"))
 
             Menu {
+                if puzzleType == .practice {
+                    Button(String(localized: "return_to_today_button"), action: onReturnToToday)
+                }
+
                 Button(String(localized: "reset_button")) {
                     showCopiedFeedback = false
                     onReset()
@@ -142,9 +167,72 @@ struct FooterView: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
+            .help(String(localized: "footer_menu_accessibility_label"))
             .accessibilityLabel(String(localized: "footer_menu_accessibility_label"))
         }
         .frame(width: 260)
+    }
+}
+
+/// How long until the next daily. Worth stating because puzzles change at midnight UTC, which
+/// for most players isn't midnight, and a streak depends on knowing when that is.
+private struct NextPuzzleCountdown: View {
+    let date: Date
+
+    private var formatter: DateComponentsFormatter {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let remaining = max(60, date.timeIntervalSince(context.date))
+            Text(String(format: String(localized: "next_puzzle_countdown"), formatter.string(from: remaining) ?? ""))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+}
+
+/// Offers the result as an image through the system's share menu, or dragged out of the popover.
+private struct ResultShareButton: View {
+    let text: String
+
+    @MainActor private var image: Image? {
+        let renderer = ImageRenderer(content: ResultCardView(text: text))
+        renderer.scale = 2
+        return renderer.nsImage.map(Image.init(nsImage:))
+    }
+
+    var body: some View {
+        if let image {
+            let title = String(localized: "share_preview_title")
+            ShareLink(item: image, preview: SharePreview(title, image: image)) {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .buttonStyle(.borderless)
+            .fixedSize()
+            .draggable(image)
+            .help(String(localized: "share_button"))
+            .accessibilityLabel(String(localized: "share_button"))
+        }
+    }
+}
+
+/// The result as a picture, for places where pasted emoji don't survive.
+private struct ResultCardView: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 13, design: .monospaced))
+            .foregroundStyle(.black)
+            .padding(16)
+            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -158,10 +246,9 @@ private struct ControlsPopoverView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 controlRow(key: "↑ ↓ ← →", action: String(localized: "controls_move"))
-                controlRow(key: "Space", action: String(localized: "controls_reveal"))
+                controlRow(key: String(localized: "controls_key_space"), action: String(localized: "controls_reveal"))
                 controlRow(key: "F", action: String(localized: "controls_flag"))
                 controlRow(key: "🚩", action: String(localized: "controls_flag_mode"))
-                controlRow(key: "⌘R", action: String(localized: "controls_reset"))
             }
             .font(.system(.body, design: .monospaced))
         }
@@ -171,7 +258,7 @@ private struct ControlsPopoverView: View {
     private func controlRow(key: String, action: String) -> some View {
         HStack(spacing: 16) {
             Text(key)
-                .frame(width: 70, alignment: .leading)
+                .frame(width: 76, alignment: .leading)
             Text(action)
         }
         .accessibilityElement(children: .combine)
@@ -189,7 +276,7 @@ private struct ControlsPopoverView: View {
         isFlagMode: false,
         onReset: {},
         onToggleFlagMode: {},
-        onShare: {},
+        onCopy: {},
         onAbout: {}
     )
         .padding()
@@ -203,7 +290,7 @@ private struct ControlsPopoverView: View {
         isFlagMode: true,
         onReset: {},
         onToggleFlagMode: {},
-        onShare: {},
+        onCopy: {},
         onAbout: {}
     )
         .padding()

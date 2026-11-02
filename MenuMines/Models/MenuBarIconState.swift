@@ -64,8 +64,15 @@ enum MenuBarIconState: Equatable {
 func menuBarIconState(
     gameStatus: GameStatus,
     isPaused: Bool,
-    isDailyComplete: Bool
+    isDailyComplete: Bool,
+    puzzleType: PuzzleType = .daily
 ) -> MenuBarIconState {
+    // The icon is the prompt to play today's puzzle, so a finished random game or replay
+    // mustn't look like today is done.
+    if puzzleType != .daily, gameStatus != .playing {
+        return isDailyComplete ? .complete : .incomplete
+    }
+
     switch gameStatus {
     case .lost:
         return .lost

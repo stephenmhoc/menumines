@@ -5,6 +5,7 @@ struct ConfettiView: View {
 
     @State private var particles: [ConfettiParticle] = []
     @State private var animationStartTime: Date?
+    @State private var showsReducedCelebration = false
 
     private let animationDuration: TimeInterval = 2.0
     private let particleCount = 50
@@ -34,9 +35,17 @@ struct ConfettiView: View {
                 }
             }
             .onChange(of: isActive) { _, newValue in
-                if newValue {
+                guard newValue else { return }
+                if reduceMotionEnabled {
+                    showsReducedCelebration = true
+                } else {
                     startCelebration(in: geometry.size)
                 }
+            }
+            .task(id: showsReducedCelebration) {
+                guard showsReducedCelebration else { return }
+                try? await Task.sleep(for: .seconds(animationDuration))
+                showsReducedCelebration = false
             }
         }
         .allowsHitTesting(false)
@@ -45,7 +54,9 @@ struct ConfettiView: View {
     private var reducedMotionCelebration: some View {
         Text("🎉")
             .font(.system(size: 48))
-            .opacity(isActive ? 1 : 0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .opacity(showsReducedCelebration ? 1 : 0)
+            .animation(.easeOut(duration: 0.3), value: showsReducedCelebration)
     }
 
     private func calculatePhase(at date: Date) -> CGFloat {

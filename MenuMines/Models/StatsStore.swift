@@ -1,14 +1,17 @@
 import Foundation
-import Sentry
 
 /// Manages persistence and retrieval of game statistics.
 /// Stores raw game results and computes derived metrics at runtime.
 @Observable
 final class StatsStore {
     private static let resultsKey = "gameResults"
+    private static let resetAtKey = "statsResetAt"
 
     /// All recorded game results, sorted by completion date (newest first).
     private(set) var results: [GameResult] = []
+
+    /// When statistics were last erased. Results from before this never come back.
+    private(set) var resetAt: Date?
 
     /// Shared singleton instance.
     static let shared = StatsStore()
@@ -197,12 +200,14 @@ final class StatsStore {
     /// Records a game result and persists to storage.
     /// Daily puzzles are deduplicated by seed (only one result per day).
     /// Random puzzles are always recorded (no deduplication).
+    /// - Returns: Whether the result was recorded.
     @MainActor
-    func record(_ result: GameResult) {
+    @discardableResult
+    func record(_ result: GameResult) -> Bool {
         // Only deduplicate daily puzzles - random puzzles are always recorded
         if result.puzzleType == .daily {
             if results.contains(where: { $0.puzzleType == .daily && $0.dailySeed == result.dailySeed }) {
-                return
+                return false
             }
         }
         results.insert(result, at: 0)
@@ -211,30 +216,48 @@ final class StatsStore {
         // Publish immediately rather than at next launch, so finishing on one Mac is visible
         // on another before the streak has a chance to look broken.
         if result.puzzleType == .daily {
-            StatsSync.pushToCloud()
+            StatsSync.sync()
         }
+        return true
     }
 
-    /// Clears all statistics.
+    /// Clears all statistics, on every Mac.
     @MainActor
     func reset() {
+        let date = Date()
         results = []
+        resetAt = date
         UserDefaults.standard.removeObject(forKey: Self.resultsKey)
+        UserDefaults.standard.set(date, forKey: Self.resetAtKey)
+        StatsSync.publishReset(at: date)
+    }
+
+    /// Applies a reset made on another Mac.
+    /// - Returns: Whether anything local changed.
+    @MainActor
+    @discardableResult
+    func applyReset(at date: Date) -> Bool {
+        if let resetAt, resetAt >= date { return false }
+
+        resetAt = date
+        UserDefaults.standard.set(date, forKey: Self.resetAtKey)
+
+        let remaining = results.filter { $0.completedAt > date }
+        guard remaining.count != results.count else { return false }
+        results = remaining
+        saveResults()
+        return true
     }
 
     // MARK: - Persistence
 
     private func loadResults() {
+        resetAt = UserDefaults.standard.object(forKey: Self.resetAtKey) as? Date
         guard let data = UserDefaults.standard.data(forKey: Self.resultsKey) else { return }
         do {
             results = try JSONDecoder().decode([GameResult].self, from: data)
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setTag(value: "stats_load", key: "operation")
-                scope.setContext(value: [
-                    "data_size_bytes": data.count
-                ], key: "persistence")
-            }
+            Telemetry.report(error, area: "persistence", step: "stats_load")
         }
     }
 
@@ -243,12 +266,7 @@ final class StatsStore {
             let data = try JSONEncoder().encode(results)
             UserDefaults.standard.set(data, forKey: Self.resultsKey)
         } catch {
-            SentrySDK.capture(error: error) { scope in
-                scope.setTag(value: "stats_save", key: "operation")
-                scope.setContext(value: [
-                    "results_count": self.results.count
-                ], key: "persistence")
-            }
+            Telemetry.report(error, area: "persistence", step: "stats_save")
         }
     }
 
@@ -273,21 +291,47 @@ final class StatsStore {
     /// Only daily results are exchanged. They are the ones tied to a calendar day and to
     /// streaks, so they mean the same thing on every Mac, whereas random puzzles are just a
     /// count of games played on one machine and syncing them would double-count.
+    ///
+    /// Each day has one result on every Mac: the first one finished. A result for today also
+    /// completes today here, so a day finished on one Mac can't be played again on another.
     /// - Returns: Whether anything local changed.
     @MainActor
     @discardableResult
     func merge(dailyResults incoming: [GameResult]) -> Bool {
-        let existingSeeds = Set(dailyResults.map(\.dailySeed))
-        let additions = incoming
-            .filter { $0.puzzleType == .daily }
-            .filter { !existingSeeds.contains($0.dailySeed) }
+        var bySeed = dailyResultsBySeed
+        var changed = false
 
-        guard !additions.isEmpty else { return false }
+        for result in incoming where result.puzzleType == .daily {
+            if let resetAt, result.completedAt <= resetAt { continue }
+            if let existing = bySeed[result.dailySeed], !Self.isFirst(result, before: existing) { continue }
+            bySeed[result.dailySeed] = result
+            changed = true
+        }
 
-        results.append(contentsOf: additions)
-        results.sort { $0.completedAt > $1.completedAt }
+        guard changed else { return false }
+
+        results = (results.filter { $0.puzzleType != .daily } + bySeed.values)
+            .sorted { $0.completedAt > $1.completedAt }
         saveResults()
+
+        if let today = bySeed[seedFromDate(Date())] {
+            markCompleteAndRecordStats(
+                forSeed: today.dailySeed,
+                won: today.won,
+                elapsedTime: today.elapsedTime,
+                flagCount: today.won ? Board.mineCount : 0
+            )
+        }
         return true
+    }
+
+    /// Picks between two results for one day, the same way on every Mac.
+    private static func isFirst(_ result: GameResult, before other: GameResult) -> Bool {
+        if result.completedAt != other.completedAt {
+            return result.completedAt < other.completedAt
+        }
+        // Only for an exact tie, so that merge order can never decide it.
+        return result.won && !other.won
     }
 
     // MARK: - Testing Support

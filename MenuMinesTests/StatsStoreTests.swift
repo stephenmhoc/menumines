@@ -105,68 +105,12 @@ struct StatsStoreTests {
         #expect(store.longestStreak == 0)
     }
 
-    @Test("History calendar groups results by local completion day")
-    func testHistoryCalendarGroupsResultsByLocalCompletionDay() throws {
-        guard let timeZone = TimeZone(identifier: "America/New_York") else {
-            Issue.record("Missing test time zone")
-            return
-        }
+@Test("Recent results name the puzzle, not the local day it was finished")
+    func testRecentResultsNameThePuzzle() {
+        let result = makeResult(won: false, dailySeed: 20260424, completedAt: Date(timeIntervalSince1970: 0))
+        let locale = Locale(identifier: "en_US")
 
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-
-        let completedAt = try #require(calendar.date(from: DateComponents(
-            timeZone: timeZone,
-            year: 2026,
-            month: 4,
-            day: 23,
-            hour: 21,
-            minute: 12
-        )))
-        let result = makeResult(won: true, dailySeed: 20260424, completedAt: completedAt)
-        let resultsByLocalDay = StatsHistoryCalendar.resultsByLocalDay([result], calendar: calendar)
-
-        let localCompletionDay = calendar.startOfDay(for: completedAt)
-        let nextLocalDay = try #require(calendar.date(from: DateComponents(
-            timeZone: timeZone,
-            year: 2026,
-            month: 4,
-            day: 24
-        )))
-
-        #expect(resultsByLocalDay[localCompletionDay] == result)
-        #expect(resultsByLocalDay[nextLocalDay] == nil)
-    }
-
-    @Test("Recent results display the local completion day")
-    func testRecentResultsDisplayLocalCompletionDay() throws {
-        guard let timeZone = TimeZone(identifier: "America/New_York") else {
-            Issue.record("Missing test time zone")
-            return
-        }
-
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-
-        let completedAt = try #require(calendar.date(from: DateComponents(
-            timeZone: timeZone,
-            year: 2026,
-            month: 4,
-            day: 23,
-            hour: 21,
-            minute: 12
-        )))
-        let result = makeResult(won: false, dailySeed: 20260424, completedAt: completedAt)
-        let displayDate = StatsRecentResults.displayDate(for: result, calendar: calendar)
-        let nextLocalDay = try #require(calendar.date(from: DateComponents(
-            timeZone: timeZone,
-            year: 2026,
-            month: 4,
-            day: 24
-        )))
-
-        #expect(calendar.isDate(displayDate, inSameDayAs: completedAt))
-        #expect(!calendar.isDate(displayDate, inSameDayAs: nextLocalDay))
+        #expect(StatsRecentResults.formattedDate(for: result, locale: locale) == "Apr 24, 2026")
     }
 
     // MARK: - Games Played

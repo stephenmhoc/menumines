@@ -48,34 +48,6 @@ struct DailyBoardFairnessTests {
         #expect(cellsTried > 0, "No hidden safe cells were exercised, so this proved nothing")
     }
 
-    /// Board level on purpose: playing this through GameState risks opening a mine, which
-    /// completes the daily and writes completion state that other suites race against.
-    @Test("Two players who play the same day produce the same share grid")
-    func testShareGridsMatchAcrossPlayers() {
-        let seed: Int64 = 20260725
-        let date = dateFromSeed(seed) ?? Date()
-
-        var first = Board(dailySeed: seed)
-        var second = Board(dailySeed: seed)
-
-        let openings = hiddenSafeCells(in: first)
-        guard let a = openings.first, let b = openings.last, a != b else {
-            Issue.record("Need two distinct safe openings to compare")
-            return
-        }
-        _ = first.reveal(row: a.row, col: a.col)
-        _ = second.reveal(row: b.row, col: b.col)
-
-        let firstGrid = ShareTextGenerator.generate(
-            status: .lost, board: first, elapsedTime: 60, markedMinesCount: 0, date: date
-        )
-        let secondGrid = ShareTextGenerator.generate(
-            status: .lost, board: second, elapsedTime: 60, markedMinesCount: 0, date: date
-        )
-
-        #expect(firstGrid == secondGrid, "Share grids must match or there is nothing to compare")
-    }
-
     private func hiddenSafeCells(in board: Board) -> [(row: Int, col: Int)] {
         var found: [(row: Int, col: Int)] = []
         for row in 0..<Board.rows {

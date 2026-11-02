@@ -8,19 +8,87 @@ struct MenuContentView: View {
     @State private var showResetConfirmation = false
     @State private var showCelebration = false
     @State private var isFlagMode = false
+    @State private var isHoldingCell = false
+    /// The ring only means something once the player is steering with the keyboard.
+    @State private var usesKeyboard = false
+    @State private var hoveredCell: BoardPosition?
+    @FocusState private var isBoardFocused: Bool
+
+    private struct BoardPosition: Equatable {
+        let row: Int
+        let col: Int
+    }
 
     private var isGameComplete: Bool {
         gameState.status == .won || gameState.status == .lost
     }
 
+    /// The moment the next daily arrives, once there's nothing left to do today.
+    private var nextPuzzleDate: Date? {
+        let isToday = gameState.currentDaySeed == seedFromDate(Date())
+        guard isToday, gameState.puzzleType == .daily, isGameComplete else { return nil }
+        return nextDailyPuzzleDate(after: Date())
+    }
+
     private let contentHeight: CGFloat = 372
 
     private func copyShareTextToClipboard() {
-        let shareDate = gameState.puzzleType == .daily ? dateFromSeed(gameState.dailySeed) ?? Date() : Date()
-        guard let text = gameState.shareText(for: shareDate) else { return }
+        guard let text = gameState.shareText() else { return }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+    }
+
+    /// Handles the board's keys. They only arrive while the board has keyboard focus, so a
+    /// confirmation or a focused button gets Space for itself and can't reveal a hidden cell.
+    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
+
+        switch press.key {
+        case .upArrow:
+            moveSelection(.up)
+        case .downArrow:
+            moveSelection(.down)
+        case .leftArrow:
+            moveSelection(.left)
+        case .rightArrow:
+            moveSelection(.right)
+        case .space where press.phase == .down:
+            usesKeyboard = true
+            gameState.revealSelected()
+        default:
+            guard press.characters.lowercased() == "f" else { return .ignored }
+            if press.phase == .down {
+                flagAtPointerOrSelection()
+            }
+        }
+        return .handled
+    }
+
+    private func moveSelection(_ direction: Direction) {
+        usesKeyboard = true
+        gameState.moveSelection(direction)
+    }
+
+    private func flagAtPointerOrSelection() {
+        if let hoveredCell, !usesKeyboard {
+            gameState.select(row: hoveredCell.row, col: hoveredCell.col)
+        }
+        gameState.toggleFlagSelected()
+    }
+
+    private func reveal(row: Int, col: Int) {
+        usesKeyboard = false
+        isBoardFocused = true
+        gameState.select(row: row, col: col)
+        gameState.reveal(row: row, col: col)
+    }
+
+    private func flag(row: Int, col: Int) {
+        usesKeyboard = false
+        isBoardFocused = true
+        gameState.select(row: row, col: col)
+        gameState.toggleFlag(row: row, col: col)
     }
 
     private func handleResetRequest() {
@@ -61,6 +129,7 @@ struct MenuContentView: View {
                     elapsedTime: gameState.elapsedTime,
                     flagCount: gameState.flagCount,
                     canReset: gameState.canReset,
+                    isHoldingCell: isHoldingCell,
                     onReset: handleResetRequest
                 )
 
@@ -69,26 +138,43 @@ struct MenuContentView: View {
                     gameStatus: gameState.status,
                     selectedRow: gameState.selectedRow,
                     selectedCol: gameState.selectedCol,
+                    showsSelection: usesKeyboard,
                     isFlagMode: isFlagMode,
-                    onReveal: { row, col in
-                        gameState.reveal(row: row, col: col)
+                    onReveal: reveal,
+                    onFlag: flag,
+                    onHover: { row, col, isHovering in
+                        if isHovering {
+                            hoveredCell = BoardPosition(row: row, col: col)
+                            usesKeyboard = false
+                        } else if hoveredCell == BoardPosition(row: row, col: col) {
+                            hoveredCell = nil
+                        }
                     },
-                    onFlag: { row, col in
-                        gameState.toggleFlag(row: row, col: col)
+                    onHoldChanged: { isHoldingCell = $0 },
+                    onAccessibilityFocus: { row, col in
+                        gameState.select(row: row, col: col)
                     }
                 )
+                .focusable(!showResetConfirmation)
+                .focusEffectDisabled()
+                .focused($isBoardFocused)
+                .onKeyPress(phases: [.down, .repeat], action: handleKey)
 
                 FooterView(
                     isGameComplete: isGameComplete,
                     puzzleType: gameState.puzzleType,
                     canReset: gameState.canReset,
                     isFlagMode: isFlagMode,
+                    shareText: isGameComplete ? gameState.shareText() : nil,
+                    nextPuzzleDate: nextPuzzleDate,
                     onReset: handleResetRequest,
                     onToggleFlagMode: {
                         isFlagMode.toggle()
                     },
-                    onShare: {
-                        copyShareTextToClipboard()
+                    onCopy: copyShareTextToClipboard,
+                    onReturnToToday: {
+                        gameState.returnToToday()
+                        gameState.resumeTimer()
                     },
                     onAbout: {
                         AboutWindow.show()
@@ -115,27 +201,40 @@ struct MenuContentView: View {
         .frame(width: 300, height: contentHeight, alignment: .top)
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
-            MenuBarPresentation.setVisible(true)
-            gameState.checkForDailyRollover()
+            gameState.dayMayHaveChanged()
             gameState.checkContinuousPlaySetting()
             gameState.resumeTimer()
+            Leaderboard.retryPendingScore()
+            isBoardFocused = true
         }
         .onDisappear {
-            MenuBarPresentation.setVisible(false)
+            isHoldingCell = false
+            hoveredCell = nil
             gameState.pauseTimer()
             gameState.save()
         }
+        .onChange(of: showResetConfirmation) { _, isShowing in
+            if !isShowing {
+                isBoardFocused = true
+            }
+        }
         .onChange(of: gameState.status) { oldStatus, newStatus in
+            // Only a game finishing just now is worth celebrating. Going back to one that
+            // finished hours ago changes the status too.
+            let justFinished = oldStatus == .playing
+
             switch newStatus {
             case .won:
                 isFlagMode = false
-                showCelebration = true
-                announceGameResult(won: true)
-                gameState.save()
+                if justFinished {
+                    showCelebration = true
+                    announceGameResult(won: true)
+                }
             case .lost:
                 isFlagMode = false
-                announceGameResult(won: false)
-                gameState.save()
+                if justFinished {
+                    announceGameResult(won: false)
+                }
             case .playing:
                 // Clear celebration when resetting from won state
                 if oldStatus == .won {

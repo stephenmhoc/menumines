@@ -11,9 +11,13 @@ struct CellView: View {
     let isFlagMode: Bool
     let onReveal: () -> Void
     let onFlag: () -> Void
+    var onHover: (Bool) -> Void = { _ in }
+    var onHoldChanged: (Bool) -> Void = { _ in }
+    var onAccessibilityFocus: () -> Void = {}
 
     @State private var isHovered = false
     @State private var isPressed = false
+    @AccessibilityFocusState private var isAccessibilityFocused
     @Environment(\.colorScheme) private var colorScheme
 
     private static let cellSize: CGFloat = 28
@@ -34,11 +38,15 @@ struct CellView: View {
                 onRightClick: onFlag,
                 onPressedChanged: { pressed in
                     isPressed = pressed
+                    if isPlayable {
+                        onHoldChanged(pressed)
+                    }
                 }
             )
         )
         .onHover { hovering in
             isHovered = hovering
+            onHover(hovering)
         }
         // Declarative animations only. Wrapping these state changes in `withAnimation`
         // opens a global transaction, so the reveal cascade the same click triggers across
@@ -49,6 +57,19 @@ struct CellView: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(accessibilityHint)
         .accessibilityAddTraits(accessibilityTraits)
+        .accessibilityRespondsToUserInteraction(isPlayable)
+        .accessibilityAction { onReveal() }
+        .accessibilityAction(named: String(localized: "cell_action_flag")) { onFlag() }
+        .accessibilityFocused($isAccessibilityFocused)
+        .onChange(of: isAccessibilityFocused) { _, focused in
+            if focused {
+                onAccessibilityFocus()
+            }
+        }
+    }
+
+    private var isPlayable: Bool {
+        gameStatus == .notStarted || gameStatus == .playing
     }
 
     // MARK: - Accessibility
@@ -82,7 +103,7 @@ struct CellView: View {
     }
 
     private var accessibilityHint: String {
-        guard gameStatus == .notStarted || gameStatus == .playing else {
+        guard isPlayable else {
             return ""
         }
 
@@ -266,31 +287,47 @@ private struct ClickHandlerView: NSViewRepresentable {
     }
 }
 
+/// Handles clicks the way a Mac button does: a left click acts on release, so a player who
+/// changes their mind can drag off the cell and let go. A secondary click flags on the way
+/// down, because a flag is safe and these need to be quick.
 private class ClickableNSView: NSView {
     var onLeftClick: (() -> Void)?
     var onRightClick: (() -> Void)?
     var onPressedChanged: ((Bool) -> Void)?
 
     override func mouseDown(with event: NSEvent) {
-        pulsePressedState()
         if event.modifierFlags.contains(.control) {
             // Control+Click is the macOS convention for secondary click
-            onRightClick?()
+            flag()
         } else {
+            onPressedChanged?(true)
+        }
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard !event.modifierFlags.contains(.control) else { return }
+        onPressedChanged?(contains(event))
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard !event.modifierFlags.contains(.control) else { return }
+        onPressedChanged?(false)
+        if contains(event) {
             onLeftClick?()
         }
     }
 
     override func rightMouseDown(with event: NSEvent) {
-        pulsePressedState()
+        flag()
+    }
+
+    private func flag() {
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         onRightClick?()
     }
 
-    private func pulsePressedState() {
-        onPressedChanged?(true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
-            self?.onPressedChanged?(false)
-        }
+    private func contains(_ event: NSEvent) -> Bool {
+        bounds.contains(convert(event.locationInWindow, from: nil))
     }
 }
 

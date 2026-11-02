@@ -5,9 +5,13 @@ struct GameBoardView: View {
     let gameStatus: GameStatus
     let selectedRow: Int
     let selectedCol: Int
+    var showsSelection: Bool = true
     let isFlagMode: Bool
     let onReveal: (Int, Int) -> Void
     let onFlag: (Int, Int) -> Void
+    var onHover: (Int, Int, Bool) -> Void = { _, _, _ in }
+    var onHoldChanged: (Bool) -> Void = { _ in }
+    var onAccessibilityFocus: (Int, Int) -> Void = { _, _ in }
 
     var body: some View {
         VStack(spacing: 1) {
@@ -19,7 +23,7 @@ struct GameBoardView: View {
                             row: row,
                             col: col,
                             gameStatus: gameStatus,
-                            isSelected: row == selectedRow && col == selectedCol,
+                            isSelected: showsSelection && row == selectedRow && col == selectedCol,
                             isChordReady: isChordReady(row: row, col: col),
                             isFlagMode: isFlagMode,
                             onReveal: {
@@ -29,13 +33,18 @@ struct GameBoardView: View {
                                     onReveal(row, col)
                                 }
                             },
-                            onFlag: { onFlag(row, col) }
+                            onFlag: { onFlag(row, col) },
+                            onHover: { onHover(row, col, $0) },
+                            onHoldChanged: onHoldChanged,
+                            onAccessibilityFocus: { onAccessibilityFocus(row, col) }
                         )
                     }
                 }
             }
         }
         .background(Color(nsColor: .separatorColor))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(String(localized: "board_accessibility_label"))
     }
 
     private func isChordReady(row: Int, col: Int) -> Bool {

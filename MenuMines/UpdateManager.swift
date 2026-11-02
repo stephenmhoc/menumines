@@ -2,6 +2,7 @@ import Foundation
 import Security
 
 #if SPARKLE_ENABLED
+import Combine
 import Sparkle
 #endif
 
@@ -101,6 +102,27 @@ enum UpdateManager {
         userDriverDelegate: nil
     )
 
+    /// Mirrors Sparkle's KVO state so SwiftUI redraws when a check begins and ends.
+    @Observable
+    final class Availability {
+        var canCheck = false
+        @ObservationIgnored private var subscription: AnyCancellable?
+
+        func observe(_ updater: SPUUpdater) {
+            subscription = updater.publisher(for: \.canCheckForUpdates)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] in self?.canCheck = $0 }
+        }
+    }
+
+    private static let availability = Availability()
+
+    /// Starts Sparkle's schedule. The controller is lazy, so without this a player who never
+    /// opened the popover would never get an update check.
+    static func start() {
+        availability.observe(updater)
+    }
+
     /// The underlying Sparkle updater instance.
     static var updater: SPUUpdater {
         updaterController.updater
@@ -108,7 +130,7 @@ enum UpdateManager {
 
     /// Whether the updater is currently able to check for updates.
     static var canCheckForUpdates: Bool {
-        updater.canCheckForUpdates
+        availability.canCheck
     }
 
     /// Manually trigger an update check.
@@ -133,6 +155,7 @@ enum UpdateManager {
         updater.lastUpdateCheckDate
     }
     #else
+    static func start() {}
     static var canCheckForUpdates: Bool { false }
     static func checkForUpdates() {}
     static var automaticallyChecksForUpdates: Bool {

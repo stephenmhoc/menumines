@@ -12,6 +12,11 @@ func runLoopFor(seconds: TimeInterval) {
     }
 }
 
+/// Yesterday's daily seed. Subtracting one from today's isn't a date on the 1st of a month.
+func yesterdaySeed() -> Int64 {
+    seedFromDate(Date().addingTimeInterval(-86_400))
+}
+
 /// Helper to find the first safe (non-mine) cell in a board
 func findSafeCell(in board: Board) -> (row: Int, col: Int)? {
     for r in 0..<Board.rows {

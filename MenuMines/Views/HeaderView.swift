@@ -5,6 +5,7 @@ struct HeaderView: View {
     let elapsedTime: TimeInterval
     let flagCount: Int
     let canReset: Bool
+    var isHoldingCell: Bool = false
     let onReset: () -> Void
 
     private var timeDisplay: String {
@@ -17,7 +18,7 @@ struct HeaderView: View {
     private var statusEmoji: String {
         switch status {
         case .notStarted, .playing:
-            return "🙂"
+            return isHoldingCell ? "😮" : "🙂"
         case .won:
             return "😎"
         case .lost:
@@ -91,6 +92,7 @@ struct HeaderView: View {
             }
             .buttonStyle(.plain)
             .disabled(!canReset)
+            .help(canReset ? String(localized: "reset_button") : String(localized: "reset_locked_hint"))
             .accessibilityLabel(String(format: String(localized: "reset_accessibility_combined"), statusDescription))
             .accessibilityHint(canReset ? String(localized: "reset_accessibility_hint") : String(localized: "reset_locked_hint"))
 

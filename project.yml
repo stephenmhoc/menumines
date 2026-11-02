@@ -1,0 +1,157 @@
+name: MenuMines
+configs:
+  Debug: debug
+  Release: release
+  Release-Direct: release
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  defaultConfig: Release
+  groupSortPosition: top
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CLANG_CXX_LANGUAGE_STANDARD: gnu++20
+    GCC_C_LANGUAGE_STANDARD: gnu17
+    MARKETING_VERSION: 1.0.19
+    CURRENT_PROJECT_VERSION: 1
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: true
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: true
+packages:
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa.git
+    majorVersion: 8.0.0
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle.git
+    majorVersion: 2.5.0
+settingGroups:
+  app:
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: false
+    COMBINE_HIDPI_IMAGES: true
+    DEVELOPMENT_ASSET_PATHS: ""
+    ENABLE_HARDENED_RUNTIME: true
+    ENABLE_PREVIEWS: true
+    GENERATE_INFOPLIST_FILE: true
+    INFOPLIST_KEY_CFBundleDisplayName: MenuMines
+    # Utilities, not puzzle-games, so macOS Game Mode never activates for a menu bar app.
+    INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
+    INFOPLIST_KEY_LSUIElement: true
+    INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 MeriMeriMeri Software. All rights reserved."
+    LD_RUNPATH_SEARCH_PATHS:
+      - $(inherited)
+      - "@executable_path/../Frameworks"
+    SWIFT_EMIT_LOC_STRINGS: true
+  # Every local build gets its own identity, icon and preferences, so it can never touch the
+  # installed app's streak, and has no iCloud, Game Center or Sparkle, so it can't reach a
+  # player's real records either. Tests are hosted by this build for the same reason.
+  dev:
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon-Dev
+    CODE_SIGN_ENTITLEMENTS: MenuMines/MenuMines-Dev.entitlements
+    DEVELOPMENT_TEAM: 8G4H6268W7
+    INFOPLIST_FILE: MenuMines/Info.plist
+    INFOPLIST_KEY_CFBundleDisplayName: MenuMines Dev
+    PRODUCT_BUNDLE_IDENTIFIER: com.merimerimeri.MenuMines.dev
+    SENTRY_DSN: ""
+targets:
+  # The App Store build.
+  MenuMines:
+    type: application
+    platform: macOS
+    sources: &appSources
+      - path: MenuMines
+        excludes:
+          - "Info*.plist"
+          - "*.entitlements"
+    dependencies:
+      - package: Sentry
+    settings:
+      groups: [app]
+      base:
+        CODE_SIGN_ENTITLEMENTS: MenuMines/MenuMines.entitlements
+        DEVELOPMENT_TEAM: 8G4H6268W7
+        INFOPLIST_FILE: MenuMines/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.merimerimeri.MenuMines
+        PRODUCT_NAME: $(TARGET_NAME)
+        SENTRY_DSN: ""
+      configs:
+        Debug:
+          groups: [dev]
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: ICLOUD_SYNC_ENABLED GAME_CENTER_ENABLED $(inherited)
+        Release-Direct:
+          CODE_SIGN_IDENTITY: Apple Development
+          PROVISIONING_PROFILE_SPECIFIER: ""
+          PRODUCT_NAME: MenuMines
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: ICLOUD_SYNC_ENABLED GAME_CENTER_ENABLED $(inherited)
+  # The download with Sparkle. Not sandboxed: Sparkle's installer can't work through it.
+  MenuMinesDirect:
+    type: application
+    platform: macOS
+    sources: *appSources
+    dependencies:
+      - package: Sentry
+      - package: Sparkle
+    settings:
+      groups: [app]
+      base:
+        CODE_SIGN_ENTITLEMENTS: MenuMines/MenuMines-Direct.entitlements
+        CODE_SIGN_IDENTITY: Apple Development
+        DEVELOPMENT_TEAM: 8G4H6268W7
+        INFOPLIST_FILE: MenuMines/Info-Direct.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.merimerimeri.MenuMines
+        PRODUCT_NAME: MenuMinesDirect
+        PROVISIONING_PROFILE_SPECIFIER: ""
+        SENTRY_DSN: $(SENTRY_DSN)
+        SPARKLE_PUBLIC_ED_KEY: $(SPARKLE_PUBLIC_ED_KEY)
+      configs:
+        Debug:
+          groups: [dev]
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: SPARKLE_ENABLED $(inherited)
+        Release-Direct:
+          DEVELOPMENT_TEAM: ""
+          PRODUCT_NAME: $(TARGET_NAME)
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: SPARKLE_ENABLED $(inherited)
+  MenuMinesTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - MenuMinesTests
+    dependencies:
+      - target: MenuMines
+    settings:
+      base:
+        BUNDLE_LOADER: $(TEST_HOST)
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: com.merimerimeri.MenuMinesTests
+        PRODUCT_NAME: $(TARGET_NAME)
+        SWIFT_EMIT_LOC_STRINGS: false
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/MenuMines.app/Contents/MacOS/MenuMines
+schemes:
+  MenuMines:
+    build:
+      targets:
+        MenuMines: all
+        MenuMinesTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - name: MenuMinesTests
+          parallelizable: false
+    archive:
+      config: Release
+  # Run uses Debug so that running this scheme can't touch the installed app. Tests live on the
+  # MenuMines scheme, because they're hosted by that target and say nothing about this build.
+  MenuMines-Direct:
+    build:
+      targets:
+        MenuMinesDirect: all
+    run:
+      config: Debug
+    archive:
+      config: Release-Direct

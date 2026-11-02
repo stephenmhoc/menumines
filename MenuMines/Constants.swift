@@ -20,5 +20,8 @@ enum Constants {
         /// When true (default), after completing the daily puzzle, users can continue
         /// playing unlimited random puzzles. Only the daily puzzle counts toward streaks.
         static let continuousPlay = "com.menumines.continuousPlay"
+
+        /// Whether crash and failure reports are sent. On unless the player turns it off.
+        static let sendCrashReports = "com.menumines.sendCrashReports"
     }
 }

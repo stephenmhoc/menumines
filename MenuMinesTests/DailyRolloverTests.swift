@@ -12,6 +12,8 @@ struct DailyRolloverTests {
     }
 
     private func clearAllUserDefaults() {
+        // These tests are about carrying a game over midnight, which relies on this being off.
+        UserDefaults.standard.set(false, forKey: Constants.SettingsKeys.continuousPlay)
         GameSnapshot.clear()
         GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { GameSnapshot.clear() }
         UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed")
@@ -21,6 +23,11 @@ struct DailyRolloverTests {
         if let previousSeed = previousDailySeed() {
             UserDefaults.standard.removeObject(forKey: "dailyStats_\(previousSeed)")
         }
+    }
+
+    private func tearDown() {
+        clearAllUserDefaults()
+        UserDefaults.standard.removeObject(forKey: Constants.SettingsKeys.continuousPlay)
     }
 
     private func previousDailySeed() -> Int64? {
@@ -74,10 +81,10 @@ struct DailyRolloverTests {
     func testLoadAnyDayReturnsSnapshotFromAnyDay() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let board = Board(seed: 12345)
-            let yesterdaySeed = seedFromDate(Date()) - 1
+            let yesterdaySeed = yesterdaySeed()
             let snapshot = GameSnapshot(
                 board: board,
                 status: .playing,
@@ -100,7 +107,7 @@ struct DailyRolloverTests {
     func testLoadAnyDayReturnsNilWhenNoSnapshot() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let loaded = GameSnapshot.loadAnyDay()
             #expect(loaded == nil, "loadAnyDay should return nil when no snapshot exists")
@@ -113,10 +120,10 @@ struct DailyRolloverTests {
     func testRestoredRollsOverWhenNotStarted() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let board = Board(seed: 12345)
-            let yesterdaySeed = seedFromDate(Date()) - 1
+            let yesterdaySeed = yesterdaySeed()
             let snapshot = GameSnapshot(
                 board: board,
                 status: .notStarted,
@@ -133,7 +140,7 @@ struct DailyRolloverTests {
             let todaySeed = seedFromDate(Date())
             #expect(restored.status == .notStarted, "Should be not started")
             // Board should be today's board, not yesterday's
-            let expectedBoard = Board(seed: todaySeed)
+            let expectedBoard = Board(dailySeed: todaySeed)
             #expect(restored.board == expectedBoard, "Should have today's board")
         }
     }
@@ -142,10 +149,10 @@ struct DailyRolloverTests {
     func testRestoredRollsOverWhenWon() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let board = Board(seed: 12345)
-            let yesterdaySeed = seedFromDate(Date()) - 1
+            let yesterdaySeed = yesterdaySeed()
             let snapshot = GameSnapshot(
                 board: board,
                 status: .won,
@@ -169,10 +176,10 @@ struct DailyRolloverTests {
     func testRestoredRollsOverWhenLost() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let board = Board(seed: 12345)
-            let yesterdaySeed = seedFromDate(Date()) - 1
+            let yesterdaySeed = yesterdaySeed()
             let snapshot = GameSnapshot(
                 board: board,
                 status: .lost,
@@ -195,15 +202,15 @@ struct DailyRolloverTests {
     func testRestoredDelaysRolloverWhenInProgress() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let board = Board(seed: 12345)
-            let yesterdaySeed = seedFromDate(Date()) - 1
+            let yesterdaySeed = yesterdaySeed()
             let snapshot = GameSnapshot(
                 board: board,
                 status: .playing,
                 elapsedTime: 75.0,
-                flagCount: 4,
+                flagCount: 0,
                 selectedRow: 5,
                 selectedCol: 6,
                 dailySeed: yesterdaySeed
@@ -214,7 +221,7 @@ struct DailyRolloverTests {
 
             #expect(restored.status == .playing, "Should still be playing (rollover delayed)")
             #expect(restored.elapsedTime == 75.0, "Elapsed time should be preserved")
-            #expect(restored.flagCount == 4, "Flag count should be preserved")
+            #expect(restored.flagCount == 0, "Flag count should come from the board")
             #expect(restored.selectedRow == 5, "Selected row should be preserved")
             #expect(restored.selectedCol == 6, "Selected col should be preserved")
             #expect(restored.board == board, "Board should be preserved")
@@ -225,7 +232,7 @@ struct DailyRolloverTests {
     func testRestoredRestoresTodaysSnapshot() {
         withIsolatedSnapshot {
             clearAllUserDefaults()
-            defer { clearAllUserDefaults() }
+            defer { tearDown() }
 
             let board = Board(seed: 12345)
             let todaySeed = seedFromDate(Date())
@@ -233,7 +240,7 @@ struct DailyRolloverTests {
                 board: board,
                 status: .playing,
                 elapsedTime: 42.0,
-                flagCount: 2,
+                flagCount: 0,
                 selectedRow: 1,
                 selectedCol: 2,
                 dailySeed: todaySeed
@@ -244,7 +251,7 @@ struct DailyRolloverTests {
 
             #expect(restored.status == .playing, "Should be playing")
             #expect(restored.elapsedTime == 42.0, "Elapsed time should be preserved")
-            #expect(restored.flagCount == 2, "Flag count should be preserved")
+            #expect(restored.selectedCol == 2, "Selection should be preserved")
         }
     }
 
@@ -253,10 +260,10 @@ struct DailyRolloverTests {
     @Test("checkForDailyRollover does nothing when already on today's puzzle")
     func testCheckRolloverDoesNothingForTodaysPuzzle() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         let todaySeed = seedFromDate(Date())
-        let board = Board(seed: todaySeed)
+        let board = Board(dailySeed: todaySeed)
         let gameState = GameState(board: board, dailySeed: todaySeed)
         gameState.reveal(row: 0, col: 0)
 
@@ -272,10 +279,10 @@ struct DailyRolloverTests {
     @Test("checkForDailyRollover does nothing when game is in progress")
     func testCheckRolloverDoesNothingWhenInProgress() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // Create a game with yesterday's seed that's in progress
-        let yesterdaySeed = seedFromDate(Date()) - 1
+        let yesterdaySeed = yesterdaySeed()
         let board = Board(seed: yesterdaySeed)
         let gameState = GameState(board: board, dailySeed: yesterdaySeed)
         gameState.reveal(row: 0, col: 0)
@@ -293,7 +300,7 @@ struct DailyRolloverTests {
     @Test("checkForDailyRollover rolls over after previously delayed in-progress game completes")
     func testCheckRolloverAfterDelayedGameCompletes() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         guard let previousSeed = previousDailySeed() else {
             Issue.record("Failed to construct previous UTC daily seed")
@@ -324,10 +331,10 @@ struct DailyRolloverTests {
     @Test("checkForDailyRollover triggers rollover when game is not in progress")
     func testCheckRolloverTriggersRolloverWhenNotInProgress() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // Create a game with yesterday's seed that's won
-        let yesterdaySeed = seedFromDate(Date()) - 1
+        let yesterdaySeed = yesterdaySeed()
         let board = Board(seed: yesterdaySeed)
         let gameState = GameState(board: board, dailySeed: yesterdaySeed)
 
@@ -349,17 +356,17 @@ struct DailyRolloverTests {
 
         // Should have today's board
         let todaySeed = seedFromDate(Date())
-        let expectedBoard = Board(seed: todaySeed)
+        let expectedBoard = Board(dailySeed: todaySeed)
         #expect(gameState.board == expectedBoard, "Should have today's board")
     }
 
     @Test("checkForDailyRollover triggers rollover when game was lost")
     func testCheckRolloverTriggersRolloverWhenLost() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // Create a game with yesterday's seed
-        let yesterdaySeed = seedFromDate(Date()) - 1
+        let yesterdaySeed = yesterdaySeed()
         let board = Board(seed: yesterdaySeed)
         let gameState = GameState(board: board, dailySeed: yesterdaySeed)
 
@@ -386,10 +393,10 @@ struct DailyRolloverTests {
     @Test("checkForDailyRollover triggers rollover when game was not started")
     func testCheckRolloverTriggersRolloverWhenNotStarted() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // Create a game with yesterday's seed that was never started
-        let yesterdaySeed = seedFromDate(Date()) - 1
+        let yesterdaySeed = yesterdaySeed()
         let board = Board(seed: yesterdaySeed)
         let gameState = GameState(board: board, dailySeed: yesterdaySeed)
 
@@ -402,14 +409,14 @@ struct DailyRolloverTests {
 
         // Should have today's board (different from yesterday's)
         let todaySeed = seedFromDate(Date())
-        let expectedBoard = Board(seed: todaySeed)
+        let expectedBoard = Board(dailySeed: todaySeed)
         #expect(gameState.board == expectedBoard, "Should have today's board")
     }
 
     @Test("checkForDailyRollover replaces idle random puzzle when today's daily is incomplete")
     func testCheckRolloverReplacesIdleRandomPuzzleWhenDailyIncomplete() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         let randomSeed: Int64 = -12345
         let gameState = GameState(
@@ -424,13 +431,13 @@ struct DailyRolloverTests {
         #expect(gameState.puzzleType == .daily, "Idle random puzzle should yield to today's daily")
         #expect(gameState.dailySeed == todaySeed, "Game should be on today's seed")
         #expect(gameState.status == .notStarted, "New daily should not be started")
-        #expect(gameState.board == Board(seed: todaySeed), "Board should be today's daily board")
+        #expect(gameState.board == Board(dailySeed: todaySeed), "Board should be today's daily board")
     }
 
     @Test("checkForDailyRollover delays active random puzzle until completion")
     func testCheckRolloverDelaysActiveRandomPuzzleUntilCompletion() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         let randomSeed: Int64 = -67890
         let gameState = GameState(
@@ -466,10 +473,10 @@ struct DailyRolloverTests {
     @Test("Scenario: Paused in-progress game persists across day boundary")
     func testScenarioPausedGamePersistsAcrossDayBoundary() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // 1. User starts playing on day 1
-        let day1Seed = seedFromDate(Date()) - 1
+        let day1Seed = yesterdaySeed()
         let day1Board = Board(seed: day1Seed)
         let gameState = GameState(board: day1Board, dailySeed: day1Seed)
 
@@ -488,7 +495,7 @@ struct DailyRolloverTests {
         // Game should persist because it was in progress
         #expect(restoredState.status == .playing, "Game should still be in progress")
         #expect(restoredState.flagCount == 1, "Flag count should be preserved")
-        #expect(restoredState.board == day1Board, "Board should be from day 1")
+        #expect(restoredState.board == gameState.board, "Board should be from day 1")
 
         // 4. User opens popover on day 2
         restoredState.checkForDailyRollover()
@@ -501,10 +508,10 @@ struct DailyRolloverTests {
     @Test("Scenario: Completed game rolls over on next day")
     func testScenarioCompletedGameRollsOverOnNextDay() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // 1. User completes game on day 1
-        let day1Seed = seedFromDate(Date()) - 1
+        let day1Seed = yesterdaySeed()
         let day1Board = Board(seed: day1Seed)
         let gameState = GameState(board: day1Board, dailySeed: day1Seed)
 
@@ -522,17 +529,17 @@ struct DailyRolloverTests {
 
         // Should have today's board
         let todaySeed = seedFromDate(Date())
-        let todayBoard = Board(seed: todaySeed)
+        let todayBoard = Board(dailySeed: todaySeed)
         #expect(restoredState.board == todayBoard, "Should have day 2's board")
     }
 
     @Test("Scenario: In-progress game rolls over after completion on next popover open")
     func testScenarioInProgressGameRollsOverAfterCompletion() {
         clearAllUserDefaults()
-        defer { clearAllUserDefaults() }
+        defer { tearDown() }
 
         // 1. User has in-progress game from day 1
-        let day1Seed = seedFromDate(Date()) - 1
+        let day1Seed = yesterdaySeed()
         let day1Board = Board(seed: day1Seed)
         let gameState = GameState(board: day1Board, dailySeed: day1Seed)
 
@@ -560,7 +567,7 @@ struct DailyRolloverTests {
 
         // Should have today's board
         let todaySeed = seedFromDate(Date())
-        let todayBoard = Board(seed: todaySeed)
+        let todayBoard = Board(dailySeed: todaySeed)
         #expect(restoredState.board == todayBoard, "Should have today's board")
     }
 }

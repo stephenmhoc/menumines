@@ -216,6 +216,15 @@ struct Board: Equatable, Codable {
         }.count
     }
 
+    /// Opens every safe cell (used to show a win that wasn't played on this board).
+    mutating func revealAllSafeCells() {
+        for r in 0..<Board.rows {
+            for c in 0..<Board.cols where !cells[r][c].hasMine {
+                cells[r][c].state = .revealed(adjacentMines: adjacentMineCount(row: r, col: c))
+            }
+        }
+    }
+
     /// Flags all unflagged mine cells (used when game is won).
     mutating func flagAllMines() {
         for r in 0..<Board.rows {

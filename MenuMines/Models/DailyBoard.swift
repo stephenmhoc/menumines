@@ -1,5 +1,4 @@
 import Foundation
-import Sentry
 
 /// Returns today's daily board using a UTC date-based seed.
 func dailyBoard() -> Board {
@@ -151,15 +150,7 @@ func recordStats(forSeed seed: Int64, won: Bool, elapsedTime: TimeInterval, flag
     do {
         data = try JSONEncoder().encode(stats)
     } catch {
-        SentrySDK.capture(error: error) { scope in
-            scope.setTag(value: "daily_stats_save", key: "operation")
-            scope.setContext(value: [
-                "daily_seed": seed,
-                "won": won,
-                "elapsed_time": elapsedTime,
-                "flag_count": flagCount
-            ], key: "game_state")
-        }
+        Telemetry.report(error, area: "persistence", step: "daily_stats_save")
         return false
     }
 
@@ -187,13 +178,7 @@ func getStats(forSeed seed: Int64) -> DailyStats? {
         // This is the fallback the app restores a completed daily from, so a decode failure
         // here looks to the player like their result vanished. Every other decode path
         // reports; this one used to swallow.
-        SentrySDK.capture(error: error) { scope in
-            scope.setTag(value: "daily_stats_load", key: "operation")
-            scope.setContext(value: [
-                "daily_seed": seed,
-                "data_size_bytes": data.count
-            ], key: "persistence")
-        }
+        Telemetry.report(error, area: "persistence", step: "daily_stats_load")
         return nil
     }
 }

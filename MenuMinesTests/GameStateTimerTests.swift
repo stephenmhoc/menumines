@@ -106,11 +106,11 @@ struct GameStateTimerTests {
 
         // Wait for timer to tick
         runLoopFor(seconds: 1.2)
-        let timeBeforePause = gameState.elapsedTime
-        #expect(timeBeforePause >= 1)
+        #expect(gameState.elapsedTime >= 1)
 
         // Pause timer
         gameState.pauseTimer()
+        let timeBeforePause = gameState.elapsedTime
 
         // Wait and verify time doesn't increase
         runLoopFor(seconds: 1.2)

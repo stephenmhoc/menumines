@@ -39,13 +39,19 @@ final class AccessibilityAnnouncer {
 
     /// Returns a description of the cell state for accessibility announcements.
     func cellStateDescription(_ cell: Cell) -> String {
+        if cell.isExploded {
+            return String(localized: "cell_state_exploded_mine")
+        }
+
         switch cell.state {
         case .hidden:
             return String(localized: "cell_state_covered")
         case .flagged:
             return String(localized: "cell_state_flagged")
         case .revealed(let adjacentMines):
-            if adjacentMines == 0 {
+            if cell.hasMine {
+                return String(localized: "cell_state_mine")
+            } else if adjacentMines == 0 {
                 return String(localized: "cell_state_empty")
             } else if adjacentMines == 1 {
                 return String(localized: "cell_state_one_mine")

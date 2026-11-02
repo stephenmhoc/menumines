@@ -12,7 +12,7 @@ enum PuzzleType: String, Codable {
     /// be filled in afterwards, which would make streaks meaningless.
     case practice
 
-    /// Whether finishing this puzzle should be recorded anywhere.
+    /// Whether a win here counts on the leaderboard.
     var isRanked: Bool {
         self == .daily
     }

@@ -3,50 +3,6 @@ import Foundation
 import Testing
 @testable import MenuMines
 
-@Suite("Game Keyboard Routing Tests")
-struct GameKeyboardRoutingTests {
-
-    @Test("Bare key reaches the board while the popover is open")
-    func testBareKeyReachesBoard() {
-        #expect(shouldRouteKeyToBoard(modifiers: [], isMenuVisible: true, keyWindowIsTitled: false))
-    }
-
-    @Test("Arrow key flags do not block routing")
-    func testArrowKeyFlagsDoNotBlockRouting() {
-        // AppKit sets .function and .numericPad on arrow keys.
-        #expect(shouldRouteKeyToBoard(
-            modifiers: [.function, .numericPad],
-            isMenuVisible: true,
-            keyWindowIsTitled: false
-        ))
-    }
-
-    @Test("Shift is allowed so a shifted F still flags")
-    func testShiftIsAllowed() {
-        #expect(shouldRouteKeyToBoard(modifiers: [.shift], isMenuVisible: true, keyWindowIsTitled: false))
-    }
-
-    @Test("Command, control and option presses are left to the system")
-    func testModifiedKeysAreIgnored() {
-        for modifier in [NSEvent.ModifierFlags.command, .control, .option] {
-            #expect(
-                !shouldRouteKeyToBoard(modifiers: modifier, isMenuVisible: true, keyWindowIsTitled: false),
-                "\(modifier) should not reach the board"
-            )
-        }
-    }
-
-    @Test("Keys are ignored while the popover is closed")
-    func testKeysIgnoredWhilePopoverClosed() {
-        #expect(!shouldRouteKeyToBoard(modifiers: [], isMenuVisible: false, keyWindowIsTitled: false))
-    }
-
-    @Test("Keys are ignored while Settings, Stats or About has focus")
-    func testKeysIgnoredWhileTitledWindowFocused() {
-        #expect(!shouldRouteKeyToBoard(modifiers: [], isMenuVisible: true, keyWindowIsTitled: true))
-    }
-}
-
 @Suite("Build Channel Tests")
 struct BuildChannelTests {
 

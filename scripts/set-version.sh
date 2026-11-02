@@ -41,7 +41,9 @@ echo "$VERSION" > "$VERSION_FILE"
 
 # Keep the project in step. Releases inject MARKETING_VERSION on the xcodebuild command
 # line, so this only affects local builds — which is exactly where a stale value misleads.
+# project.yml is the source; the generated project is committed so CI needs no XcodeGen.
 /usr/bin/sed -i '' -E "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = $VERSION;/g" "$PROJECT_FILE"
+/usr/bin/sed -i '' -E "s/MARKETING_VERSION: .+/MARKETING_VERSION: $VERSION/" "$REPO_ROOT/project.yml"
 
 echo "Version set to $VERSION (was $CURRENT)"
 echo

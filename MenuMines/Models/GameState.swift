@@ -1,6 +1,4 @@
-import AppKit
 import Foundation
-import Sentry
 
 /// The current status of the game.
 enum GameStatus: String, Equatable, Codable {
@@ -27,7 +25,9 @@ final class GameState {
     internal(set) var selectedCol: Int = 0
     internal(set) var dailySeed: Int64
     internal(set) var puzzleType: PuzzleType = .daily
-    private(set) var isPaused: Bool = false
+    internal(set) var isPaused: Bool = false
+    /// The current puzzle day, so that anything showing it updates when the day changes.
+    private(set) var currentDaySeed: Int64 = seedFromDate(Date())
     /// Count of correctly marked mines at the time of winning (before auto-flagging).
     /// Used for share text to show player's actual skill.
     /// Persisted, because winning auto-flags every mine — recomputing it from a restored
@@ -39,6 +39,8 @@ final class GameState {
     internal(set) var chordCount: Int = 0
     /// Most cells opened by a single action, cascade included.
     internal(set) var largestOpening: Int = 0
+    /// What the player did, in order, for sharing.
+    internal(set) var playLog: [PlayStep] = []
 
     /// Timer for tracking elapsed game time.
     private let gameTimer = GameTimer()
@@ -53,11 +55,17 @@ final class GameState {
     }
 
     /// Whether reset is allowed.
-    /// Reset is locked once today's puzzle is completed unless continuous play is enabled.
+    /// Today's puzzle can't be reset once it's started, and once it's completed, reset only
+    /// moves on to a random puzzle if continuous play is enabled.
     var canReset: Bool {
         // The lock exists to stop today's result being rerolled. A replay has no result to
         // protect, so it stays restartable even once today's puzzle is settled.
         if puzzleType == .practice { return true }
+        // The board never changes, so restarting the clock on it would let anyone learn the
+        // mines and then post a fast time. A game carried over from yesterday isn't ranked.
+        if puzzleType == .daily, status == .playing, dailySeed == seedFromDate(Date()) {
+            return false
+        }
         if isDailyPuzzleComplete() {
             return isContinuousPlayEnabled
         }
@@ -68,28 +76,33 @@ final class GameState {
         self.board = board
         self.dailySeed = dailySeed
         self.puzzleType = puzzleType
-        gameTimer.onTick = { [weak self] in
-            self?.elapsedTime += 1
+        gameTimer.onTick = { [weak self] elapsed in
+            self?.elapsedTime = elapsed
         }
     }
 
     /// Generates a Wordle-style share text for the completed game.
-    /// The grid encodes only the revealed/marked/hidden outcome without exposing mine locations.
-    /// - Parameter date: The date to use for the header (defaults to current date formatted in UTC).
+    /// - Parameter date: The date to use for the header (defaults to the puzzle's own date).
     /// - Returns: The formatted share text, or nil if the game is not complete.
-    func shareText(for date: Date = Date()) -> String? {
+    func shareText(for date: Date? = nil) -> String? {
         ShareTextGenerator.generate(
             status: status,
-            board: board,
             elapsedTime: elapsedTime,
             markedMinesCount: countCorrectlyMarkedMines(),
             play: PlaySummary(
                 clickCount: clickCount,
                 chordCount: chordCount,
-                largestOpening: largestOpening
+                largestOpening: largestOpening,
+                steps: playLog
             ),
-            date: date
+            puzzleType: puzzleType,
+            date: date ?? puzzleDate
         )
+    }
+
+    /// The date of the puzzle on the board. A random puzzle's seed isn't a date.
+    private var puzzleDate: Date {
+        puzzleType == .random ? Date() : dateFromSeed(dailySeed) ?? Date()
     }
 
     /// Counts the number of flags placed on actual mines.
@@ -131,6 +144,9 @@ final class GameState {
         clickCount += 1
         if case .safe(let revealed) = result {
             largestOpening = max(largestOpening, revealed)
+            logStep(revealed > 1 ? .cascade : .open)
+        } else {
+            logStep(.open)
         }
 
         switch result {
@@ -175,28 +191,17 @@ final class GameState {
         // Update flag count
         if case .flagged = newState {
             flagCount += 1
+            logStep(.flag)
         } else if case .flagged = previousState {
             if flagCount > 0 {
                 flagCount -= 1
             } else {
-                // This should never happen in normal operation - log for debugging
-                SentrySDK.capture(message: "Attempted to decrement flagCount below zero") { [self] scope in
-                    scope.setLevel(.warning)
-                    scope.setContext(value: [
-                        "row": row,
-                        "col": col,
-                        "flag_count": flagCount,
-                        "daily_seed": dailySeed
-                    ], key: "flag_underflow")
-                }
+                // This should never happen in normal operation.
+                Telemetry.warn("Attempted to decrement flagCount below zero", area: "game_state")
             }
         }
     }
 
-    /// Resets the game to a fresh state.
-    /// If continuous play is enabled and daily puzzle is complete, starts a random puzzle.
-    /// Otherwise resets to today's daily puzzle.
-    /// Does nothing if reset is locked (daily puzzle already completed and continuous play disabled).
     /// Starts a replay of an earlier day's board.
     ///
     /// Unranked by construction: nothing about the result is recorded, so a missed day cannot
@@ -205,6 +210,10 @@ final class GameState {
     func startPractice(seed: Int64) {
         stopTimer()
         announcer.cancelPendingAnnouncement()
+
+        // The player is only visiting this board, so today's game has to be there when
+        // they come back, with its time.
+        save()
 
         board = Board(dailySeed: seed)
         dailySeed = seed
@@ -215,9 +224,20 @@ final class GameState {
         selectedRow = 0
         selectedCol = 0
         resetPlayTally()
-        // Leave the stored daily alone; the player is only visiting this board.
     }
 
+    /// Leaves a replay and goes back to today's puzzle, exactly as it was left.
+    func returnToToday() {
+        guard puzzleType == .practice else { return }
+        stopTimer()
+        announcer.cancelPendingAnnouncement()
+        apply(GamePersistenceCoordinator.restoreToday())
+    }
+
+    /// Resets the game to a fresh state.
+    /// If continuous play is enabled and daily puzzle is complete, starts a random puzzle.
+    /// Otherwise resets to today's daily puzzle.
+    /// Does nothing if reset is locked.
     func reset() {
         guard canReset else { return }
         stopTimer()
@@ -243,6 +263,7 @@ final class GameState {
             flagCount = 0
             selectedRow = 0
             selectedCol = 0
+            resetPlayTally()
             GameSnapshot.clear()
         }
     }
@@ -288,6 +309,12 @@ final class GameState {
         clickCount = 0
         chordCount = 0
         largestOpening = 0
+        playLog = []
+    }
+
+    private func logStep(_ step: PlayStep) {
+        guard playLog.count < PlayStep.maximumRecorded else { return }
+        playLog.append(step)
     }
 
     private func makeSnapshot() -> GameSnapshot {
@@ -303,8 +330,27 @@ final class GameState {
             markedMinesAtWin: markedMinesAtWin,
             clickCount: clickCount,
             chordCount: chordCount,
-            largestOpening: largestOpening
+            largestOpening: largestOpening,
+            playLog: playLog
         )
+    }
+
+    /// Takes on another state's game, whole, so a field added later can't be left behind.
+    private func apply(_ other: GameState) {
+        board = other.board
+        dailySeed = other.dailySeed
+        puzzleType = other.puzzleType
+        status = other.status
+        elapsedTime = other.elapsedTime
+        flagCount = other.flagCount
+        selectedRow = other.selectedRow
+        selectedCol = other.selectedCol
+        markedMinesAtWin = other.markedMinesAtWin
+        clickCount = other.clickCount
+        chordCount = other.chordCount
+        largestOpening = other.largestOpening
+        playLog = other.playLog
+        isPaused = other.isPaused
     }
 
     /// Creates a GameState by restoring from a saved snapshot or stats if available,
@@ -316,23 +362,41 @@ final class GameState {
 
     /// Pauses the timer (e.g., when popover closes).
     func pauseTimer() {
+        captureElapsedTime()
+        gameTimer.stop()
         if status == .playing {
-            gameTimer.pause()
             isPaused = true
-        } else {
-            gameTimer.stop()
         }
     }
 
     /// Resumes the timer (e.g., when popover reopens).
     func resumeTimer() {
         guard status == .playing else { return }
-        gameTimer.resume()
+        gameTimer.start(from: elapsedTime)
         isPaused = false
     }
 
+    /// Reacts to the puzzle day possibly having changed.
+    func dayMayHaveChanged() {
+        currentDaySeed = seedFromDate(Date())
+        checkForDailyRollover()
+    }
+
+    /// Shows a result from another Mac, if today's board hasn't been started here.
+    ///
+    /// A game already under way carries on, because taking it away mid-move would be worse.
+    /// Its result can't change anything: the first result for a day stands, and it isn't
+    /// submitted to the leaderboard a second time.
+    func adoptSyncedCompletion() {
+        let todaySeed = seedFromDate(Date())
+        guard puzzleType == .daily, dailySeed == todaySeed, status == .notStarted,
+              isDailyPuzzleComplete(forSeed: todaySeed) else { return }
+
+        apply(GamePersistenceCoordinator.restoreToday())
+    }
+
     /// Checks if we should roll over to today's puzzle and performs the rollover if needed.
-    /// Called when the popover appears to handle day changes.
+    /// Called when the popover appears and when the day changes.
     ///
     /// Rollover happens when:
     /// - The current game is a daily puzzle (not random)
@@ -342,8 +406,11 @@ final class GameState {
     /// If game is in progress, it continues until completion.
     /// Random puzzles are not date-bound, but should yield to a new daily puzzle
     /// once today's daily is available and incomplete.
+    /// A replay stays until the player leaves it, which is what `returnToToday` is for.
     func checkForDailyRollover() {
         let todaySeed = seedFromDate(Date())
+
+        if puzzleType == .practice { return }
 
         if puzzleType != .daily {
             guard !isDailyPuzzleComplete(forSeed: todaySeed) else { return }
@@ -375,7 +442,7 @@ final class GameState {
     private func rolloverToNewDay(seed: Int64) {
         stopTimer()
         announcer.cancelPendingAnnouncement()
-        board = Board(seed: seed)
+        board = Board(dailySeed: seed)
         dailySeed = seed
         puzzleType = .daily
         status = .notStarted
@@ -406,17 +473,7 @@ final class GameState {
         guard isDailyPuzzleComplete() else { return }
 
         stopTimer()
-
-        // Get the restored daily state from the coordinator and copy its values
-        let restored = GamePersistenceCoordinator.restore()
-        board = restored.board
-        dailySeed = restored.dailySeed
-        status = restored.status
-        elapsedTime = restored.elapsedTime
-        flagCount = restored.flagCount
-        selectedRow = restored.selectedRow
-        selectedCol = restored.selectedCol
-        puzzleType = restored.puzzleType
+        apply(GamePersistenceCoordinator.restore())
     }
 
     /// Moves the keyboard selection in the given direction.
@@ -438,6 +495,14 @@ final class GameState {
         if selectedRow != oldRow || selectedCol != oldCol {
             announceSelectedCell()
         }
+    }
+
+    /// Puts the selection on a cell the player pointed at or moved VoiceOver to, so the
+    /// keyboard carries on from where they are.
+    func select(row: Int, col: Int) {
+        guard row >= 0, row < Board.rows, col >= 0, col < Board.cols else { return }
+        selectedRow = row
+        selectedCol = col
     }
 
     /// Announces the currently selected cell for VoiceOver users.
@@ -466,11 +531,13 @@ final class GameState {
         if case .safe(let revealed) = chordResult, revealed > 0 {
             chordCount += 1
             largestOpening = max(largestOpening, revealed)
+            logStep(.chord)
         }
 
         switch chordResult {
         case .mine:
             chordCount += 1
+            logStep(.chord)
             status = .lost
             board.revealAllMines()
             handleGameComplete(won: false)
@@ -493,15 +560,24 @@ final class GameState {
     // MARK: - Private
 
     private func startTimer() {
-        gameTimer.start()
+        gameTimer.start(from: elapsedTime)
     }
 
     private func stopTimer() {
+        captureElapsedTime()
         gameTimer.stop()
         isPaused = false
     }
 
-    /// Records the game result to the stats store.
+    /// Takes the exact time, since `elapsedTime` otherwise only moves with the display.
+    private func captureElapsedTime() {
+        if gameTimer.isRunning {
+            elapsedTime = gameTimer.elapsed
+        }
+    }
+
+    /// Records the result, and submits a daily time if this is the day's first result. If
+    /// another Mac already finished today, this game doesn't count and has nothing to submit.
     private func recordGameResult(won: Bool) {
         let result = GameResult(
             won: won,
@@ -510,7 +586,13 @@ final class GameState {
             puzzleType: puzzleType
         )
         Task { @MainActor in
-            StatsStore.shared.record(result)
+            guard StatsStore.shared.record(result) else { return }
+            Leaderboard.submitDailyTime(
+                elapsedTime: result.elapsedTime,
+                puzzleType: result.puzzleType,
+                won: result.won,
+                seed: result.dailySeed
+            )
         }
     }
 
@@ -528,6 +610,7 @@ final class GameState {
     /// Handles game completion (win or loss).
     /// For daily puzzles: marks complete, records stats, saves state, and saves to daily namespace.
     /// For random puzzles: records stats only (no daily tracking).
+    /// Replays record nothing.
     private func handleGameComplete(won: Bool) {
         stopTimer()
 
@@ -545,13 +628,8 @@ final class GameState {
             }
         }
 
-        if puzzleType.isRanked {
+        if puzzleType != .practice {
             recordGameResult(won: won)
-            let elapsed = elapsedTime
-            let type = puzzleType
-            Task { @MainActor in
-                Leaderboard.submitDailyTime(elapsedTime: elapsed, puzzleType: type, won: won)
-            }
         }
         save()
     }

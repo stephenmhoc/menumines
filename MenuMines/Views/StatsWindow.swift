@@ -15,8 +15,6 @@ struct StatsWindow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            headerSection
-
             Picker("", selection: $selectedTab) {
                 ForEach(StatsTab.allCases) { tab in
                     Text(tab.title).tag(tab)
@@ -24,8 +22,7 @@ struct StatsWindow: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .padding(.horizontal)
-            .padding(.bottom, 12)
+            .padding()
 
             Divider()
 
@@ -40,14 +37,6 @@ struct StatsWindow: View {
         }
         .frame(width: 360)
         .fixedSize()
-        .alert(
-            replayedSeed.map { String(format: String(localized: "replay_started_title"), replayDateDescription(for: $0)) } ?? "",
-            isPresented: Binding(get: { replayedSeed != nil }, set: { if !$0 { replayedSeed = nil } })
-        ) {
-            Button(String(localized: "reset_confirmation_cancel"), role: .cancel) { replayedSeed = nil }
-        } message: {
-            Text(String(localized: "replay_started_message"))
-        }
         .alert(String(localized: "stats_reset_confirmation_title"), isPresented: $showResetConfirmation) {
             Button(String(localized: "stats_reset_confirmation_cancel"), role: .cancel) {}
             Button(String(localized: "stats_reset_confirmation_confirm"), role: .destructive) {
@@ -56,15 +45,6 @@ struct StatsWindow: View {
         } message: {
             Text(String(localized: "stats_reset_confirmation_message"))
         }
-    }
-
-    // MARK: - Header
-
-    private var headerSection: some View {
-        Text(String(localized: "stats_title"))
-            .font(.title2)
-            .fontWeight(.semibold)
-            .padding()
     }
 
     // MARK: - Metrics
@@ -94,13 +74,28 @@ struct StatsWindow: View {
     }
 
     private var historySection: some View {
-        DailyCompletionCalendarView(
-            resultsBySeed: store.dailyResultsBySeed,
-            onReplay: { seed in
-                gameState.startPractice(seed: seed)
-                replayedSeed = seed
+        VStack(alignment: .leading, spacing: 8) {
+            DailyCompletionCalendarView(
+                resultsBySeed: store.dailyResultsBySeed,
+                onReplay: { seed in
+                    gameState.startPractice(seed: seed)
+                    replayedSeed = seed
+                }
+            )
+
+            // A note rather than an alert, because there's nothing to decide: the board is
+            // already waiting, and the menu bar can't be opened on the player's behalf.
+            if let replayedSeed {
+                Text(String(
+                    format: String(localized: "replay_started_message"),
+                    replayDateDescription(for: replayedSeed)
+                ))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.updatesFrequently)
             }
-        )
+        }
         .padding()
     }
 
@@ -175,19 +170,21 @@ struct StatsWindow: View {
         }
     }
 
+    private func formattedRate(_ rate: Int?) -> String {
+        guard let rate else { return String(localized: "stats_no_data") }
+        return (Double(rate) / 100).formatted(.percent)
+    }
+
     private var formattedDailyWinRate: String {
-        guard let rate = store.dailyWinRate else { return String(localized: "stats_no_data") }
-        return "\(rate)%"
+        formattedRate(store.dailyWinRate)
     }
 
     private var formattedWinRate: String {
-        guard let rate = store.winRate else { return String(localized: "stats_no_data") }
-        return "\(rate)%"
+        formattedRate(store.winRate)
     }
 
     private var formattedDailyCompletionRate: String {
-        guard let rate = store.dailyCompletionRate else { return String(localized: "stats_no_data") }
-        return "\(rate)%"
+        formattedRate(store.dailyCompletionRate)
     }
 
     private var formattedDailyBestTime: String {
@@ -250,20 +247,32 @@ struct StatsWindow: View {
                     .foregroundStyle(.tertiary)
             }
 
-            Button(String(localized: "stats_reset_button")) {
-                showResetConfirmation = true
+            HStack {
+                Button(String(localized: "stats_reset_button")) {
+                    showResetConfirmation = true
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.red)
+                .font(.caption)
+                .accessibilityHint(String(localized: "stats_reset_accessibility_hint"))
+
+                if Leaderboard.isAvailable {
+                    Spacer()
+
+                    Button(String(localized: "leaderboard_button")) {
+                        Leaderboard.show()
+                    }
+                    .buttonStyle(.link)
+                    .font(.caption)
+                }
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.red)
-            .font(.caption)
-            .accessibilityHint(String(localized: "stats_reset_accessibility_hint"))
         }
         .padding()
     }
 
     private func replayDateDescription(for seed: Int64) -> String {
         guard let date = dateFromSeed(seed) else { return "" }
-        return formattedDate(date)
+        return date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
     }
 
     private func formattedDate(_ date: Date) -> String {
@@ -301,8 +310,14 @@ private struct DailyCompletionCalendarView: View {
 
     @State private var displayedMonth = Self.currentMonthStart()
 
+    /// Each tile is a puzzle, and puzzles are UTC days. Laying the month out in the player's
+    /// time zone would put a result on the wrong tile and replay the wrong board.
     private static var calendar: Calendar {
-        Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        calendar.locale = .current
+        calendar.firstWeekday = Calendar.current.firstWeekday
+        return calendar
     }
 
     private static func currentMonthStart() -> Date {
@@ -380,11 +395,9 @@ private struct DailyCompletionCalendarView: View {
     }
 
     private var monthTitle: String {
-        let formatter = DateFormatter()
-        formatter.calendar = Self.calendar
-        formatter.locale = .current
-        formatter.dateFormat = "LLLL yyyy"
-        return formatter.string(from: displayedMonth)
+        displayedMonth.formatted(
+            Date.FormatStyle(timeZone: .gmt).month(.wide).year()
+        )
     }
 
     private var weekdaySymbols: [String] {
@@ -420,13 +433,9 @@ private struct DailyCompletionCalendarView: View {
         return cells
     }
 
-    private var resultsByLocalDay: [Date: GameResult] {
-        StatsHistoryCalendar.resultsByLocalDay(Array(resultsBySeed.values), calendar: Self.calendar)
-    }
-
     private func result(for cell: CalendarCell) -> GameResult? {
         guard let date = cell.date else { return nil }
-        return resultsByLocalDay[Self.calendar.startOfDay(for: date)]
+        return resultsBySeed[seedFromDate(date)]
     }
 
     /// Returns an action only for days that are actually replayable. Today is the ranked
@@ -441,25 +450,12 @@ private struct DailyCompletionCalendarView: View {
 
     private func isToday(_ cell: CalendarCell) -> Bool {
         guard let date = cell.date else { return false }
-        return Self.calendar.isDate(date, inSameDayAs: Date())
+        return seedFromDate(date) == seedFromDate(Date())
     }
 
     private func moveMonth(by value: Int) {
         guard let month = Self.calendar.date(byAdding: .month, value: value, to: displayedMonth) else { return }
         displayedMonth = month
-    }
-}
-
-enum StatsHistoryCalendar {
-    static func resultsByLocalDay(_ results: [GameResult], calendar: Calendar = .current) -> [Date: GameResult] {
-        results.reduce(into: [:]) { groupedResults, result in
-            let completedDay = calendar.startOfDay(for: result.completedAt)
-            if let existingResult = groupedResults[completedDay],
-               existingResult.completedAt > result.completedAt {
-                return
-            }
-            groupedResults[completedDay] = result
-        }
     }
 }
 
@@ -507,6 +503,15 @@ private struct CalendarDayCell: View {
                     .monospacedDigit()
                     .foregroundStyle(textColor)
             }
+
+            // Win and loss differ by more than color, for anyone who can't see the difference.
+            if let result {
+                Image(systemName: result.won ? "checkmark" : "xmark")
+                    .font(.system(size: 6, weight: .bold))
+                    .foregroundStyle(result.won ? Color.accentColor : Color.red)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(2)
+            }
         }
         .frame(height: 26)
         .accessibilityElement(children: .ignore)
@@ -541,11 +546,7 @@ private struct CalendarDayCell: View {
 
     private var accessibilityLabel: String {
         guard let date = cell.date else { return "" }
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar.current
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        let dateString = formatter.string(from: date)
+        let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
 
         guard let result else {
             return todayAdjustedAccessibilityLabel(
@@ -582,9 +583,8 @@ private struct RecentDailyResultsView: View {
             VStack(spacing: 8) {
                 ForEach(results, id: \.dailySeed) { result in
                     HStack(spacing: 8) {
-                        Circle()
-                            .fill(result.won ? Color.accentColor : Color.red)
-                            .frame(width: 7, height: 7)
+                        Image(systemName: result.won ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundStyle(result.won ? Color.accentColor : Color.red)
                             .accessibilityHidden(true)
 
                         Text(StatsRecentResults.formattedDate(for: result))
@@ -626,17 +626,12 @@ private struct RecentDailyResultsView: View {
 }
 
 enum StatsRecentResults {
-    static func displayDate(for result: GameResult, calendar: Calendar = .current) -> Date {
-        calendar.startOfDay(for: result.completedAt)
-    }
-
-    static func formattedDate(for result: GameResult, calendar: Calendar = .current, locale: Locale = .current) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = locale
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: displayDate(for: result, calendar: calendar))
+    /// Names the puzzle that was played, not the local day it happened to be finished on.
+    static func formattedDate(for result: GameResult, locale: Locale = .current) -> String {
+        guard let date = dateFromSeed(result.dailySeed) else { return "" }
+        return date.formatted(
+            Date.FormatStyle(date: .abbreviated, time: .omitted, locale: locale, timeZone: .gmt)
+        )
     }
 }
 

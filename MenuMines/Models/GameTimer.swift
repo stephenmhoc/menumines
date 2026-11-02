@@ -1,42 +1,55 @@
 import Foundation
 
-/// Encapsulates timer lifecycle for the game.
-/// Provides start/stop/pause/resume operations without UI dependencies.
-/// Note: Pause state is managed by the caller (GameState) for observability.
+/// Measures how long a game has been actively played.
+///
+/// Time comes from a monotonic clock, and the repeating timer only prompts a redraw. Counting
+/// ticks instead would lose the partial second on every pause, so someone who peeks at the
+/// board in short visits would play for free, and a ranked time would be wrong.
+///
+/// `systemUptime` stops while the Mac sleeps, so closing the lid costs the player nothing.
+/// Pause state is managed by the caller (GameState) for observability.
 final class GameTimer {
     private var timer: Timer?
+    private var accumulated: TimeInterval = 0
+    private var runningSince: TimeInterval?
+    private let now: () -> TimeInterval
 
-    /// Closure called every second when the timer ticks.
-    var onTick: (() -> Void)?
+    /// Called every second while running, with the total elapsed time.
+    var onTick: ((TimeInterval) -> Void)?
 
-    /// Starts the timer, calling onTick every second.
-    /// If a timer is already running, it is invalidated first.
-    func start() {
+    init(now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+        self.now = now
+    }
+
+    var isRunning: Bool {
+        runningSince != nil
+    }
+
+    /// Total time played, including the run in progress.
+    var elapsed: TimeInterval {
+        accumulated + (runningSince.map { now() - $0 } ?? 0)
+    }
+
+    /// Starts timing from the given elapsed time. A timer already running is replaced.
+    func start(from elapsed: TimeInterval = 0) {
         timer?.invalidate()
+        accumulated = elapsed
+        runningSince = now()
+
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.onTick?()
+            guard let self else { return }
+            self.onTick?(self.elapsed)
         }
-        // Scheduling in .common keeps the clock running while AppKit is tracking events.
-        // On the default mode the timer silently stalls for as long as the player holds a
-        // menu open or drags, so the game clock under-reports their real time.
+        // Scheduling in .common keeps the display moving while AppKit is tracking events.
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
     }
 
-    /// Stops the timer completely.
+    /// Stops timing, keeping what has been measured so far.
     func stop() {
+        accumulated = elapsed
+        runningSince = nil
         timer?.invalidate()
         timer = nil
-    }
-
-    /// Pauses the timer (alias for stop, semantically distinct).
-    func pause() {
-        timer?.invalidate()
-        timer = nil
-    }
-
-    /// Resumes the timer (alias for start, semantically distinct).
-    func resume() {
-        start()
     }
 }
