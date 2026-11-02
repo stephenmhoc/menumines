@@ -804,27 +804,49 @@ private enum ScreenshotFixture {
 /// Brings windows opened from the menu bar to the front.
 ///
 /// MenuMines is an agent app (`LSUIElement`), so it is never the frontmost application on its
-/// own and anything it opens lands behind whatever the user was already working in. Raising
-/// has to happen *after* the window exists, and SwiftUI creates it asynchronously, so the
-/// work is deferred one main-queue turn. `orderFrontRegardless` covers the case where
-/// activation alone does not lift the window over another app's.
+/// own and anything it opens lands behind whatever the user was already working in. These
+/// windows only ever open because the player asked for them, so they always come forward.
+///
+/// `NSApp.activate()` isn't used because it's only a request, and the frontmost app hasn't
+/// offered to give way to a menu bar panel, so it's often declined.
+/// `orderFrontRegardless` covers the case where activation doesn't lift the window over
+/// another app's.
 @MainActor
 enum WindowActivation {
-    /// Raises a window that SwiftUI is about to create, such as Settings or Stats.
+    /// Windows being opened by SwiftUI that haven't been raised yet.
+    private static var opensInProgress = 0
+
+    /// Opens a SwiftUI window, such as Settings or Stats, and brings it forward.
     ///
-    /// Only the key window is raised explicitly. Falling back to "whichever window is
-    /// frontmost" would pull the wrong one forward if SwiftUI has not finished opening the
-    /// new one yet; activating on its own is already enough in that case.
-    static func raiseWindowBeingOpened() {
-        DispatchQueue.main.async {
-            NSApp.activate()
-            NSApp.keyWindow?.orderFrontRegardless()
+    /// SwiftUI creates the window some time after being asked, so this watches for it. If
+    /// no new window turns up, the one asked for was already open and SwiftUI has put it at
+    /// the front of our windows.
+    static func open(_ openWindow: () -> Void) {
+        let existing = appWindows()
+        opensInProgress += 1
+
+        activate()
+        openWindow()
+
+        Task {
+            defer { opensInProgress -= 1 }
+
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(25))
+                if let opened = appWindows().first(where: { !existing.contains($0) }) {
+                    raise(opened)
+                    return
+                }
+            }
+            if let front = appWindows().first {
+                raise(front)
+            }
         }
     }
 
     /// Raises a window we own outright, so there is nothing to wait for.
     static func raise(_ window: NSWindow) {
-        NSApp.activate()
+        activate()
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
     }
@@ -833,14 +855,24 @@ enum WindowActivation {
     ///
     /// An agent app stays active with nothing on screen otherwise, so keys go nowhere until
     /// the player clicks another window. The closing window still counts as visible during
-    /// this notification, so the check waits a turn.
+    /// this notification, so the check waits a turn. The popover closes on its way to
+    /// opening a window too, and hiding then would hide the window that's on its way.
     static func yieldFocusIfNoWindowsRemain() {
         DispatchQueue.main.async {
-            let hasTitledWindow = NSApp.windows.contains { $0.isVisible && $0.styleMask.contains(.titled) }
-            if !hasTitledWindow {
+            if opensInProgress == 0, appWindows().isEmpty {
                 NSApp.hide(nil)
             }
         }
+    }
+
+    private static func activate() {
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Our visible document-style windows, front to back. The popover can't become main,
+    /// which is what leaves it out.
+    private static func appWindows() -> [NSWindow] {
+        NSApp.orderedWindows.filter { $0.isVisible && $0.styleMask.contains(.titled) && $0.canBecomeMain }
     }
 }
 

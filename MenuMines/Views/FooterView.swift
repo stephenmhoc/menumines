@@ -132,13 +132,11 @@ struct FooterView: View {
                 Divider()
 
                 Button(String(localized: "stats_menu_item")) {
-                    openWindow(id: "stats")
-                    WindowActivation.raiseWindowBeingOpened()
+                    WindowActivation.open { openWindow(id: "stats") }
                 }
 
                 Button(String(localized: "settings_menu_item")) {
-                    openSettings()
-                    WindowActivation.raiseWindowBeingOpened()
+                    WindowActivation.open { openSettings() }
                 }
                 .keyboardShortcut(",", modifiers: .command)
 
