@@ -10,7 +10,7 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 - **UI Framework:** SwiftUI
 - **Target:** macOS 14+ (Sonoma) - required for @Observable macro
 - **Key APIs:**
-  - `MenuBarExtra` with `.window` style for rich popover UI
+  - `NSStatusItem` and a non-activating `NSPanel` hosting SwiftUI (`MenuBarExtra` can't be opened, closed or given focus reliably)
   - `GameplayKit` `GKLinearCongruentialRandomSource` for seeded RNG
   - `.focusable()` + `.onKeyPress` on the board for keyboard input
   - `SMAppService.mainApp` for Launch at Login (no UserDefaults — system is source of truth)
@@ -19,7 +19,9 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 
 ```
 MenuMines/
-├── MenuMinesApp.swift              # App entry point, MenuBarExtra setup
+├── MenuMinesApp.swift              # App entry point and lifecycle
+├── AppWindows.swift            # Stats, Settings and About windows
+├── StatusItemController.swift  # Menu bar icon and game panel
 ├── Constants.swift             # App-wide constants and UserDefaults keys
 ├── UpdateManager.swift         # Sparkle, direct build only
 ├── Models/
@@ -91,6 +93,13 @@ calendar.timeZone = TimeZone(identifier: "UTC")!
 let seed = Int64(year * 10000 + month * 100 + day)
 // Example: 2024-03-15 → 20240315
 ```
+
+### Menu Bar Shell
+AppKit owns the shell and SwiftUI draws the content. `StatusItemController` runs the icon and the
+non-activating game panel, and `AppWindows` builds Stats, Settings and About. Each panel open makes
+a new hosting controller, because `MenuContentView`'s `onAppear`/`onDisappear` start and stop the
+game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app must declare a scene.
+`GamePanelTests` sends real key events to a real panel, so run them after changing focus handling.
 
 ### Agent App Configuration
 Set `LSUIElement = YES` in Info.plist to hide from Dock. The UI must provide a Quit button since there's no Dock icon to right-click. `LSApplicationCategoryType` is set to `public.app-category.utilities` (not `puzzle-games`) to prevent macOS Game Mode from activating.

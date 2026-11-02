@@ -57,34 +57,16 @@ struct MenuMinesApp: App {
         AppDelegate.gameState = state
     }
 
+    // Every window is built by AppWindows and StatusItemController. An app has to declare a
+    // scene, so this is one that never opens, with its menu command removed so that ⌘, can't
+    // open it from the app menu.
     var body: some Scene {
-        appScenes
-    }
-
-    // Nothing observable is read here on purpose. Reading game state in a Scene body makes
-    // every scene — the popover, Settings and the Stats window — rebuild on each change,
-    // which happens once a second while the timer runs. MenuBarIconView reads what it
-    // needs so those updates stay scoped to the status item.
-    @SceneBuilder
-    private var appScenes: some Scene {
-        MenuBarExtra {
-            MenuContentView(gameState: gameState)
-        } label: {
-            MenuBarIconView(gameState: gameState)
-        }
-        .menuBarExtraStyle(.window)
-
         Settings {
-            SettingsView()
+            EmptyView()
         }
-
-        Window(String(localized: "stats_window_title"), id: "stats") {
-            // Passing the object itself reads no observable property, so this does not
-            // reintroduce the per-second scene invalidation described above.
-            StatsWindow(gameState: gameState)
+        .commands {
+            CommandGroup(replacing: .appSettings) {}
         }
-        .windowResizability(.contentSize)
-        .defaultPosition(.center)
     }
 }
 
@@ -94,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor static var gameState: GameState?
 
     private var dayWatcher: DayWatcher?
+    private var statusItemController: StatusItemController?
     private var windowObserver: NSObjectProtocol?
 
     @MainActor
@@ -109,12 +92,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dayWatcher.start()
         self.dayWatcher = dayWatcher
 
+        statusItemController = StatusItemController(gameState: gameState)
+
         windowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: nil,
             queue: .main
         ) { _ in
-            MainActor.assumeIsolated { WindowActivation.yieldFocusIfNoWindowsRemain() }
+            MainActor.assumeIsolated { AppWindows.yieldFocusIfNoWindowsRemain() }
         }
     }
 
@@ -801,84 +786,11 @@ private enum ScreenshotFixture {
 }
 #endif
 
-/// Brings windows opened from the menu bar to the front.
-///
-/// MenuMines is an agent app (`LSUIElement`), so it is never the frontmost application on its
-/// own and anything it opens lands behind whatever the user was already working in. These
-/// windows only ever open because the player asked for them, so they always come forward.
-///
-/// `NSApp.activate()` isn't used because it's only a request, and the frontmost app hasn't
-/// offered to give way to a menu bar panel, so it's often declined.
-/// `orderFrontRegardless` covers the case where activation doesn't lift the window over
-/// another app's.
-@MainActor
-enum WindowActivation {
-    /// Windows being opened by SwiftUI that haven't been raised yet.
-    private static var opensInProgress = 0
-
-    /// Opens a SwiftUI window, such as Settings or Stats, and brings it forward.
-    ///
-    /// SwiftUI creates the window some time after being asked, so this watches for it. If
-    /// no new window turns up, the one asked for was already open and SwiftUI has put it at
-    /// the front of our windows.
-    static func open(_ openWindow: () -> Void) {
-        let existing = appWindows()
-        opensInProgress += 1
-
-        activate()
-        openWindow()
-
-        Task {
-            defer { opensInProgress -= 1 }
-
-            for _ in 0..<20 {
-                try? await Task.sleep(for: .milliseconds(25))
-                if let opened = appWindows().first(where: { !existing.contains($0) }) {
-                    raise(opened)
-                    return
-                }
-            }
-            if let front = appWindows().first {
-                raise(front)
-            }
-        }
-    }
-
-    /// Raises a window we own outright, so there is nothing to wait for.
-    static func raise(_ window: NSWindow) {
-        activate()
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-    }
-
-    /// Gives focus back to the player's previous app once our last window has closed.
-    ///
-    /// An agent app stays active with nothing on screen otherwise, so keys go nowhere until
-    /// the player clicks another window. The closing window still counts as visible during
-    /// this notification, so the check waits a turn. The popover closes on its way to
-    /// opening a window too, and hiding then would hide the window that's on its way.
-    static func yieldFocusIfNoWindowsRemain() {
-        DispatchQueue.main.async {
-            if opensInProgress == 0, appWindows().isEmpty {
-                NSApp.hide(nil)
-            }
-        }
-    }
-
-    private static func activate() {
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    /// Our visible document-style windows, front to back. The popover can't become main,
-    /// which is what leaves it out.
-    private static func appWindows() -> [NSWindow] {
-        NSApp.orderedWindows.filter { $0.isVisible && $0.styleMask.contains(.titled) && $0.canBecomeMain }
-    }
-}
-
 /// Menu bar icon view showing state-specific icon with subtle indicators.
 struct MenuBarIconView: View {
     let gameState: GameState
+    /// Passes the description on to the status item's button, which is what VoiceOver reads.
+    var onAccessibilityLabelChange: (String) -> Void = { _ in }
 
     @AppStorage(Constants.SettingsKeys.showMenuBarIndicators) private var showMenuBarIndicators = true
     @State private var isVoiceOverRunning = NSWorkspace.shared.isVoiceOverEnabled
@@ -949,9 +861,11 @@ struct MenuBarIconView: View {
                 }
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHidden(true)
         .frame(width: 22, alignment: .center)
+        .onChange(of: accessibilityLabel, initial: true) {
+            onAccessibilityLabelChange(accessibilityLabel)
+        }
         .onReceive(NSWorkspace.shared.publisher(for: \.isVoiceOverEnabled)) { isEnabled in
             isVoiceOverRunning = isEnabled
         }

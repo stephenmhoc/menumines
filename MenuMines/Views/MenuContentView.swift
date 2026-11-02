@@ -176,9 +176,11 @@ struct MenuContentView: View {
                         gameState.returnToToday()
                         gameState.resumeTimer()
                     },
-                    onAbout: {
-                        AboutWindow.show()
-                    }
+                    onStats: {
+                        AppWindows.showStats(gameState: gameState)
+                    },
+                    onSettings: AppWindows.showSettings,
+                    onAbout: AboutWindow.show
                 )
             }
             .padding()
@@ -243,7 +245,7 @@ struct MenuContentView: View {
 }
 
 /// Inline confirmation overlay for reset action.
-/// Uses an overlay instead of system alert to avoid MenuBarExtra dismissal issues.
+/// Uses an overlay instead of system alert so that the game panel stays open.
 private struct ResetConfirmationOverlay: View {
     let onCancel: () -> Void
     let onConfirm: () -> Void

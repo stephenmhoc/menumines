@@ -3,32 +3,10 @@ import SwiftUI
 
 @MainActor
 enum AboutWindow {
-    /// Singleton window controller to maintain About window across show/hide cycles.
-    /// Window is kept in memory (isReleasedWhenClosed = false) to preserve state
-    /// and avoid repeated allocations. This is intentional for the About window.
-    private static var windowController: NSWindowController?
-
     static func show() {
-        if let existingWindow = windowController?.window, existingWindow.isVisible {
-            WindowActivation.raise(existingWindow)
-            return
+        AppWindows.show(id: "about", title: String(localized: "about_menu_item")) {
+            AboutView()
         }
-
-        let aboutView = AboutView()
-        let hostingController = NSHostingController(rootView: aboutView)
-
-        let window = NSWindow(contentViewController: hostingController)
-        window.title = String(localized: "about_menu_item")
-        window.styleMask = [.titled, .closable]
-        window.isReleasedWhenClosed = false
-        window.center()
-
-        let controller = NSWindowController(window: window)
-        windowController = controller
-        controller.showWindow(nil)
-        // Raised only once the window exists; activating first leaves it behind the app
-        // the user was in.
-        WindowActivation.raise(window)
     }
 }
 

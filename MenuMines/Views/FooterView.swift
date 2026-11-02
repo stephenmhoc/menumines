@@ -1,9 +1,6 @@
 import SwiftUI
 
 struct FooterView: View {
-    @Environment(\.openSettings) private var openSettings
-    @Environment(\.openWindow) private var openWindow
-
     let isGameComplete: Bool
     let puzzleType: PuzzleType
     let canReset: Bool
@@ -16,6 +13,8 @@ struct FooterView: View {
     let onToggleFlagMode: () -> Void
     let onCopy: () -> Void
     var onReturnToToday: () -> Void = {}
+    let onStats: () -> Void
+    let onSettings: () -> Void
     let onAbout: () -> Void
 
     @State private var showCopiedFeedback = false
@@ -131,13 +130,9 @@ struct FooterView: View {
 
                 Divider()
 
-                Button(String(localized: "stats_menu_item")) {
-                    WindowActivation.open { openWindow(id: "stats") }
-                }
+                Button(String(localized: "stats_menu_item"), action: onStats)
 
-                Button(String(localized: "settings_menu_item")) {
-                    WindowActivation.open { openSettings() }
-                }
+                Button(String(localized: "settings_menu_item"), action: onSettings)
                 .keyboardShortcut(",", modifiers: .command)
 
                 #if SPARKLE_ENABLED
@@ -275,6 +270,8 @@ private struct ControlsPopoverView: View {
         onReset: {},
         onToggleFlagMode: {},
         onCopy: {},
+        onStats: {},
+        onSettings: {},
         onAbout: {}
     )
         .padding()
@@ -289,6 +286,8 @@ private struct ControlsPopoverView: View {
         onReset: {},
         onToggleFlagMode: {},
         onCopy: {},
+        onStats: {},
+        onSettings: {},
         onAbout: {}
     )
         .padding()

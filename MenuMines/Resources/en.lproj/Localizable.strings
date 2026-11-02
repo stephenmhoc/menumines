@@ -56,6 +56,7 @@
 
 /* Stats feature */
 "stats_menu_item" = "Stats…";
+"settings_window_title" = "Settings";
 "stats_window_title" = "Stats";
 "stats_games_played" = "Games Played";
 "stats_wins" = "Wins";
