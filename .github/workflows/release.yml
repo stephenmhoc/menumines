@@ -104,10 +104,18 @@ jobs:
           echo "$ASC_API_KEY_P8_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_${ASC_KEY_ID}.p8
           echo "ASC_API_KEY_PATH=$HOME/.private_keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
 
-      - name: Create Temporary App Store Signing Assets
+      - name: Prepare App Store Signing Assets
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_DISTRIBUTION_CERT_ID: ${{ secrets.APPLE_DISTRIBUTION_CERT_ID }}
+          APPLE_DISTRIBUTION_CERT_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_BASE64 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          APPLE_DISTRIBUTION_CERT_SHA1: ${{ secrets.APPLE_DISTRIBUTION_CERT_SHA1 }}
+          MAC_INSTALLER_CERT_ID: ${{ secrets.MAC_INSTALLER_CERT_ID }}
+          MAC_INSTALLER_CERT_BASE64: ${{ secrets.MAC_INSTALLER_CERT_BASE64 }}
+          MAC_INSTALLER_CERT_PASSWORD: ${{ secrets.MAC_INSTALLER_CERT_PASSWORD }}
+          MAC_INSTALLER_CERT_SHA1: ${{ secrets.MAC_INSTALLER_CERT_SHA1 }}
         run: ruby Tools/app_store_connect_signing.rb prepare
 
       - name: Install Apple Certificate and Provisioning Profile

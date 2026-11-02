@@ -6,7 +6,9 @@ require "fileutils"
 require "json"
 require "net/http"
 require "openssl"
+require "securerandom"
 require "shellwords"
+require "tmpdir"
 require "time"
 require "uri"
 
@@ -281,6 +283,30 @@ def append_env(values)
   end
 end
 
+# Revoking a certificate invalidates what it signed, and TestFlight checks the signature after
+# processing (ITMS-90035), so certificates outlive the run that uses them. The durable ones come
+# from create-certs. Without them each run makes a new pair, and Apple's small limit on
+# certificates eventually fails the release, which is what the warning is for.
+def signing_certificate(secret_prefix, temp_dir)
+  id = ENV.fetch("#{secret_prefix}_ID", "")
+  return nil if id.empty?
+
+  p12_path = File.join(temp_dir, "#{secret_prefix.downcase}.p12")
+  File.binwrite(p12_path, Base64.decode64(env_fetch("#{secret_prefix}_BASE64")))
+  {
+    id: id,
+    p12_path: p12_path,
+    password: env_fetch("#{secret_prefix}_PASSWORD"),
+    sha1: env_fetch("#{secret_prefix}_SHA1")
+  }
+end
+
+def created_certificate(certificate)
+  puts "::warning::No durable signing certificates are configured. Run " \
+       "`ruby Tools/app_store_connect_signing.rb create-certs` before certificate limits stop releases."
+  certificate.merge(password: env_fetch("KEYCHAIN_PASSWORD"))
+end
+
 def prepare
   client = AppStoreConnectClient.new
   temp_dir = env_fetch("RUNNER_TEMP")
@@ -299,9 +325,16 @@ def prepare
     bundle_id: bundle_id,
     capability_type: "GAME_CENTER"
   )
+  ensure_bundle_id_capability(
+    client,
+    bundle_id: bundle_id,
+    capability_type: "ICLOUD"
+  )
 
-  certificate = create_distribution_certificate(client, temp_dir)
-  installer_certificate = create_installer_certificate(client, temp_dir)
+  certificate = signing_certificate("APPLE_DISTRIBUTION_CERT", temp_dir) ||
+                created_certificate(create_distribution_certificate(client, temp_dir))
+  installer_certificate = signing_certificate("MAC_INSTALLER_CERT", temp_dir) ||
+                          created_certificate(create_installer_certificate(client, temp_dir))
   profile = create_profile(
     client,
     name: "MenuMines CI Mac App Store #{run_id}",
@@ -312,14 +345,13 @@ def prepare
 
   append_env(
     "APPLE_CERTIFICATE_PATH" => certificate.fetch(:p12_path),
-    "APPLE_CERTIFICATE_PASSWORD" => env_fetch("KEYCHAIN_PASSWORD"),
+    "APPLE_CERTIFICATE_PASSWORD" => certificate.fetch(:password),
     "APPLE_CERTIFICATE_SHA1" => certificate.fetch(:sha1),
     "INSTALLER_CERTIFICATE_PATH" => installer_certificate.fetch(:p12_path),
-    "INSTALLER_CERTIFICATE_PASSWORD" => env_fetch("KEYCHAIN_PASSWORD"),
+    "INSTALLER_CERTIFICATE_PASSWORD" => installer_certificate.fetch(:password),
     "INSTALLER_CERTIFICATE_SHA1" => installer_certificate.fetch(:sha1),
     "APP_PROVISIONING_PROFILE_PATH" => File.join(temp_dir, "mac.provisionprofile"),
     "APP_PROFILE_NAME" => profile.fetch(:name),
-    "ASC_CREATED_CERTIFICATE_IDS" => [certificate.fetch(:id), installer_certificate.fetch(:id)].join(","),
     "ASC_CREATED_PROFILE_IDS" => profile.fetch(:id)
   )
 end
@@ -327,16 +359,37 @@ end
 def cleanup
   client = AppStoreConnectClient.new
   profile_ids = ENV.fetch("ASC_CREATED_PROFILE_IDS", "").split(",").reject(&:empty?)
-  certificate_ids = ENV.fetch("ASC_CREATED_CERTIFICATE_IDS", "").split(",").reject(&:empty?)
 
   profile_ids.each do |profile_id|
     puts "Deleting temporary provisioning profile #{profile_id}"
     client.delete("/v1/profiles/#{profile_id}")
   end
+end
 
-  certificate_ids.each do |certificate_id|
-    puts "Revoking temporary distribution certificate #{certificate_id}"
-    client.delete("/v1/certificates/#{certificate_id}")
+# Run once by hand, and again when the certificates near their expiry. Goes straight to GitHub's
+# secrets, so the private keys never stay on this machine.
+def create_certs
+  repo = "smeriwether/menumines"
+  password = SecureRandom.hex(24)
+  ENV["KEYCHAIN_PASSWORD"] = password
+  client = AppStoreConnectClient.new
+
+  Dir.mktmpdir do |temp_dir|
+    {
+      "APPLE_DISTRIBUTION_CERT" => create_distribution_certificate(client, temp_dir),
+      "MAC_INSTALLER_CERT" => create_installer_certificate(client, temp_dir)
+    }.each do |prefix, certificate|
+      {
+        "#{prefix}_BASE64" => Base64.strict_encode64(File.binread(certificate.fetch(:p12_path))),
+        "#{prefix}_PASSWORD" => password,
+        "#{prefix}_ID" => certificate.fetch(:id),
+        "#{prefix}_SHA1" => certificate.fetch(:sha1)
+      }.each do |name, value|
+        IO.popen(["gh", "secret", "set", name, "-R", repo], "w") { |gh| gh.write(value) }
+        abort "Couldn't set #{name}." unless $?.success?
+        puts "Set #{name}"
+      end
+    end
   end
 end
 
@@ -345,7 +398,9 @@ when "prepare"
   prepare
 when "cleanup"
   cleanup
+when "create-certs"
+  create_certs
 else
-  warn "Usage: #{File.basename($PROGRAM_NAME)} [prepare|cleanup]"
+  warn "Usage: #{File.basename($PROGRAM_NAME)} [prepare|cleanup|create-certs]"
   exit 1
 end

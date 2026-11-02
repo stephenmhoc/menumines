@@ -66,6 +66,23 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             -resultBundlePath TestResults.xcresult
 
+      # Debug has no iCloud, Game Center or Sparkle code in it, so only these compile them.
+      - name: Build App Store Configuration
+        run: |
+          xcodebuild build \
+            -scheme MenuMines \
+            -destination 'generic/platform=macOS' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build Direct Configuration
+        run: |
+          xcodebuild build \
+            -scheme MenuMines-Direct \
+            -destination 'generic/platform=macOS' \
+            -configuration Release-Direct \
+            CODE_SIGNING_ALLOWED=NO
+
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
         if: always()

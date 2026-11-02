@@ -19,10 +19,11 @@ set -euo pipefail
 #   APPLE_ID_PASSWORD     - App-specific password for notarization
 #   APPLE_TEAM_ID         - Your Apple Developer Team ID
 #   SPARKLE_PRIVATE_KEY   - EdDSA private key for Sparkle signing
+#   SPARKLE_PUBLIC_ED_KEY - Sparkle public key. Without it the app can't verify updates.
 #
 # Optional environment variables:
 #   SENTRY_DSN            - Sentry DSN for crash reporting
-#   SPARKLE_PUBLIC_ED_KEY - Sparkle public key (usually in Xcode project)
+#   SENTRY_AUTH_TOKEN     - Uploads dSYMs so crashes arrive symbolicated
 #   RELEASE_NOTES_HTML    - Custom HTML release notes for Sparkle update dialog
 #
 # Usage:
@@ -145,6 +146,9 @@ check_required_env "APPLE_ID"
 check_required_env "APPLE_ID_PASSWORD"
 check_required_env "APPLE_TEAM_ID"
 check_required_env "SPARKLE_PRIVATE_KEY"
+check_required_env "SPARKLE_PUBLIC_ED_KEY"
+
+REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner')
 
 log_info "All prerequisites met"
 
@@ -193,8 +197,15 @@ log_info "Dependencies resolved"
 
 log_step "Building archive"
 
-# Get build number (use git commit count or timestamp)
-BUILD_NUMBER=$(git rev-list --count HEAD)
+# Sparkle compares this number, so it has to beat what's published. The release workflow
+# follows the same rule, so the two can't undercut each other.
+PUBLISHED_BUILD=$(gh release download appcast -p appcast.xml -O - --repo "$REPO" \
+    | sed -n 's:.*<sparkle\:version>\([0-9]*\)</sparkle\:version>.*:\1:p' | head -1)
+if [[ -z "$PUBLISHED_BUILD" ]]; then
+    log_error "Couldn't read the published build number from the appcast release."
+    exit 1
+fi
+BUILD_NUMBER=$((PUBLISHED_BUILD + 1))
 log_info "Build number: $BUILD_NUMBER"
 
 xcodebuild clean archive \
@@ -210,7 +221,7 @@ xcodebuild clean archive \
     MARKETING_VERSION="$VERSION" \
     CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
     SENTRY_DSN="${SENTRY_DSN:-}" \
-    SPARKLE_PUBLIC_ED_KEY="${SPARKLE_PUBLIC_ED_KEY:-}" \
+    SPARKLE_PUBLIC_ED_KEY="$SPARKLE_PUBLIC_ED_KEY" \
     | xcpretty || xcodebuild clean archive \
     -scheme "$SCHEME" \
     -configuration "$CONFIGURATION" \
@@ -224,9 +235,18 @@ xcodebuild clean archive \
     MARKETING_VERSION="$VERSION" \
     CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
     SENTRY_DSN="${SENTRY_DSN:-}" \
-    SPARKLE_PUBLIC_ED_KEY="${SPARKLE_PUBLIC_ED_KEY:-}"
+    SPARKLE_PUBLIC_ED_KEY="$SPARKLE_PUBLIC_ED_KEY"
 
 log_info "Archive created at $ARCHIVE_PATH"
+
+if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
+    log_warn "SENTRY_AUTH_TOKEN is not set, so crashes from this build will arrive unsymbolicated."
+elif command -v sentry-cli &> /dev/null; then
+    SENTRY_ORG=merimerimeri-software SENTRY_PROJECT=menumines \
+        sentry-cli debug-files upload --include-sources "$ARCHIVE_PATH/dSYMs"
+else
+    log_warn "sentry-cli not found, so dSYMs were not uploaded: brew install getsentry/tools/sentry-cli"
+fi
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Export archive
@@ -392,7 +412,6 @@ log_info "ZIP size: $ZIP_SIZE bytes"
 
 log_step "Generating appcast.xml"
 
-REPO=$(gh repo view --json nameWithOwner -q '.nameWithOwner')
 PUB_DATE=$(date -u +"%a, %d %b %Y %H:%M:%S +0000")
 
 # Use custom release notes or sensible default
@@ -483,6 +502,23 @@ fi
 # Create new release
 log_info "Creating release $TAG_NAME..."
 gh release create "${RELEASE_ARGS[@]}"
+
+# A draft isn't downloadable, so publishing its appcast would point Sparkle at nothing.
+if [[ "$DRAFT_RELEASE" == "true" ]]; then
+    log_warn "Draft release: the update feed still points at the previous version."
+else
+    # Installed copies read the feed from this release. Some older ones read it from Latest.
+    gh release edit "$TAG_NAME" --latest
+    if ! gh release view appcast &>/dev/null; then
+        gh release create appcast \
+            --title "Sparkle Appcast (not a release)" \
+            --notes "Permanent home for the Sparkle update feed. Not a downloadable version of MenuMines — see the \`-direct\` releases for those." \
+            --prerelease \
+            --latest=false
+    fi
+    gh release upload appcast "$BUILD_DIR/appcast.xml" --clobber
+    log_info "Update feed published"
+fi
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Done
