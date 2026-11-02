@@ -12,7 +12,7 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 - **Key APIs:**
   - `MenuBarExtra` with `.window` style for rich popover UI
   - `GameplayKit` `GKLinearCongruentialRandomSource` for seeded RNG
-  - `NSEvent.addLocalMonitorForEvents` for keyboard input
+  - `.focusable()` + `.onKeyPress` on the board for keyboard input
   - `SMAppService.mainApp` for Launch at Login (no UserDefaults — system is source of truth)
 
 ## Directory Structure
@@ -21,14 +21,22 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 MenuMines/
 ├── MenuMinesApp.swift              # App entry point, MenuBarExtra setup
 ├── Constants.swift             # App-wide constants and UserDefaults keys
+├── UpdateManager.swift         # Sparkle, direct build only
 ├── Models/
 │   ├── Board.swift             # 9x9 grid, mine placement, reveal logic
 │   ├── Cell.swift              # Cell state enum
 │   ├── DailyBoard.swift        # Date-based board generation
+│   ├── DayWatcher.swift        # Rolls the game over at UTC midnight, wake and clock change
 │   ├── GameResult.swift        # Win/loss result with timing
 │   ├── GameState.swift         # @Observable game state
 │   ├── MenuBarIconState.swift  # Menu bar icon state machine
-│   └── StatsStore.swift        # Persistent stats storage
+│   ├── GamePersistence.swift   # Snapshots and restore rules
+│   ├── GameTimer.swift         # Monotonic game clock
+│   ├── Leaderboard.swift       # Game Center, App Store build only
+│   ├── ShareTextGenerator.swift # Spoiler-free share text and play strip
+│   ├── StatsStore.swift        # Persistent stats storage
+│   ├── StatsSync.swift         # iCloud key-value sync, App Store build only
+│   └── Telemetry.swift         # The only file that talks to Sentry
 ├── Views/
 │   ├── AboutWindow.swift       # About window
 │   ├── CellView.swift          # Individual cell rendering
@@ -51,6 +59,21 @@ MenuMinesTests/
 ├── SettingsTests.swift
 └── StatsStoreTests.swift
 ```
+
+## Project File and Build Identities
+
+`project.yml` is the source of truth for the Xcode project; edit it and run `xcodegen generate`.
+The generated `MenuMines.xcodeproj` stays committed so CI doesn't need XcodeGen.
+
+| Configuration | Bundle ID | Icon | iCloud / Game Center / Sparkle |
+| --- | --- | --- | --- |
+| Debug | `com.merimerimeri.MenuMines.dev` | `AppIcon-Dev` | None |
+| Release | `com.merimerimeri.MenuMines` | `AppIcon` | iCloud, Game Center |
+| Release-Direct | `com.merimerimeri.MenuMines` | `AppIcon` | Sparkle |
+
+Debug has its own identity so it can't touch a real install's defaults, stats or iCloud data.
+Because Debug compiles none of the service code, `scripts/test.sh` also builds both shipping
+configurations.
 
 ## Key Patterns
 
@@ -117,6 +140,9 @@ See the [Distribution section in README.md](README.md#distribution) for release 
 ## Build Commands
 
 ```bash
+# Regenerate the project, run tests, and build both shipping configurations
+scripts/test.sh
+
 # Build release
 xcodebuild -scheme MenuMines -configuration Release
 
@@ -133,7 +159,7 @@ xcodebuild clean -scheme MenuMines
 - After any substantive code change, even if not explicitly asked
 - Before every commit
 
-This is non-negotiable. CI does not run on PRs, so local test runs are the only safeguard.
+This is non-negotiable. CI runs on PRs, but only after a push, so a local run comes first.
 
 ## Accessibility
 
@@ -195,7 +221,7 @@ Use these tools to verify accessibility:
   click via `clearAreaForOpening`, so the board depends on where the player clicked.
 
 The split exists because relocating mines around the first click made two people playing the
-same daily play *different* boards, which also meant their shared grids never matched. Do not
+same daily play *different* boards. Do not
 reintroduce relocation for daily puzzles — `DailyBoardFairnessTests` guards this.
 
 ## Workflow
@@ -239,7 +265,8 @@ The app maintains consistent behavior across resume, pause, completion, and reco
 
 ### Reset Lock
 - Once today's puzzle is complete (win or loss), reset is disabled for the rest of the day
-- `canReset` checks `isDailyPuzzleComplete()` using UTC date
+- Today's daily also can't be reset once started, because a reset would be a free retry at a ranked board
+- `canReset` checks `isDailyPuzzleComplete()` using UTC date, and a playing daily's seed against today's
 - Enforced in: HeaderView emoji, FooterView menu, keyboard shortcut (⌘R)
 
 ### Persistence
@@ -259,9 +286,15 @@ Do NOT attempt to simplify by removing the daily namespace in favor of stats-onl
 
 ### Error Recovery
 When app launches:
+0. Today's in-progress daily always comes back, whichever way continuous play is set
 1. Try to load snapshot → restore full state if valid and today's seed
 2. If snapshot missing/corrupted but daily complete → restore from stats (won/lost, time, flags)
 3. Otherwise → fresh game with today's board
+
+### Share Text
+Boards are identical for everyone, so a grid would hand out the solution. Share text carries a
+strip of `PlayStep`s (opens, cascades, chords, flags) describing how the player got there, and
+says nothing about where.
 
 ### Share Availability
 - Share button visible when `status == .won || status == .lost`
@@ -282,7 +315,7 @@ Core game logic must be thoroughly tested since we use concrete types without pr
 - Unit test all game logic (Board, GameState, DailyBoard functions)
 - Test win/lose conditions
 - Test reveal cascading behavior
-- Test first-click safety (mine relocation)
+- Test first-click safety on random puzzles (mine relocation)
 - Test timer start/pause/resume behavior
 - Test deterministic seeding produces identical boards
 - Test UTC timezone consistency (same Date produces same seed regardless of local timezone)

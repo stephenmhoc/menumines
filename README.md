@@ -129,6 +129,8 @@ A few hard-won constraints to keep in mind when shipping outside the App Store:
 | `ASC_ISSUER_ID` | App Store Connect API issuer ID |
 | `SENTRY_DSN` | Optional: Sentry DSN for error tracking |
 
+Run `ruby Tools/app_store_connect_signing.rb create-certs` once to create durable signing certificates. It stores `APPLE_DISTRIBUTION_CERT_*` and `MAC_INSTALLER_CERT_*` (`_ID`, `_BASE64`, `_PASSWORD`, `_SHA1`) straight in GitHub Secrets, and needs `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_API_KEY_PATH` in the environment. Run it again when they near expiry. Without them, each release makes a new certificate pair until Apple's certificate limit stops it, because certificates can't be revoked while TestFlight builds need them.
+
 #### Direct Distribution (release-direct.yml)
 
 | Secret | Description |
@@ -159,6 +161,10 @@ This outputs:
 - Public key printed to stdout
 
 Add both keys to GitHub Secrets as described above.
+
+## Development
+
+`project.yml` generates the Xcode project: edit it, then run `xcodegen generate`. Debug builds use the `com.merimerimeri.MenuMines.dev` identity and a separate icon, so they run alongside a real install without sharing its data. `scripts/test.sh` runs the tests and builds both shipping configurations.
 
 ## How to Play
 
@@ -197,7 +203,7 @@ Every day, MenuMines generates a new puzzle using a deterministic seed based on 
 
 Continuous Play is enabled by default. After completing the daily puzzle, you can keep playing unlimited random puzzles. Only the daily puzzle counts toward streaks.
 
-Note: if the first click lands on a mine, the mine is relocated using system randomness. In that edge case, boards may diverge across players after the first click.
+Each daily board starts with the same safe opening already revealed, so every player begins from the identical position. Opening a mine on a daily loses. Random puzzles guarantee a safe first click instead.
 
 ## Accessibility
 
