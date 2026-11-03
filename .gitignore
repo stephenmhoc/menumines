@@ -25,3 +25,6 @@ xcuserdata/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# App Store Connect API keys
+*.p8
