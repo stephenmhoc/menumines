@@ -793,6 +793,7 @@ struct MenuBarIconView: View {
     var onAccessibilityLabelChange: (String) -> Void = { _ in }
 
     @AppStorage(Constants.SettingsKeys.showMenuBarIndicators) private var showMenuBarIndicators = true
+    @AppStorage(Constants.SettingsKeys.showMenuBarResult) private var showMenuBarResult = true
     @State private var isVoiceOverRunning = NSWorkspace.shared.isVoiceOverEnabled
 
     private var state: MenuBarIconState {
@@ -815,20 +816,11 @@ struct MenuBarIconView: View {
     }
 
     private var baseIconName: String {
-        switch state {
-        case .normal, .complete:
-            return "square.grid.3x3.fill"
-        case .incomplete:
-            return "square.grid.3x3"
-        case .playing, .paused:
-            return "square.grid.3x3.topleft.filled"
-        case .lost:
-            return "square.grid.3x3.bottomright.filled"
-        }
+        state.baseSymbol(showingResult: showMenuBarResult)
     }
 
     private var overlayName: String? {
-        state.overlaySymbol
+        state.overlaySymbol(showingResult: showMenuBarResult)
     }
 
     private var accessibilityLabel: String {

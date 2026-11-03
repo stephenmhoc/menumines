@@ -41,6 +41,31 @@ enum MenuBarIconState: Equatable {
         }
     }
 
+    /// Whether this state reports how today's game ended.
+    var isResult: Bool {
+        self == .complete || self == .lost
+    }
+
+    /// The overlay to draw, given whether the player wants the result shown on the icon.
+    func overlaySymbol(showingResult: Bool) -> String? {
+        isResult && !showingResult ? nil : overlaySymbol
+    }
+
+    /// The grid symbol under the overlay. With the result hidden, a finished day looks
+    /// the same however it ended, so a loss doesn't show through the grid instead.
+    func baseSymbol(showingResult: Bool) -> String {
+        switch self {
+        case .normal, .complete:
+            return "square.grid.3x3.fill"
+        case .incomplete:
+            return "square.grid.3x3"
+        case .playing, .paused:
+            return "square.grid.3x3.topleft.filled"
+        case .lost:
+            return showingResult ? "square.grid.3x3.bottomright.filled" : "square.grid.3x3.fill"
+        }
+    }
+
     /// Returns the SF Symbol name for this icon state (legacy, for tests).
     var systemImageName: String {
         switch self {

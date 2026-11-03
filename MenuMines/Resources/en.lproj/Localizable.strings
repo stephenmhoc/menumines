@@ -22,6 +22,8 @@
 "settings_launch_at_login_footer" = "Automatically open MenuMines when you log in.";
 "settings_show_menu_bar_indicators" = "Show menu bar status indicators";
 "settings_show_menu_bar_indicators_footer" = "When off, the menu bar icon stays constant.";
+"settings_show_menu_bar_result" = "Show today's result";
+"settings_show_menu_bar_result_footer" = "Mark a finished day with a checkmark or an X.";
 "settings_show_streaks" = "Show streaks";
 "settings_show_streaks_footer" = "Show current and longest streaks in Stats.";
 "settings_confirm_before_reset" = "Confirm before reset";

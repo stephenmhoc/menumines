@@ -13,6 +13,7 @@ struct SettingsView: View {
     }
 
     @AppStorage(Constants.SettingsKeys.showMenuBarIndicators) private var showMenuBarIndicators = true
+    @AppStorage(Constants.SettingsKeys.showMenuBarResult) private var showMenuBarResult = true
     @AppStorage(Constants.SettingsKeys.confirmBeforeReset) private var confirmBeforeReset = false
     @AppStorage(Constants.SettingsKeys.continuousPlay) private var continuousPlay = true
     @AppStorage(Constants.SettingsKeys.showStreaks) private var showStreaks = true
@@ -63,6 +64,13 @@ struct SettingsView: View {
                     Text(String(localized: "settings_show_menu_bar_indicators_footer"))
                         .foregroundStyle(.secondary)
                 }
+
+                Toggle(isOn: $showMenuBarResult) {
+                    Text(String(localized: "settings_show_menu_bar_result"))
+                    Text(String(localized: "settings_show_menu_bar_result_footer"))
+                        .foregroundStyle(.secondary)
+                }
+                .disabled(!showMenuBarIndicators)
             }
 
             Section {

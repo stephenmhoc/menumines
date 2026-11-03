@@ -8,6 +8,10 @@ enum Constants {
         /// When false, the icon remains in the normal state regardless of game status.
         static let showMenuBarIndicators = "com.menumines.showMenuBarIndicators"
 
+        /// Controls whether the menu bar icon marks a finished day with a checkmark or an X.
+        /// When false, a finished day shows the plain icon. Only applies while indicators are on.
+        static let showMenuBarResult = "com.menumines.showMenuBarResult"
+
         /// Controls whether a confirmation dialog appears before resetting the game.
         /// When false (default), reset happens immediately.
         static let confirmBeforeReset = "com.menumines.confirmBeforeReset"

@@ -263,4 +263,30 @@ struct MenuBarIconStateTests {
     func testLostOverlaySymbol() {
         #expect(MenuBarIconState.lost.overlaySymbol == "xmark.circle.fill")
     }
+
+    // MARK: - Hiding the Result
+
+    @Test("Hiding the result drops the checkmark and X")
+    func testHidingResultDropsResultOverlays() {
+        #expect(MenuBarIconState.complete.overlaySymbol(showingResult: false) == nil)
+        #expect(MenuBarIconState.lost.overlaySymbol(showingResult: false) == nil)
+        #expect(MenuBarIconState.complete.overlaySymbol(showingResult: true) == "checkmark.circle.fill")
+        #expect(MenuBarIconState.lost.overlaySymbol(showingResult: true) == "xmark.circle.fill")
+    }
+
+    @Test("Hiding the result keeps the play-state indicators")
+    func testHidingResultKeepsOtherOverlays() {
+        for state in [MenuBarIconState.normal, .incomplete, .playing, .paused] {
+            #expect(state.overlaySymbol(showingResult: false) == state.overlaySymbol)
+            #expect(state.baseSymbol(showingResult: false) == state.baseSymbol(showingResult: true))
+        }
+    }
+
+    @Test("With the result hidden, a loss looks the same as a win")
+    func testHiddenLossMatchesWin() {
+        #expect(MenuBarIconState.lost.baseSymbol(showingResult: false)
+            == MenuBarIconState.complete.baseSymbol(showingResult: false))
+        #expect(MenuBarIconState.lost.baseSymbol(showingResult: true)
+            != MenuBarIconState.complete.baseSymbol(showingResult: true))
+    }
 }
