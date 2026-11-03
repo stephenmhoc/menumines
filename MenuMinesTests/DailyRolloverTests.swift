@@ -50,6 +50,19 @@ struct DailyRolloverTests {
         return nil
     }
 
+    /// The first covered cell, optionally limited to cells with or without a mine.
+    private func firstHiddenCell(in board: Board, mine: Bool?) -> (row: Int, col: Int)? {
+        for r in 0..<Board.rows {
+            for c in 0..<Board.cols {
+                let cell = board.cells[r][c]
+                guard cell.state == .hidden else { continue }
+                if let mine, cell.hasMine != mine { continue }
+                return (r, c)
+            }
+        }
+        return nil
+    }
+
     private func findMineCell(in board: Board) -> (row: Int, col: Int)? {
         for r in 0..<Board.rows {
             for c in 0..<Board.cols {
@@ -480,9 +493,18 @@ struct DailyRolloverTests {
         let day1Board = Board(seed: day1Seed)
         let gameState = GameState(board: day1Board, dailySeed: day1Seed)
 
-        // Start the game
-        gameState.reveal(row: 0, col: 0)
-        gameState.toggleFlag(row: 1, col: 1)
+        // Start the game. Which cells are covered depends on the date's board, so pick them
+        // rather than hardcoding coordinates that today's opening may already have revealed.
+        guard let safe = firstHiddenCell(in: gameState.board, mine: false) else {
+            Issue.record("No covered safe cell found")
+            return
+        }
+        gameState.reveal(row: safe.row, col: safe.col)
+        guard let covered = firstHiddenCell(in: gameState.board, mine: nil) else {
+            Issue.record("No covered cell left to flag")
+            return
+        }
+        gameState.toggleFlag(row: covered.row, col: covered.col)
         #expect(gameState.status == .playing)
 
         // 2. User closes popover (simulated by pauseTimer and save)
