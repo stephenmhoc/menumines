@@ -451,9 +451,14 @@ struct DailyResultsCloudTests {
     @Test("Years of results stay within the store's limits")
     func testLongHistoryFits() throws {
         let cloud = FakeCloud()
-        let results = (2026...2045).flatMap { year in
-            (1...12).flatMap { month in
-                (1...28).map { day in daily(Int64(year * 10000 + month * 100 + day)) }
+        // Written as loops because nested closures here time out the type checker on CI.
+        var results: [GameResult] = []
+        for year in 2026...2045 {
+            for month in 1...12 {
+                for day in 1...28 {
+                    let seed = Int64(year) * 10000 + Int64(month) * 100 + Int64(day)
+                    results.append(daily(seed))
+                }
             }
         }
         DailyResultsCloud(cloud: cloud, stats: makeStore(results)).sync()
