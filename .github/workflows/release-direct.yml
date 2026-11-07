@@ -246,6 +246,16 @@ jobs:
 
       # ── Notarize ──
 
+      # stapler fetches the ticket from api.apple-cloudkit.com over HTTP/3 (UDP 443), and
+      # GitHub's macOS runners drop that connection: Apple accepts the submission, then
+      # stapling fails with NSURLErrorDomain -1005 and Error 68. Blocking UDP 443 makes it
+      # fall back to TCP, which works. This is GitHub's own workaround:
+      # https://github.com/actions/runner-images/issues/14924
+      - name: Send stapler traffic over TCP
+        run: |
+          echo "block return out quick proto udp from any to any port 443" | sudo pfctl -f -
+          sudo pfctl -E
+
       - name: Notarize App
         run: |
           APP_PATH="$EXPORT_PATH/MenuMinesDirect.app"
@@ -258,8 +268,9 @@ jobs:
             --keychain-profile "MenuMines" \
             --wait
 
-          # Staple the notarization ticket
-          xcrun stapler staple "$APP_PATH"
+          # Staple the notarization ticket. The ticket can take a moment to reach Apple's
+          # servers, so a failed first try gets one retry.
+          xcrun stapler staple "$APP_PATH" || { sleep 30; xcrun stapler staple "$APP_PATH"; }
 
       # ── Create DMG ──
 
@@ -279,7 +290,7 @@ jobs:
             --keychain-profile "MenuMines" \
             --wait
 
-          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler staple "$DMG_PATH" || { sleep 30; xcrun stapler staple "$DMG_PATH"; }
 
       # ── Create ZIP for Sparkle ──
 
