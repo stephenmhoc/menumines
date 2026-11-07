@@ -203,7 +203,7 @@ Every day, MenuMines generates a new puzzle using a deterministic seed based on 
 
 Continuous Play is enabled by default. After completing the daily puzzle, you can keep playing unlimited random puzzles. Only the daily puzzle counts toward streaks.
 
-Each daily board starts with the same safe opening already revealed, so every player begins from the identical position. Opening a mine on a daily loses. Random puzzles guarantee a safe first click instead.
+Each daily board starts fully covered, with the same safe opening cell marked by a dot, so every player can begin from the identical position. Opening a mine on a daily loses. Random puzzles guarantee a safe first click instead.
 
 ## Accessibility
 

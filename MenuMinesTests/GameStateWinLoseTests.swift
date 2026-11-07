@@ -167,18 +167,18 @@ struct GameStateWinLoseTests {
                 "Same seed + same first click should produce identical boards")
     }
 
-    @Test("Flags disallowed before first reveal")
-    func testFlagsDisallowedBeforeFirstReveal() {
+    @Test("Flags allowed before first reveal, without starting the game")
+    func testFlagsAllowedBeforeFirstReveal() {
         let board = Board(seed: 12345)
         let gameState = GameState(board: board)
 
         #expect(gameState.status == .notStarted)
 
-        // Try to flag before first reveal
         gameState.toggleFlag(row: 0, col: 0)
 
-        #expect(gameState.flagCount == 0, "Flags should be disallowed before first reveal")
-        #expect(gameState.board.cells[0][0].state == .hidden, "Cell should remain hidden")
+        #expect(gameState.flagCount == 1, "A right click on a fresh board should place a flag")
+        #expect(gameState.board.cells[0][0].state == .flagged)
+        #expect(gameState.status == .notStarted, "Only a reveal starts the game")
     }
 
     @Test("Cannot reveal after game is lost")

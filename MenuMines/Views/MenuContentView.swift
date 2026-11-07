@@ -139,6 +139,7 @@ struct MenuContentView: View {
                     selectedRow: gameState.selectedRow,
                     selectedCol: gameState.selectedCol,
                     showsSelection: usesKeyboard,
+                    startHint: gameState.startHint,
                     isFlagMode: isFlagMode,
                     onReveal: reveal,
                     onFlag: flag,

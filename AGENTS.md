@@ -223,9 +223,10 @@ Use these tools to verify accessibility:
 - Board size: 9x9 (81 cells)
 - Mine count: 12
 - **Daily puzzles**: the board is fully determined by the seed and is never modified during
-  play. Mines are placed avoiding a seed-derived opening cell, and that opening is revealed
-  when the board is created, so every player starts from the identical position. Opening a
-  mine loses — nothing is relocated to protect the player.
+  play. Mines are placed avoiding a seed-derived opening cell. The board starts fully covered
+  and that cell is marked with a dot (`GameState.startHint`) until the first reveal, so every
+  player can start from the identical position. Opening a mine loses — nothing is relocated
+  to protect the player. Flags can be placed before the first reveal; they don't start the clock.
 - **Random puzzles**: first click is always safe; mines are relocated out of a 3x3 around the
   click via `clearAreaForOpening`, so the board depends on where the player clicked.
 

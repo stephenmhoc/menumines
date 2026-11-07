@@ -8,6 +8,7 @@ struct CellView: View {
     let gameStatus: GameStatus
     let isSelected: Bool
     let isChordReady: Bool
+    var isStartHint: Bool = false
     let isFlagMode: Bool
     let onReveal: () -> Void
     let onFlag: () -> Void
@@ -27,6 +28,7 @@ struct CellView: View {
             background
             hoverOverlay
             chordReadyOverlay
+            startHintMarker
             content
         }
         .frame(width: Self.cellSize, height: Self.cellSize)
@@ -83,6 +85,8 @@ struct CellView: View {
         }
 
         switch cell.state {
+        case .hidden where isStartHint:
+            state = String(localized: "cell_state_covered_safe_start")
         case .hidden:
             state = String(localized: "cell_state_covered")
         case .flagged:
@@ -176,6 +180,19 @@ struct CellView: View {
             RoundedRectangle(cornerRadius: 2)
                 .stroke(Color.accentColor.opacity(0.75), lineWidth: 2)
                 .padding(2)
+        }
+    }
+
+    // MARK: - Start Hint
+
+    /// A small dot on the day's safe opening cell, so the board can start covered without
+    /// the first click being a guess.
+    @ViewBuilder
+    private var startHintMarker: some View {
+        if isStartHint, case .hidden = cell.state {
+            Circle()
+                .fill(Color.accentColor)
+                .frame(width: 8, height: 8)
         }
     }
 
@@ -403,6 +420,22 @@ private struct CellBevel: Shape {
         gameStatus: .playing,
         isSelected: false,
         isChordReady: false,
+        isFlagMode: false,
+        onReveal: {},
+        onFlag: {}
+    )
+    .padding()
+}
+
+#Preview("Hidden Cell (Start Hint)") {
+    CellView(
+        cell: Cell(state: .hidden, hasMine: false),
+        row: 4,
+        col: 4,
+        gameStatus: .notStarted,
+        isSelected: false,
+        isChordReady: false,
+        isStartHint: true,
         isFlagMode: false,
         onReveal: {},
         onFlag: {}

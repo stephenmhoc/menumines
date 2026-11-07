@@ -759,9 +759,8 @@ struct GameStatePersistenceTests {
 
         gameState.reset()
 
-        // A reset daily is back to its canonical starting position, which is deliberately
-        // not a blank board: the day's safe opening is revealed for everyone, so that the
-        // board every player solves is identical.
+        // A reset daily is back to its canonical starting position: fully covered, with the
+        // same mines and the same marked safe opening as every other player.
         #expect(gameState.board == Board(dailySeed: gameState.dailySeed),
                 "Reset should restore the day's canonical starting board")
     }
@@ -1063,9 +1062,11 @@ struct GameStatePersistenceTests {
         UserDefaults.standard.set(true, forKey: settingKey)
 
         // Create an in-progress game and save it
-        let board = Board(seed: todaySeed)
+        let board = Board(dailySeed: todaySeed)
         let gameState = GameState(board: board, dailySeed: todaySeed)
-        gameState.reveal(row: 0, col: 0)
+        // Today's seed decides where the mines are, so a fixed cell could be one of them.
+        let opening = Board.openingCell(forSeed: todaySeed)
+        gameState.reveal(row: opening.row, col: opening.col)
         #expect(gameState.status == .playing)
         gameState.save()
 
@@ -1144,9 +1145,11 @@ struct GameStatePersistenceTests {
         UserDefaults.standard.set(false, forKey: settingKey)
 
         // Create an in-progress game and save it
-        let board = Board(seed: todaySeed)
+        let board = Board(dailySeed: todaySeed)
         let gameState = GameState(board: board, dailySeed: todaySeed)
-        gameState.reveal(row: 0, col: 0)
+        // Today's seed decides where the mines are, so a fixed cell could be one of them.
+        let opening = Board.openingCell(forSeed: todaySeed)
+        gameState.reveal(row: opening.row, col: opening.col)
         #expect(gameState.status == .playing)
 
         // Flag a cell
@@ -1431,10 +1434,11 @@ struct GameStatePersistenceTests {
         defer { cleanup() }
 
         let seed = seedFromDate(Date())
-        let gameState = GameState(board: Board(seed: seed), dailySeed: seed)
+        let gameState = GameState(board: Board(dailySeed: seed), dailySeed: seed)
 
-        // Flags need a started game, and the first reveal relocates mines, so mark after it.
-        gameState.reveal(row: 0, col: 0)
+        // Today's seed decides where the mines are, so a fixed cell could be one of them.
+        let opening = Board.openingCell(forSeed: seed)
+        gameState.reveal(row: opening.row, col: opening.col)
         #expect(gameState.status == .playing)
 
         var flagged = 0

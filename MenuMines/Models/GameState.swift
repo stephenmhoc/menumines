@@ -85,6 +85,18 @@ final class GameState {
         }
     }
 
+    /// The day's safe opening cell, marked for the player until they make their first reveal.
+    ///
+    /// Daily and replay boards start fully covered, so this is how a player knows where to
+    /// begin without the board being moved for them. Random puzzles have no marked cell:
+    /// their first click is made safe instead.
+    var startHint: (row: Int, col: Int)? {
+        guard puzzleType != .random, status == .notStarted else { return nil }
+        let opening = Board.openingCell(forSeed: dailySeed)
+        guard case .hidden = board.cells[opening.row][opening.col].state else { return nil }
+        return opening
+    }
+
     /// Generates a Wordle-style share text for the completed game.
     /// - Parameter date: The date to use for the header (defaults to the puzzle's own date).
     /// - Returns: The formatted share text, or nil if the game is not complete.
@@ -133,7 +145,7 @@ final class GameState {
 
         let isFirstClick = (status == .notStarted)
         if isFirstClick {
-            // Daily boards already ship with a safe opening revealed, and must not be
+            // Daily boards already ship with a safe, marked opening, and must not be
             // touched: clearing an area around the player's click is what made two people
             // playing the same day play different boards. Random puzzles are not compared
             // to anyone, so they keep the forgiving first-click-is-always-safe behaviour.
@@ -183,9 +195,10 @@ final class GameState {
     }
 
     /// Toggles the flag on the cell at the given position.
-    /// Flags are only allowed after the game has started (first reveal).
+    /// Flags can go down before the first reveal. They don't start the clock, which only
+    /// starts on a reveal.
     func toggleFlag(row: Int, col: Int) {
-        guard status == .playing else { return }
+        guard status == .notStarted || status == .playing else { return }
         guard row >= 0, row < Board.rows, col >= 0, col < Board.cols else { return }
 
         let previousState = board.cells[row][col].state

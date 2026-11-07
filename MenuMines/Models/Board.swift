@@ -33,21 +33,21 @@ struct Board: Equatable, Codable {
         self.init(seed: seed, keepingClear: [])
     }
 
-    /// Creates the canonical board for a daily seed, already opened at its safe cell.
+    /// Creates the canonical board for a daily seed, fully covered, with a safe opening cell.
     ///
-    /// Every player gets this exact board. That is only possible because the opening is
+    /// Every player gets this exact board. That is only possible because the safe opening is
     /// baked in at generation time rather than cleared on the player's first click:
     /// relocating mines around wherever someone happened to click made the layout depend on
     /// that click, so two people playing "the same" daily were playing different boards and
-    /// their shared grids never matched.
+    /// their shared grids never matched. The opening is marked for the player rather than
+    /// revealed for them, so the board starts covered.
     /// - Parameter dailySeed: The daily seed, in `YYYYMMDD` form.
     init(dailySeed: Int64) {
         let opening = Board.openingCell(forSeed: dailySeed)
         self.init(seed: dailySeed, keepingClear: Board.positionsSurrounding(opening))
-        _ = reveal(row: opening.row, col: opening.col)
     }
 
-    /// The cell every player starts from on a given day.
+    /// The marked cell every player can safely start from on a given day.
     ///
     /// Kept off the edges so the opening cascade has room to reveal a useful area.
     static func openingCell(forSeed seed: Int64) -> (row: Int, col: Int) {

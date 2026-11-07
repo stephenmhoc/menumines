@@ -6,6 +6,8 @@ struct GameBoardView: View {
     let selectedRow: Int
     let selectedCol: Int
     var showsSelection: Bool = true
+    /// The cell marked as a safe place to start, if any.
+    var startHint: (row: Int, col: Int)?
     let isFlagMode: Bool
     let onReveal: (Int, Int) -> Void
     let onFlag: (Int, Int) -> Void
@@ -25,6 +27,7 @@ struct GameBoardView: View {
                             gameStatus: gameStatus,
                             isSelected: showsSelection && row == selectedRow && col == selectedCol,
                             isChordReady: isChordReady(row: row, col: col),
+                            isStartHint: startHint?.row == row && startHint?.col == col,
                             isFlagMode: isFlagMode,
                             onReveal: {
                                 if shouldApplyFlagMode(row: row, col: col) {
@@ -56,7 +59,7 @@ struct GameBoardView: View {
     }
 
     private func shouldApplyFlagMode(row: Int, col: Int) -> Bool {
-        guard isFlagMode, gameStatus == .playing else { return false }
+        guard isFlagMode, gameStatus == .notStarted || gameStatus == .playing else { return false }
 
         switch board.cells[row][col].state {
         case .hidden, .flagged:
@@ -105,10 +108,11 @@ extension Board {
 
 #Preview("Game Board - Not Started") {
     GameBoardView(
-        board: Board(seed: 20240315),
+        board: Board(dailySeed: 20240315),
         gameStatus: .notStarted,
         selectedRow: 0,
         selectedCol: 0,
+        startHint: Board.openingCell(forSeed: 20240315),
         isFlagMode: false,
         onReveal: { _, _ in },
         onFlag: { _, _ in }

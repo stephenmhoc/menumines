@@ -30,9 +30,7 @@ struct DailyBoardFairnessTests {
         for row in 0..<Board.rows {
             for col in 0..<Board.cols where !reference.contains(row * Board.cols + col) {
                 let state = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .daily)
-                // Cells inside the opening cascade are already revealed, so clicking them
-                // is a no-op and leaves the game unstarted.
-                guard case .hidden = state.board.cells[row][col].state else { continue }
+                #expect(countRevealedCells(in: state.board) == 0, "The daily should start covered")
 
                 state.reveal(row: row, col: col)
                 state.pauseTimer()
@@ -45,7 +43,7 @@ struct DailyBoardFairnessTests {
                 #expect(state.status == .playing)
             }
         }
-        #expect(cellsTried > 0, "No hidden safe cells were exercised, so this proved nothing")
+        #expect(cellsTried == Board.rows * Board.cols - Board.mineCount)
     }
 
     private func hiddenSafeCells(in board: Board) -> [(row: Int, col: Int)] {
@@ -59,7 +57,7 @@ struct DailyBoardFairnessTests {
         return found
     }
 
-    @Test("The opening is safe and opens a cascade")
+    @Test("The marked opening is safe and opens a cascade")
     func testOpeningIsSafeAndOpen() {
         for seed in Int64(20260101)...Int64(20260131) {
             let board = Board(dailySeed: seed)
@@ -69,7 +67,15 @@ struct DailyBoardFairnessTests {
                     "Seed \(seed) put a mine on its own opening cell")
             #expect(board.adjacentMineCount(row: opening.row, col: opening.col) == 0,
                     "Seed \(seed) opening is not a zero cell, so it would not cascade")
-            #expect(countRevealedCells(in: board) > 1, "Seed \(seed) opening did not cascade")
+            #expect(countRevealedCells(in: board) == 0, "Seed \(seed) did not start covered")
+
+            let state = GameState(board: board, dailySeed: seed, puzzleType: .practice)
+            #expect(state.startHint?.row == opening.row && state.startHint?.col == opening.col)
+            state.reveal(row: opening.row, col: opening.col)
+            state.pauseTimer()
+            #expect(state.status == .playing)
+            #expect(countRevealedCells(in: state.board) > 1, "Seed \(seed) opening did not cascade")
+            #expect(state.startHint == nil, "The marker should go once the game starts")
         }
     }
 
@@ -114,11 +120,14 @@ struct DailyBoardFairnessTests {
         let brisk = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .practice)
         let thorough = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .practice)
 
-        for (row, col) in safeHiddenCells(in: brisk.board).prefix(1) {
-            brisk.reveal(row: row, col: col)
+        for _ in 0..<1 {
+            guard let cell = safeHiddenCells(in: brisk.board).first else { break }
+            brisk.reveal(row: cell.row, col: cell.col)
         }
-        for (row, col) in safeHiddenCells(in: thorough.board).prefix(6) {
-            thorough.reveal(row: row, col: col)
+        // One at a time, because each reveal can cascade over cells picked in advance.
+        for _ in 0..<6 {
+            guard let cell = safeHiddenCells(in: thorough.board).first else { break }
+            thorough.reveal(row: cell.row, col: cell.col)
         }
         brisk.pauseTimer()
         thorough.pauseTimer()
@@ -182,6 +191,28 @@ struct DailyBoardFairnessTests {
         #expect(PuzzleType.daily.isRanked)
         #expect(!PuzzleType.practice.isRanked, "A replay must never fill in a missed day")
         #expect(!PuzzleType.random.isRanked)
+    }
+
+    @Test("Random puzzles have no marked opening")
+    func testRandomPuzzleHasNoStartHint() {
+        let state = GameState(board: Board(seed: -42), dailySeed: -42, puzzleType: .random)
+        #expect(state.startHint == nil)
+    }
+
+    @Test("A cell can be flagged before the first reveal, without starting the clock")
+    func testFlagBeforeFirstReveal() {
+        let seed: Int64 = 20260725
+        let state = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .practice)
+
+        state.toggleFlag(row: 0, col: 0)
+        #expect(state.board.cells[0][0].state == .flagged)
+        #expect(state.flagCount == 1)
+        #expect(state.status == .notStarted, "A flag must not start the game")
+        #expect(state.elapsedTime == 0)
+
+        state.toggleFlag(row: 0, col: 0)
+        #expect(state.board.cells[0][0].state == .hidden)
+        #expect(state.flagCount == 0)
     }
 
     @Test("Random puzzles keep first-click safety")

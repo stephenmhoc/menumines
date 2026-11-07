@@ -57,7 +57,8 @@ struct DailyLifecycleTests {
         let state = GameState.restored()
 
         #expect(state.board == Board(dailySeed: seedFromDate(Date())))
-        #expect(countRevealedCells(in: state.board) > 0, "The daily ships with its opening revealed")
+        #expect(countRevealedCells(in: state.board) == 0, "The daily starts fully covered")
+        #expect(state.startHint != nil, "The daily marks its safe opening")
     }
 
     @Test("Rolling over to a new day deals the same board as everyone else")
