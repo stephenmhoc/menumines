@@ -53,7 +53,8 @@ MenuMines/
 │   └── Telemetry.swift         # The only file that talks to Sentry
 ├── Views/
 │   ├── AboutWindow.swift       # About window
-│   ├── CellView.swift          # Individual cell rendering and click handling
+│   ├── CellView.swift          # One cell: state, accessibility, hover/press and motion
+│   ├── CellTile.swift          # Tiles, flag and mine glyphs, number colours, the cell's click view
 │   ├── ConfettiView.swift      # Win celebration animation
 │   ├── FooterView.swift        # Share, flag mode, controls help and the gear menu
 │   ├── GameBoardView.swift     # 9x9 grid of cells
@@ -153,6 +154,24 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   Game Center, alerts) is left besides the closing one. The main menu routes About, ⌘, and ⌘W to
   the app's own windows, since the SwiftUI `Settings` scene is a placeholder.
 
+### Board and Panel Content
+
+- **Look:** covered cells are raised tiles (`RaisedTile`, continuous corners, top highlight), opened
+  cells flat (`RecessedTile`: lighter than the plate in light mode, set into it in dark), on a solid
+  `BoardPlate`. Numbers are SF Rounded bold in system colours (`NumberPalette`); the flag is the
+  `flag.fill` symbol in system red everywhere (`FlagGlyph`) and the mine is drawn (`MineGlyph`).
+  After a loss a flag on a safe cell shows as `flag.slash.fill`, and VoiceOver says so. With
+  Increase Contrast, tile edges and digits get heavier. Nothing on the board is colour-only.
+- **Hit areas:** cells sit edge to edge (`CellMetrics.size` 29pt) and draw their gap inside, so no
+  click lands between cells. `ClickableNSView` accepts the first mouse; left click reveals on
+  release, right/Control-click flags on press, middle click chords. A covered cell draws sunken
+  while held. Hover and press feedback only while the game is in play.
+- **Keyboard:** arrows, Space or Return, F. The selection ring shows once the player steers by
+  keyboard, including when Tab (Keyboard Navigation) brings focus back to the board.
+- **Redraws:** `CellView` is `Equatable`, so redrawing the panel doesn't rebuild 81 cells.
+- **Motion:** reveals are instant. Flags pop in over 0.12s and a lost game's mines spread from the
+  one that went off over about 0.2s. Both are off under Reduce Motion.
+
 Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
 opens on that board (`StatusItemController.openFromWindow`). The app is still active at that
 point because Stats activated it, so `AppWindows.yieldFocusIfNoWindowsRemain` leaves it alone while
@@ -243,7 +262,7 @@ MenuMines must be fully playable with VoiceOver. Accessibility is a core require
    - Game loss: "Game over. You hit a mine"
    - Timer updates (on demand, not continuously)
 
-3. **Keyboard Navigation** - Already implemented via arrow keys + Space/F (see Controls)
+3. **Keyboard Navigation** - Already implemented via arrow keys + Space/Return/F (see Controls)
 
 4. **Control Labels** - All buttons need accessibility labels:
    - Reset button: "Reset game"
@@ -502,7 +521,7 @@ Text("reset_button", tableName: "Localizable")
 Button(String(localized: "quit_button")) { ... }
 ```
 
-**Emojis are locale-independent** and don't need localization: 🚩, 💣, 🙂, 😎, 😵, 🎉
+**Emojis are locale-independent** and don't need localization: 🚩 (share text), 🙂, 😮, 😎, 😵, 🎉
 
 ### Localizable.strings
 

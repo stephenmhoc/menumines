@@ -224,4 +224,14 @@ struct GameStateWinLoseTests {
         gameState.reveal(row: mine.row, col: mine.col)
         #expect(gameState.status == .won, "Status should still be won")
     }
+
+    @Test("After a loss, VoiceOver tells a wrong flag from a right one")
+    func wrongFlagDescribedAfterLoss() {
+        let wrong = Cell(state: .flagged, hasMine: false)
+        let right = Cell(state: .flagged, hasMine: true)
+
+        #expect(wrong.accessibilityStateDescription() == String(localized: "cell_state_flagged"))
+        #expect(wrong.accessibilityStateDescription(isGameLost: true) == String(localized: "cell_state_wrong_flag"))
+        #expect(right.accessibilityStateDescription(isGameLost: true) == String(localized: "cell_state_flagged"))
+    }
 }

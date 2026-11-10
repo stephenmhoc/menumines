@@ -15,7 +15,8 @@ final class AccessibilityAnnouncer {
     ///   - row: The selected row (0-indexed).
     ///   - col: The selected column (0-indexed).
     ///   - cell: The cell at the selected position.
-    func announceSelectionChange(row: Int, col: Int, cell: Cell) {
+    ///   - isGameLost: Whether the game is over, which is when a flag can be shown to be wrong.
+    func announceSelectionChange(row: Int, col: Int, cell: Cell, isGameLost: Bool = false) {
         announcementTask?.cancel()
 
         announcementTask = Task { @MainActor in
@@ -26,7 +27,7 @@ final class AccessibilityAnnouncer {
                 format: String(localized: "announcement_selection_changed"),
                 row + 1,
                 col + 1,
-                cell.accessibilityStateDescription()
+                cell.accessibilityStateDescription(isGameLost: isGameLost)
             )
             AccessibilityNotification.Announcement(message).post()
         }
@@ -41,8 +42,10 @@ final class AccessibilityAnnouncer {
 
 extension Cell {
     /// What VoiceOver says about this cell, for its label and for selection announcements.
-    /// - Parameter isStartHint: Whether this is the day's marked safe opening cell.
-    func accessibilityStateDescription(isStartHint: Bool = false) -> String {
+    /// - Parameters:
+    ///   - isStartHint: Whether this is the day's marked safe opening cell.
+    ///   - isGameLost: Whether the game was lost, which shows up flags on cells without a mine.
+    func accessibilityStateDescription(isStartHint: Bool = false, isGameLost: Bool = false) -> String {
         if isExploded {
             return String(localized: "cell_state_exploded_mine")
         }
@@ -52,6 +55,8 @@ extension Cell {
             return String(localized: "cell_state_covered_safe_start")
         case .hidden:
             return String(localized: "cell_state_covered")
+        case .flagged where isGameLost && !hasMine:
+            return String(localized: "cell_state_wrong_flag")
         case .flagged:
             return String(localized: "cell_state_flagged")
         case .revealed(let adjacentMines):

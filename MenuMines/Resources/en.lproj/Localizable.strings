@@ -175,6 +175,7 @@
 "cell_state_covered" = "covered";
 "cell_state_covered_safe_start" = "covered, safe place to start";
 "cell_state_flagged" = "flagged";
+"cell_state_wrong_flag" = "flagged, but no mine here";
 "cell_state_mine" = "mine";
 "cell_state_exploded_mine" = "exploded mine";
 "cell_state_empty" = "empty";

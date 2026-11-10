@@ -61,7 +61,7 @@ struct MenuContentView: View {
             moveSelection(.left)
         case .rightArrow:
             moveSelection(.right)
-        case .space where press.phase == .down:
+        case .space where press.phase == .down, .return where press.phase == .down:
             usesKeyboard = true
             gameState.revealSelected()
         default:
@@ -90,6 +90,13 @@ struct MenuContentView: View {
         isBoardFocused = true
         gameState.select(row: row, col: col)
         gameState.reveal(row: row, col: col)
+    }
+
+    private func chord(row: Int, col: Int) {
+        usesKeyboard = false
+        isBoardFocused = true
+        gameState.select(row: row, col: col)
+        gameState.chordReveal(row: row, col: col)
     }
 
     private func flag(row: Int, col: Int) {
@@ -144,11 +151,12 @@ struct MenuContentView: View {
                     gameStatus: gameState.status,
                     selectedRow: gameState.selectedRow,
                     selectedCol: gameState.selectedCol,
-                    showsSelection: usesKeyboard,
+                    showsSelection: usesKeyboard && isBoardFocused,
                     startHint: gameState.startHint,
                     isFlagMode: isFlagMode,
                     onReveal: reveal,
                     onFlag: flag,
+                    onChord: chord,
                     onHover: { row, col, isHovering in
                         if isHovering {
                             hoveredCell = BoardPosition(row: row, col: col)
@@ -165,6 +173,14 @@ struct MenuContentView: View {
                 .focusable(!showResetConfirmation)
                 .focusEffectDisabled()
                 .focused($isBoardFocused)
+                .onChange(of: isBoardFocused) { _, focused in
+                    // Tabbing back to the board (with Keyboard Navigation on) is steering by
+                    // keyboard, so show where the selection is. A click focuses it too, and
+                    // says otherwise itself.
+                    if focused, NSApp.currentEvent?.type == .keyDown {
+                        usesKeyboard = true
+                    }
+                }
                 .onKeyPress(phases: [.down, .repeat], action: handleKey)
 
                 FooterView(

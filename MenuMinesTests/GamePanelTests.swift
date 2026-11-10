@@ -11,6 +11,7 @@ struct GamePanelTests {
         static let right: (code: UInt16, characters: String) = (124, "\u{F703}")
         static let down: (code: UInt16, characters: String) = (125, "\u{F701}")
         static let space: (code: UInt16, characters: String) = (49, " ")
+        static let returnKey: (code: UInt16, characters: String) = (36, "\r")
         static let flag: (code: UInt16, characters: String) = (3, "f")
         static let escape: (code: UInt16, characters: String) = (53, "\u{1B}")
         static let commandW: (code: UInt16, characters: String) = (13, "w")
@@ -136,6 +137,22 @@ struct GamePanelTests {
         try selectSafeCell(in: state)
         try await press(Key.flag, in: controller)
         #expect(state.flagCount == 1)
+    }
+
+    @Test("Return reveals like Space")
+    func returnReveals() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let state = todaysDaily()
+        let controller = try await openPanel(for: state)
+        defer { controller.close() }
+
+        try selectSafeCell(in: state)
+        let (row, col) = (state.selectedRow, state.selectedCol)
+        try await press(Key.returnKey, in: controller)
+        #expect(state.status == .playing)
+        #expect(state.board.cells[row][col].state != .hidden)
     }
 
     @Test("Escape closes the panel, and closing pauses the game clock")

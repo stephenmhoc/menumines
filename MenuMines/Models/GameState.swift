@@ -642,7 +642,7 @@ final class GameState {
     /// Debounced to prevent overlapping announcements during rapid navigation.
     private func announceSelectedCell() {
         let cell = board.cells[selectedRow][selectedCol]
-        announcer.announceSelectionChange(row: selectedRow, col: selectedCol, cell: cell)
+        announcer.announceSelectionChange(row: selectedRow, col: selectedCol, cell: cell, isGameLost: status == .lost)
     }
 
     /// Reveals the currently selected cell.

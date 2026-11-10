@@ -60,6 +60,7 @@
 		674F7F5F5E87170A8D975E58 /* DailyRolloverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D2EEFC4A1818B208768146 /* DailyRolloverTests.swift */; };
 		6BF2A249296866F834C5A5BC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7188B7AA63E85EB97FFF5C /* SettingsView.swift */; };
 		6E88DF96BB3FB5BF08671823 /* ShortcutRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF240F6DE6112EEB6E826E7F /* ShortcutRecorderView.swift */; };
+		70B362CB5769D3DB4E44F5E8 /* CellTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C472106C2A58E477A16D4FA /* CellTile.swift */; };
 		743198F34B7804689B493A95 /* AppStoreScreenshotExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E832B1B6390C23CF9C532BAE /* AppStoreScreenshotExporter.swift */; };
 		77EDCD81B3566ADA2D0826A0 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F92D798C5BD2A4E2E6B47E2 /* StatsStore.swift */; };
 		79B54EA133D9E8136726C408 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF4FBFA8C13C34184586766 /* MenuContentView.swift */; };
@@ -103,6 +104,7 @@
 		C4C8F11BBE25AAA90D6C2AD1 /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2A987C41C36C974D88974B /* GlobalHotKey.swift */; };
 		C54A432038B0A1EAAB14DF16 /* AuditRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250B5B1B5005EE50C62F4FE /* AuditRegressionTests.swift */; };
 		C6BAB0A438AA6BF5C4629778 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 81CEE9D9AF11F8C014D5DB43 /* PrivacyInfo.xcprivacy */; };
+		D49C8B4C3BEB4C96A227332B /* CellTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C472106C2A58E477A16D4FA /* CellTile.swift */; };
 		D5F709C9CCB57E7DCD041AA0 /* PastDailyRecordingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4194045ED18EF437746217D3 /* PastDailyRecordingTests.swift */; };
 		D69CE3CC844734CEB42B61BD /* DayWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F15FCF92D92422E1B0F06 /* DayWatcher.swift */; };
 		DA4F0CF46E7B1A49629EE145 /* StatusIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C0C642FEE86870A148890C /* StatusIcon.swift */; };
@@ -182,6 +184,7 @@
 		7809FDC4798C95DC2A1CEBAD /* StatsStore+PastDailies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatsStore+PastDailies.swift"; sourceTree = "<group>"; };
 		79C0C642FEE86870A148890C /* StatusIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusIcon.swift; sourceTree = "<group>"; };
 		7B0EDA25CCE729B3454CA45D /* GameStatePauseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStatePauseTests.swift; sourceTree = "<group>"; };
+		7C472106C2A58E477A16D4FA /* CellTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellTile.swift; sourceTree = "<group>"; };
 		7D531CC5AB910D1E5601C607 /* StatsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStoreTests.swift; sourceTree = "<group>"; };
 		81CEE9D9AF11F8C014D5DB43 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		86A0C2875CC5C4F552D0B58F /* PastDailyReplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyReplayTests.swift; sourceTree = "<group>"; };
@@ -341,6 +344,7 @@
 			isa = PBXGroup;
 			children = (
 				261DF9BFF0447B4AC12A501C /* AboutWindow.swift */,
+				7C472106C2A58E477A16D4FA /* CellTile.swift */,
 				D19CB6DD51B0160F6A05D8B3 /* CellView.swift */,
 				9CBBAE5B199A7FEB7BABAA82 /* ConfettiView.swift */,
 				C31DCBAC03DE11ECC9873CE3 /* FooterView.swift */,
@@ -514,6 +518,7 @@
 				E849DE565C59426DF74389CA /* AppWindows.swift in Sources */,
 				F33F5053C1A2CF236C4CE3F7 /* Board.swift in Sources */,
 				EFD50B5F11A51E23CA971D45 /* Cell.swift in Sources */,
+				D49C8B4C3BEB4C96A227332B /* CellTile.swift in Sources */,
 				AC9A56478119510C11FC6F3B /* CellView.swift in Sources */,
 				942B932E0238B50288026616 /* ConfettiView.swift in Sources */,
 				8591B2A36DF2446CB198D386 /* Constants.swift in Sources */,
@@ -559,6 +564,7 @@
 				C3E5A081A0ACEF4287A9A9F6 /* AppWindows.swift in Sources */,
 				2D5279247206B69CEFA04AB2 /* Board.swift in Sources */,
 				20ADDF2BDACF4A1B8EED9646 /* Cell.swift in Sources */,
+				70B362CB5769D3DB4E44F5E8 /* CellTile.swift in Sources */,
 				93346B65F6D9753F746D554C /* CellView.swift in Sources */,
 				C4606946EC13A7405F2B25B7 /* ConfettiView.swift in Sources */,
 				FC85EB6B00D4378909785F07 /* Constants.swift in Sources */,

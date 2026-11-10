@@ -174,8 +174,9 @@ Clear the 9x9 board without hitting any of the 12 hidden mines.
 
 | Action | Mouse | Keyboard |
 |--------|-------|----------|
-| Reveal cell | Left-click | Space |
+| Reveal cell | Left-click | Space or Return |
 | Toggle flag | Right-click or Control+Click | F |
+| Reveal around a fully flagged number | Click the number, or middle-click | Space or Return on the number |
 | Move selection | - | Arrow keys |
 
 ### Keyboard Shortcuts
@@ -210,7 +211,7 @@ Each daily board starts fully covered, with the same safe opening cell marked by
 MenuMines is designed to be fully playable with VoiceOver:
 
 - **Screen reader support** - All cells and controls have descriptive labels
-- **Keyboard navigation** - Full game control via arrow keys, Space, and F
+- **Keyboard navigation** - Full game control via arrow keys, Space or Return, and F
 - **State announcements** - Win/loss states are announced automatically
 
 To enable VoiceOver, press Cmd+F5 or go to System Settings → Accessibility → VoiceOver.
