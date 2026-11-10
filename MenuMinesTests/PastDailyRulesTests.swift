@@ -130,7 +130,8 @@ struct PastDailyShareTests {
         try #require(state.status == .won)
         await waitForRecording()
 
-        let header = try #require(state.shareText()?.components(separatedBy: "\n").first)
+        let shareText = try #require(state.shareText())
+        let header = try #require(shareText.components(separatedBy: "\n").first)
         let launchDay = try utcDate(2026_01_31)
         #expect(header == "MenuMines - \(launchDay) (played later)")
     }
