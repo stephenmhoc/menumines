@@ -168,7 +168,9 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   while held. Hover and press feedback only while the game is in play.
 - **Keyboard:** arrows, Space or Return, F. The selection ring shows once the player steers by
   keyboard, including when Tab (Keyboard Navigation) brings focus back to the board.
-- **Redraws:** `CellView` is `Equatable`, so redrawing the panel doesn't rebuild 81 cells.
+- **Redraws:** only `GameClockText` in the header reads `elapsedTime`, and `CellView` is
+  `Equatable`, so the clock's tick doesn't rebuild the board. Keep body reads of `elapsedTime` out
+  of `MenuContentView`.
 - **Motion:** reveals are instant. Flags pop in over 0.12s and a lost game's mines spread from the
   one that went off over about 0.2s. Both are off under Reduce Motion.
 

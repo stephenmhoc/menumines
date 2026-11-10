@@ -137,7 +137,7 @@ struct MenuContentView: View {
             VStack(spacing: rowSpacing) {
                 HeaderView(
                     status: gameState.status,
-                    elapsedTime: gameState.elapsedTime,
+                    elapsedTime: { gameState.elapsedTime },
                     flagCount: gameState.flagCount,
                     canReset: gameState.canReset,
                     isHoldingCell: isHoldingCell,

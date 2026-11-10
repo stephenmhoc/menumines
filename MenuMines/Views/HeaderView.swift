@@ -2,7 +2,8 @@ import SwiftUI
 
 struct HeaderView: View {
     let status: GameStatus
-    let elapsedTime: TimeInterval
+    /// Read only by the clock, so the tick each second redraws the clock and nothing else.
+    let elapsedTime: () -> TimeInterval
     let flagCount: Int
     let canReset: Bool
     var isHoldingCell: Bool = false
@@ -36,7 +37,68 @@ struct HeaderView: View {
         }
     }
 
-    private var timerAccessibilityLabel: String {
+    private var flagCountAccessibilityLabel: String {
+        // Flagging is uncapped, so an over-flagged board would otherwise announce
+        // a negative number of mines remaining.
+        let remaining = max(0, Board.mineCount - flagCount)
+        if remaining == 1 {
+            return String(format: String(localized: "flag_count_accessibility_one_remaining"), flagCount)
+        }
+        return String(format: String(localized: "flag_count_accessibility_remaining"), flagCount, remaining)
+    }
+
+    var body: some View {
+        HStack {
+            HStack(spacing: 4) {
+                FlagGlyph(size: 12)
+                Text("\(flagCount)/\(Board.mineCount)")
+                    .font(.system(size: 14, weight: .medium))
+                    .monospacedDigit()
+            }
+            .frame(minWidth: 60, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(flagCountAccessibilityLabel)
+
+            Spacer()
+
+            // Status emoji - clickable to reset game
+            Button(action: onReset) {
+                Text(statusEmoji)
+                    .font(.system(size: 22))
+            }
+            .buttonStyle(FaceButtonStyle())
+            // The gear menu shows ⌘R too, but a menu that isn't open answers no shortcuts.
+            .keyboardShortcut("r", modifiers: .command)
+            .disabled(!canReset)
+            .help(canReset ? String(localized: "reset_button") : resetLockedHint)
+            .accessibilityLabel(String(format: String(localized: "reset_accessibility_combined"), statusDescription))
+            .accessibilityHint(canReset ? resetHint : resetLockedHint)
+
+            Spacer()
+
+            GameClockText(elapsedTime: elapsedTime)
+                .frame(minWidth: 60, alignment: .trailing)
+        }
+        // Inset to the cells, so the counter and the clock line up with the board's edges.
+        .padding(.horizontal, GameBoardView.platePadding)
+        .frame(width: GameBoardView.width)
+    }
+}
+
+/// The game clock. It's its own view so that the time, which changes every second, is read
+/// here and nowhere else in the panel.
+private struct GameClockText: View {
+    let elapsedTime: () -> TimeInterval
+
+    var body: some View {
+        let elapsedTime = elapsedTime()
+        Text(elapsedTime.clockString)
+            .font(.system(size: 14, weight: .medium))
+            .monospacedDigit()
+            .accessibilityLabel(timerAccessibilityLabel(elapsedTime))
+    }
+
+    private func timerAccessibilityLabel(_ elapsedTime: TimeInterval) -> String {
         let totalSeconds = Int(elapsedTime)
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
@@ -57,74 +119,59 @@ struct HeaderView: View {
         }
         return String(format: String(localized: "timer_accessibility_minutes_seconds"), minutes, seconds)
     }
+}
 
-    private var flagCountAccessibilityLabel: String {
-        // Flagging is uncapped, so an over-flagged board would otherwise announce
-        // a negative number of mines remaining.
-        let remaining = max(0, Board.mineCount - flagCount)
-        if remaining == 1 {
-            return String(format: String(localized: "flag_count_accessibility_one_remaining"), flagCount)
-        }
-        return String(format: String(localized: "flag_count_accessibility_remaining"), flagCount, remaining)
+/// The face: a rounded backing under the pointer and while pressed, like a toolbar button.
+/// It keeps its full colour while reset is locked, since the face also shows how the game
+/// is going; only the backing goes.
+private struct FaceButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        FaceButton(configuration: configuration)
     }
 
-    var body: some View {
-        HStack {
-            // Flag count
-            HStack(spacing: 4) {
-                Text("🚩")
-                Text("\(flagCount)/\(Board.mineCount)")
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-            }
-            .frame(minWidth: 60, alignment: .leading)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(flagCountAccessibilityLabel)
+    private struct FaceButton: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.isEnabled) private var isEnabled
+        @State private var isHovered = false
 
-            Spacer()
-
-            // Status emoji - clickable to reset game
-            Button(action: onReset) {
-                Text(statusEmoji)
-                    .font(.system(size: 24))
-            }
-            .buttonStyle(.plain)
-            // The gear menu shows ⌘R too, but a menu that isn't open answers no shortcuts.
-            .keyboardShortcut("r", modifiers: .command)
-            .disabled(!canReset)
-            .help(canReset ? String(localized: "reset_button") : resetLockedHint)
-            .accessibilityLabel(String(format: String(localized: "reset_accessibility_combined"), statusDescription))
-            .accessibilityHint(canReset ? resetHint : resetLockedHint)
-
-            Spacer()
-
-            // Timer
-            Text(elapsedTime.clockString)
-                .font(.system(size: 14, weight: .medium, design: .monospaced))
-                .frame(minWidth: 60, alignment: .trailing)
-                .accessibilityLabel(timerAccessibilityLabel)
+        private var backingOpacity: Double {
+            guard isEnabled else { return 0 }
+            if configuration.isPressed { return 0.16 }
+            return isHovered ? 0.08 : 0
         }
-        .padding(.horizontal, 8)
+
+        var body: some View {
+            configuration.label
+                .frame(width: 32, height: 30)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Color.primary.opacity(backingOpacity))
+                )
+                .contentShape(.rect)
+                .onHover { isHovered = $0 }
+                .animation(.easeOut(duration: 0.08), value: isHovered)
+        }
     }
 }
 
 // MARK: - Previews
 
 #Preview("Not Started") {
-    HeaderView(status: .notStarted, elapsedTime: 0, flagCount: 0, canReset: true, onReset: {})
+    HeaderView(status: .notStarted, elapsedTime: { 0 }, flagCount: 0, canReset: true, onReset: {})
         .padding()
 }
 
 #Preview("Playing") {
-    HeaderView(status: .playing, elapsedTime: 125, flagCount: 3, canReset: true, onReset: {})
+    HeaderView(status: .playing, elapsedTime: { 125 }, flagCount: 3, canReset: true, onReset: {})
         .padding()
 }
 
 #Preview("Won") {
-    HeaderView(status: .won, elapsedTime: 89, flagCount: 10, canReset: true, onReset: {})
+    HeaderView(status: .won, elapsedTime: { 89 }, flagCount: 10, canReset: true, onReset: {})
         .padding()
 }
 
 #Preview("Lost") {
-    HeaderView(status: .lost, elapsedTime: 45, flagCount: 5, canReset: true, onReset: {})
+    HeaderView(status: .lost, elapsedTime: { 45 }, flagCount: 5, canReset: true, onReset: {})
         .padding()
 }
