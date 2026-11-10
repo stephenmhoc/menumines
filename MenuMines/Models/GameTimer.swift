@@ -6,6 +6,21 @@ extension TimeInterval {
         let totalSeconds = Int(self)
         return String(format: "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
+
+    /// The time as it's said, such as "1 minute, 5 seconds", for VoiceOver, which reads
+    /// `clockString` as digits.
+    var spokenDuration: String {
+        let totalSeconds = max(Int(self), 0)
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        if totalSeconds < 60 {
+            formatter.allowedUnits = [.second]
+        } else {
+            formatter.allowedUnits = totalSeconds < 3600 ? [.minute, .second] : [.hour, .minute, .second]
+            formatter.zeroFormattingBehavior = .dropAll
+        }
+        return formatter.string(from: TimeInterval(totalSeconds)) ?? clockString
+    }
 }
 
 /// Measures how long a game has been actively played.

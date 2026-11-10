@@ -202,6 +202,14 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   `idealContentSize` (Settings measures a non-scrolling copy, `SettingsView.idealContentSize`), its
   host has no `sizingOptions`, and the form fills and scrolls in the window.
   `GamePanelWindowSizeTests` covers it, including a tiny saved frame.
+- **Statistics** has its tabs (Summary, History, Recent) as a segmented control in a unified
+  toolbar (`sceneBridgingOptions = [.toolbars]`, title hidden beside it). Summary and Recent are
+  grouped forms of `LabeledContent`, with `ContentUnavailableView` when there's nothing yet; times
+  are spoken through `TimeInterval.spokenDuration` and an empty figure as "no data". Reset
+  Statistics… and Leaderboard are push buttons, and the reset alert says it reaches every Mac
+  through iCloud in the App Store build. The content reports its height, and `AppWindows.fit`
+  resizes the window to it with the top edge pinned, animated unless Reduce Motion is on. It
+  works in the toolbar-free part of the content (`contentLayoutRect`), so it can be asked again.
 - **Launch at login** is read from `SMAppService`, never stored, and read again whenever the app
   becomes active. `.requiresApproval` shows as on, with a line and an Open Login Items button.
 

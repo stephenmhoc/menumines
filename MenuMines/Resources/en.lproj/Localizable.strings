@@ -91,7 +91,8 @@
 "stats_menu_item" = "Stats…";
 "daily_history_menu_item" = "Daily History…";
 "settings_window_title" = "%@ Settings";
-"stats_window_title" = "Stats";
+"stats_window_title" = "Statistics";
+"stats_view_picker" = "View";
 "stats_games_played" = "Games Played";
 "stats_wins" = "Wins";
 "stats_win_rate" = "Win Rate";
@@ -104,10 +105,11 @@
 "stats_reset_button" = "Reset Statistics…";
 "stats_reset_accessibility_hint" = "Permanently deletes all game statistics";
 "stats_reset_confirmation_title" = "Reset Statistics?";
-"stats_reset_confirmation_message" = "This will permanently delete all your game statistics. This action cannot be undone.";
+"stats_reset_confirmation_message" = "Your statistics and history will be deleted from this Mac. You can't undo this.";
+"stats_reset_confirmation_message_icloud" = "Your statistics and history will be deleted from all your Macs using iCloud. You can't undo this.";
 "stats_reset_confirmation_cancel" = "Cancel";
 "stats_reset_confirmation_confirm" = "Reset";
-"stats_empty_message" = "Play a game to see your stats!";
+"stats_empty_message" = "No Statistics Yet";
 "stats_empty_subtitle" = "Finished puzzles appear here.";
 "stats_section_daily" = "Daily Puzzles";
 "stats_section_all" = "All Games";
@@ -141,12 +143,12 @@
 "stats_calendar_legend_in_progress" = "In progress";
 "stats_calendar_legend_not_played" = "Not played";
 "stats_calendar_day_today_prefix" = "Today, %@";
-"stats_recent_title" = "Recent Daily Results";
-"stats_recent_empty" = "No daily results yet.";
+"stats_recent_empty" = "No Daily Results Yet";
+"stats_recent_empty_subtitle" = "Finished daily puzzles appear here.";
 "stats_result_won" = "Won";
 "stats_result_lost" = "Lost";
-"stats_recent_accessibility_label" = "%@, %@, %@";
 "metric_accessibility_label" = "%@: %@";
+"stats_recent_accessibility_label" = "%@, %@, %@";
 
 /* Controls popover */
 "controls_button_accessibility" = "Show keyboard controls";
@@ -210,6 +212,7 @@
 
 /* Stats display */
 "stats_no_data" = "—";
+"stats_no_data_accessibility" = "No data";
 
 /* About window */
 "about_description" = "A new Minesweeper puzzle in your menu bar every day.";

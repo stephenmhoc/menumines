@@ -36,6 +36,7 @@
 		35C7E0EEFC36DFB80C8D1830 /* StatusItemController+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C48A4CC9144931FD69D05 /* StatusItemController+Menu.swift */; };
 		36C1DE9BB547A98067E779A0 /* AboutWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261DF9BFF0447B4AC12A501C /* AboutWindow.swift */; };
 		37524A91053F9AC327742BF7 /* MenuMinesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF97F7F956D585A6B65F9F9 /* MenuMinesApp.swift */; };
+		37AC931E2C074C6D837F1384 /* DailyHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */; };
 		39F8401D86A7AB6BD2AFF8E2 /* GameStateChordRevealTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09FF2D7A87AF6F7EDEFAE0F /* GameStateChordRevealTests.swift */; };
 		3E908CE513FC68AFE2A26B45 /* DailyBoardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAE94260F11C8942153B783A /* DailyBoardTests.swift */; };
 		3F413099E192C2CC393CB194 /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24A066240BAF20DDCAD6357 /* MenuBarIconState.swift */; };
@@ -109,6 +110,7 @@
 		C54A432038B0A1EAAB14DF16 /* AuditRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250B5B1B5005EE50C62F4FE /* AuditRegressionTests.swift */; };
 		C6BAB0A438AA6BF5C4629778 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 81CEE9D9AF11F8C014D5DB43 /* PrivacyInfo.xcprivacy */; };
 		D058C61BFA283FBBC37B45FB /* ControlsPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D431003B9D93530847D758 /* ControlsPopoverView.swift */; };
+		D0F4BFD88C1AD54D2EA543E4 /* DailyHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */; };
 		D49C8B4C3BEB4C96A227332B /* CellTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C472106C2A58E477A16D4FA /* CellTile.swift */; };
 		D5F709C9CCB57E7DCD041AA0 /* PastDailyRecordingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4194045ED18EF437746217D3 /* PastDailyRecordingTests.swift */; };
 		D69CE3CC844734CEB42B61BD /* DayWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F15FCF92D92422E1B0F06 /* DayWatcher.swift */; };
@@ -171,6 +173,7 @@
 		2D0C9892A123D85AE470B4B5 /* GamePanelShellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelShellTests.swift; sourceTree = "<group>"; };
 		34CB11039692BF50D0C6D391 /* MenuMinesDirect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MenuMinesDirect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35754B0EBFF0F9FFFE8AC10A /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
+		36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyHistoryView.swift; sourceTree = "<group>"; };
 		3C4C713A74D7E9BDE4015CD4 /* UpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateManager.swift; sourceTree = "<group>"; };
 		3F92D798C5BD2A4E2E6B47E2 /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
 		4194045ED18EF437746217D3 /* PastDailyRecordingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyRecordingTests.swift; sourceTree = "<group>"; };
@@ -363,6 +366,7 @@
 				D19CB6DD51B0160F6A05D8B3 /* CellView.swift */,
 				9CBBAE5B199A7FEB7BABAA82 /* ConfettiView.swift */,
 				75D431003B9D93530847D758 /* ControlsPopoverView.swift */,
+				36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */,
 				79067E497CACAE3CBCBC8177 /* FooterIconButtons.swift */,
 				C31DCBAC03DE11ECC9873CE3 /* FooterView.swift */,
 				211C61B027C57AADD9AFC86E /* GameBoardView.swift */,
@@ -542,6 +546,7 @@
 				D058C61BFA283FBBC37B45FB /* ControlsPopoverView.swift in Sources */,
 				347F770E749A3528D2FDD63D /* DailyBoard.swift in Sources */,
 				1AAB4FA4851A7989916CD057 /* DailyHistory.swift in Sources */,
+				D0F4BFD88C1AD54D2EA543E4 /* DailyHistoryView.swift in Sources */,
 				D69CE3CC844734CEB42B61BD /* DayWatcher.swift in Sources */,
 				64A247DDD180A8367546512F /* FooterIconButtons.swift in Sources */,
 				99968058C6BD06EA656AB7FF /* FooterView.swift in Sources */,
@@ -590,6 +595,7 @@
 				FAAF67913135A670CDC15000 /* ControlsPopoverView.swift in Sources */,
 				530EDE0E7FFCD83958319055 /* DailyBoard.swift in Sources */,
 				53DC059A8C6B0D6539378F2E /* DailyHistory.swift in Sources */,
+				37AC931E2C074C6D837F1384 /* DailyHistoryView.swift in Sources */,
 				9EAA2E637493CCB62C973254 /* DayWatcher.swift in Sources */,
 				28BC797D3F8B20F5FE56FFE6 /* FooterIconButtons.swift in Sources */,
 				9AE3522E99E1E54F074BF4A0 /* FooterView.swift in Sources */,

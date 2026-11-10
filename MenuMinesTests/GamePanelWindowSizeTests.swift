@@ -6,6 +6,17 @@ import Testing
 /// whatever frame was saved for them. Part of the game panel suite, since these put windows
 /// on screen.
 extension GamePanelTests {
+    /// Gives focus back as the app does once its last window closes, which hides it. Tests
+    /// run without the app delegate that does that, and later panel tests expect the app
+    /// not to be active.
+    func handFocusBack() async throws {
+        guard NSApp.isActive else { return }
+        NSApp.hide(nil)
+        try await settle()
+        NSApp.unhideWithoutActivation()
+        try await settle()
+    }
+
     private static let savedFrameKeys = ["NSWindow Frame MenuMines.settings", "NSWindow Frame MenuMines.stats"]
 
     /// Runs `body` with the given frames saved for Settings and Statistics, then puts back
@@ -52,6 +63,7 @@ extension GamePanelTests {
         #expect(stats.width >= AppWindows.statsMinimumContentSize.width)
         #expect(stats.height >= AppWindows.statsMinimumContentSize.height, "Statistics is \(stats.height)pt tall")
         try await settle()
+        try await handFocusBack()
     }
 
     @Test("Settings and Statistics open at a proper size")

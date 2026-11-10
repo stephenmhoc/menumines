@@ -38,6 +38,8 @@ extension GamePanelTests {
         #expect(texts.contains { $0.contains(BuildChannel.current.displayName) })
         #expect(!panel.styleMask.contains(.miniaturizable))
         panel.close()
+        try await settle()
+        try await handFocusBack()
     }
 
     @Test("About opens again after it's closed, as one panel")
@@ -52,5 +54,6 @@ extension GamePanelTests {
             try await settle()
         }
         #expect(AboutWindow.panel?.isVisible != true)
+        try await handFocusBack()
     }
 }

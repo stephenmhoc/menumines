@@ -40,16 +40,29 @@ enum AppWindows {
             id: statsWindowID,
             title: String(localized: "stats_window_title"),
             remembersPosition: true,
-            minimumContentSize: statsMinimumContentSize
-        ) {
-            StatsWindow(gameState: gameState, navigation: statsNavigation) { seed in
-                playPastDay(seed: seed, gameState: gameState)
+            minimumContentSize: statsMinimumContentSize,
+            idealContentSize: { StatsWindow.idealContentSize(gameState: gameState, navigation: statsNavigation) },
+            hasToolbar: true,
+            content: {
+                StatsWindow(
+                    gameState: gameState,
+                    navigation: statsNavigation,
+                    onPlayDay: { seed in playPastDay(seed: seed, gameState: gameState) },
+                    onContentHeightChange: { height in
+                        // Not in the middle of SwiftUI's layout pass, which is where it's heard.
+                        DispatchQueue.main.async {
+                            if let window = controllers[statsWindowID]?.window {
+                                fit(window, toContentHeight: height)
+                            }
+                        }
+                    }
+                )
             }
-        }
+        )
     }
 
     /// The smallest Statistics' content gets, whatever it reports.
-    static let statsMinimumContentSize = NSSize(width: 360, height: 280)
+    static let statsMinimumContentSize = NSSize(width: StatsWindow.width, height: 280)
 
     /// Shows Stats turned to the Daily History calendar, where past days are picked.
     static func showDailyHistory(gameState: GameState) {
@@ -104,12 +117,14 @@ enum AppWindows {
     ///     position comes back, never the saved size.
     ///   - minimumContentSize: The smallest the content area can be.
     ///   - idealContentSize: The size the content wants, measured without scrolling.
+    ///   - hasToolbar: Whether the content's `.toolbar` items go in the window's toolbar.
     static func show<Content: View>(
         id: String,
         title: String,
         remembersPosition: Bool = false,
         minimumContentSize: NSSize = NSSize(width: 300, height: 200),
         idealContentSize: (() -> NSSize)? = nil,
+        hasToolbar: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         onWillShowWindow?()
@@ -126,8 +141,17 @@ enum AppWindows {
             // could shrink the window to nothing.
             host.sizingOptions = []
         }
+        if hasToolbar {
+            host.sceneBridgingOptions = [.toolbars]
+        }
         let window = NSWindow(contentViewController: host)
         window.title = title
+        if hasToolbar {
+            window.toolbarStyle = .unified
+            // The tabs are the toolbar, centred, and there isn't room for the title beside
+            // them. The title is still the window's name in the Window menu and to VoiceOver.
+            window.titleVisibility = .hidden
+        }
         // Not miniaturizable: an agent app has no Dock icon to bring a minimised window
         // back from, and these are small utility windows that close instead.
         window.styleMask = [.titled, .closable]
@@ -148,7 +172,44 @@ enum AppWindows {
         let controller = NSWindowController(window: window)
         controllers[id] = controller
         controller.showWindow(nil)
+        openedAt[ObjectIdentifier(window)] = ProcessInfo.processInfo.systemUptime
+        if hasToolbar {
+            // A unified toolbar is put in place once the window is up, and covers the top of
+            // the content, which is inset below it. The window then grows by that much.
+            DispatchQueue.main.async { [weak window] in
+                if let window {
+                    fit(window, toContentHeight: contentSize.height)
+                }
+            }
+        }
         raise(window)
+    }
+
+    /// When each window opened, so that the size it settles at as it opens isn't animated.
+    private static var openedAt: [ObjectIdentifier: TimeInterval] = [:]
+
+    /// Grows or shrinks a window to the height its content wants, keeping its top edge where
+    /// it is, as a window that changes pane does. Never below its minimum or taller than the
+    /// screen. Animated, unless Reduce Motion is on.
+    static func fit(_ window: NSWindow, toContentHeight height: CGFloat) {
+        guard height.isFinite else { return }
+        // In terms of the part of the content the toolbar doesn't cover, so it comes out the
+        // same however often it's asked, before the toolbar is in or after.
+        let target = min(max(height, window.contentMinSize.height), screenLimitedContentHeight).rounded(.up)
+        let delta = target - window.contentLayoutRect.height
+        guard abs(delta) >= 1 else { return }
+
+        var frame = window.frame
+        frame.origin.y -= delta
+        frame.size.height += delta
+        // Growing off the bottom of the screen, it moves up instead.
+        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame, frame.minY < visible.minY {
+            frame.origin.y = visible.minY
+        }
+        let openedAt = openedAt[ObjectIdentifier(window)]
+        let isSettled = openedAt.map { ProcessInfo.processInfo.systemUptime - $0 > 0.5 } ?? true
+        let animate = window.isVisible && isSettled && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        window.setFrame(frame, display: true, animate: animate)
     }
 
     /// The content size a window opens at: what the content wants, no smaller than the
@@ -192,6 +253,7 @@ enum AppWindows {
     /// here, so a closed window doesn't stay in memory until it's next opened, then gives
     /// focus back if nothing else is left on screen.
     static func windowWillClose(_ window: NSWindow) {
+        openedAt[ObjectIdentifier(window)] = nil
         if let id = controllers.first(where: { $0.value.window === window })?.key {
             let controller = controllers[id]
             // After the close has run its course, and only if a new window hasn't taken
