@@ -7,20 +7,29 @@ import SwiftUI
 struct SettingsView: View {
     enum Layout {
         static let width: CGFloat = 420
+        /// The smallest the window's content gets, whatever the form reports.
+        static let minimumSize = NSSize(width: width, height: 360)
         /// Ceiling enforced by `SettingsViewLayoutTests`, not a fixed window size.
         ///
         /// The height is left to the content because the form is not the same size in every
         /// build: the direct-distribution build carries an extra Updates section. Pinning the
         /// window to one height meant whichever configuration was taller quietly scrolled.
         static let maxHeight: CGFloat = 820
-
-        /// The tallest the window can be and still fit on the screen, below the title bar.
-        @MainActor
-        static var screenLimitedHeight: CGFloat {
-            let visibleHeight = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.height ?? 800
-            return max(visibleHeight - 80, 300)
-        }
     }
+
+    /// Lays the form out at its full height, which is how tall the window wants to be.
+    ///
+    /// Measured apart from the window's own copy, because a grouped form scrolls and so has
+    /// no height of its own to give: in the window it fills what it's given and scrolls when
+    /// the screen is too short for all of it.
+    @MainActor
+    static var idealContentSize: NSSize {
+        let measuring = NSHostingView(rootView: SettingsView(isMeasuring: true))
+        return measuring.fittingSize
+    }
+
+    /// Whether this copy is only being laid out to find the form's height.
+    var isMeasuring = false
 
     @AppStorage(Constants.SettingsKeys.showMenuBarIndicators) private var showMenuBarIndicators = true
     @AppStorage(Constants.SettingsKeys.showMenuBarResult) private var showMenuBarResult = true
@@ -133,11 +142,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        // A grouped form scrolls, so it has no height of its own to give the window.
-        .fixedSize(horizontal: false, vertical: true)
+        .fixedSize(horizontal: false, vertical: isMeasuring)
         .frame(width: Layout.width)
-        // The window is as tall as the form, unless the screen isn't, and then it scrolls.
-        .wrappedInScrollView(maxHeight: Layout.screenLimitedHeight)
     }
 
     private func sectionHeader(_ key: String.LocalizationValue) -> some View {
@@ -212,15 +218,6 @@ private struct UpdatesSection: View {
     }
 }
 #endif
-
-private extension View {
-    /// Shows the view at its ideal height up to `maxHeight`, and scrolls it beyond that.
-    func wrappedInScrollView(maxHeight: CGFloat) -> some View {
-        ScrollView(.vertical) { self }
-            .scrollBounceBehavior(.basedOnSize)
-            .frame(maxHeight: maxHeight)
-    }
-}
 
 /// Launch at Login, read from the system rather than stored, since the player can change it
 /// in System Settings too. It's read again whenever the app comes forward, so a change made

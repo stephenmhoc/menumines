@@ -196,6 +196,12 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   `AppWindows.windowWillClose`). AppKit builds a new panel after one is closed, so a closed one is
   never reused. In a synchronous test, reopening it inside one autorelease pool crashes AppKit;
   drain a pool between opens (the real event loop does).
+- **Window size** is always set by `AppWindows.show`, never taken from a saved frame (only the
+  position comes back) and never below the window's `minimumContentSize`. Content that scrolls,
+  such as Settings' grouped form, reports next to no fitting height, so it passes
+  `idealContentSize` (Settings measures a non-scrolling copy, `SettingsView.idealContentSize`), its
+  host has no `sizingOptions`, and the form fills and scrolls in the window.
+  `GamePanelWindowSizeTests` covers it, including a tiny saved frame.
 - **Launch at login** is read from `SMAppService`, never stored, and read again whenever the app
   becomes active. `.requiresApproval` shows as on, with a line and an Open Login Items button.
 

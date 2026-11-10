@@ -36,12 +36,20 @@ enum AppWindows {
             statsNavigation.tab = .summary
         }
 
-        show(id: statsWindowID, title: String(localized: "stats_window_title"), remembersPosition: true) {
+        show(
+            id: statsWindowID,
+            title: String(localized: "stats_window_title"),
+            remembersPosition: true,
+            minimumContentSize: statsMinimumContentSize
+        ) {
             StatsWindow(gameState: gameState, navigation: statsNavigation) { seed in
                 playPastDay(seed: seed, gameState: gameState)
             }
         }
     }
+
+    /// The smallest Statistics' content gets, whatever it reports.
+    static let statsMinimumContentSize = NSSize(width: 360, height: 280)
 
     /// Shows Stats turned to the Daily History calendar, where past days are picked.
     static func showDailyHistory(gameState: GameState) {
@@ -73,19 +81,35 @@ enum AppWindows {
     }
 
     static func showSettings() {
-        show(id: "settings", title: settingsTitle, remembersPosition: true) {
-            SettingsView()
-        }
+        show(
+            id: "settings",
+            title: settingsTitle,
+            remembersPosition: true,
+            minimumContentSize: SettingsView.Layout.minimumSize,
+            idealContentSize: { SettingsView.idealContentSize },
+            content: { SettingsView() }
+        )
     }
 
     /// Brings a window forward, building it if it isn't open. A closed window is built again
     /// rather than reused, so it never shows what was on screen last time.
-    /// - Parameter remembersPosition: Whether the window goes back where the player last left
-    ///   it. Otherwise, and the first time, it opens in the middle of the screen.
+    ///
+    /// The window's size is always set here, never left to the hosting controller: content
+    /// that scrolls, such as a grouped `Form`, can report next to no height, which once opened
+    /// windows a few points tall. The size comes from `idealContentSize` when the content can
+    /// scroll, or the content's fitting size otherwise, and is never below the minimum.
+    /// - Parameters:
+    ///   - remembersPosition: Whether the window goes back where the player last left it.
+    ///     Otherwise, and the first time, it opens in the middle of the screen. Only the
+    ///     position comes back, never the saved size.
+    ///   - minimumContentSize: The smallest the content area can be.
+    ///   - idealContentSize: The size the content wants, measured without scrolling.
     static func show<Content: View>(
         id: String,
         title: String,
         remembersPosition: Bool = false,
+        minimumContentSize: NSSize = NSSize(width: 300, height: 200),
+        idealContentSize: (() -> NSSize)? = nil,
         @ViewBuilder content: () -> Content
     ) {
         onWillShowWindow?()
@@ -95,7 +119,14 @@ enum AppWindows {
             return
         }
 
-        let window = NSWindow(contentViewController: NSHostingController(rootView: content()))
+        let host = NSHostingController(rootView: content())
+        if idealContentSize != nil {
+            // Content that scrolls fills whatever size the window is given, and the window's
+            // size is ours. Left to the hosting controller, a scroll view's lack of a height
+            // could shrink the window to nothing.
+            host.sizingOptions = []
+        }
+        let window = NSWindow(contentViewController: host)
         window.title = title
         // Not miniaturizable: an agent app has no Dock icon to bring a minimised window
         // back from, and these are small utility windows that close instead.
@@ -106,11 +137,12 @@ enum AppWindows {
         window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         // Activation can be refused, and the window is still raised over the other app's.
         window.allowsToolTipsWhenApplicationIsInactive = true
+        window.contentMinSize = minimumContentSize
+
         // Sized first, because centering uses the height the window has at the time.
-        let contentSize = window.contentView?.fittingSize
-        if let contentSize {
-            window.setContentSize(contentSize)
-        }
+        let wanted = idealContentSize?() ?? host.view.fittingSize
+        let contentSize = contentSize(wanted: wanted, minimum: minimumContentSize)
+        window.setContentSize(contentSize)
         place(window, autosaveName: remembersPosition ? "MenuMines.\(id)" : nil, contentSize: contentSize)
 
         let controller = NSWindowController(window: window)
@@ -119,20 +151,33 @@ enum AppWindows {
         raise(window)
     }
 
+    /// The content size a window opens at: what the content wants, no smaller than the
+    /// minimum, and no taller than fits on the screen.
+    static func contentSize(wanted: NSSize, minimum: NSSize) -> NSSize {
+        let width = wanted.width.isFinite ? max(wanted.width, minimum.width) : minimum.width
+        let height = wanted.height.isFinite ? max(wanted.height, minimum.height) : minimum.height
+        return NSSize(width: width.rounded(.up), height: min(height, screenLimitedContentHeight).rounded(.up))
+    }
+
+    /// The tallest a window's content can be and still fit on the screen under its title bar.
+    static var screenLimitedContentHeight: CGFloat {
+        let visibleHeight = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame.height ?? 800
+        return max(visibleHeight - 80, 300)
+    }
+
     /// Puts a window where it was last left, keeping the size its content asks for now, or
     /// in the middle of the screen if it has never been moved.
-    private static func place(_ window: NSWindow, autosaveName: String?, contentSize: NSSize?) {
+    private static func place(_ window: NSWindow, autosaveName: String?, contentSize: NSSize) {
         guard let autosaveName else {
             window.center()
             return
         }
 
         if window.setFrameUsingName(autosaveName) {
-            // The saved frame's size is from whatever the content was then.
+            // The saved frame's size is from whatever the content was then, and may be
+            // degenerate. Only its top-left corner is kept.
             let top = window.frame.maxY
-            if let contentSize {
-                window.setContentSize(contentSize)
-            }
+            window.setContentSize(contentSize)
             window.setFrameTopLeftPoint(NSPoint(x: window.frame.minX, y: top))
             if let visible = (window.screen ?? NSScreen.main)?.visibleFrame, !visible.contains(window.frame) {
                 window.setFrame(window.constrainFrameRect(window.frame, to: window.screen), display: false)

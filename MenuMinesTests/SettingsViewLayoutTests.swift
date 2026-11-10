@@ -8,10 +8,8 @@ struct SettingsViewLayoutTests {
     @Test("Settings view content stays within a reasonable window height")
     @MainActor
     func testSettingsViewStaysWithinMaxHeight() {
-        let hostingView = NSHostingView(rootView: SettingsView())
-        hostingView.frame = NSRect(x: 0, y: 0, width: SettingsView.Layout.width, height: 1000)
-        hostingView.layoutSubtreeIfNeeded()
-        let fittingSize = hostingView.fittingSize
+        // The window is sized from this measurement, since the form in it scrolls.
+        let fittingSize = SettingsView.idealContentSize
 
         // A form that reports no height collapses the window to its title bar.
         #expect(fittingSize.height >= 200, "Settings reports only \(fittingSize.height)pt")
