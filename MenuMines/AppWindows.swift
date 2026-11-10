@@ -90,7 +90,8 @@ enum AppWindows {
     /// "MenuMines Settings", as the HIG titles a single-pane settings window, with the name
     /// this build goes by.
     static var settingsTitle: String {
-        String(format: String(localized: "settings_window_title"), Bundle.main.appName)
+        let name = Bundle.main.appName
+        return String(localized: "settings_window_title \(name)")
     }
 
     static func showSettings() {

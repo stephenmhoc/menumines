@@ -159,7 +159,7 @@ struct SettingsView: View {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "—"
         let build = info?["CFBundleVersion"] as? String ?? "—"
-        let versionDescription = String(format: String(localized: "build_info_version"), version, build)
+        let versionDescription = String(localized: "build_info_version \(version) \(build)")
         return versionDescription + "\n" + String(localized: "build_info_prerelease_note")
     }
 }
@@ -211,10 +211,8 @@ private struct UpdatesSection: View {
         guard let date = UpdateManager.lastUpdateCheckDate else {
             return String(localized: "settings_updates_never_checked")
         }
-        return String(
-            format: String(localized: "settings_updates_last_checked"),
-            date.formatted(date: .abbreviated, time: .shortened)
-        )
+        let checked = date.formatted(date: .abbreviated, time: .shortened)
+        return String(localized: "settings_updates_last_checked \(checked)")
     }
 }
 #endif

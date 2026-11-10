@@ -41,10 +41,7 @@ struct HeaderView: View {
         // Flagging is uncapped, so an over-flagged board would otherwise announce
         // a negative number of mines remaining.
         let remaining = max(0, Board.mineCount - flagCount)
-        if remaining == 1 {
-            return String(format: String(localized: "flag_count_accessibility_one_remaining"), flagCount)
-        }
-        return String(format: String(localized: "flag_count_accessibility_remaining"), flagCount, remaining)
+        return String(localized: "flag_count_accessibility \(flagCount) \(remaining)")
     }
 
     var body: some View {
@@ -95,29 +92,9 @@ private struct GameClockText: View {
         Text(elapsedTime.clockString)
             .font(.system(size: 14, weight: .medium))
             .monospacedDigit()
-            .accessibilityLabel(timerAccessibilityLabel(elapsedTime))
-    }
-
-    private func timerAccessibilityLabel(_ elapsedTime: TimeInterval) -> String {
-        let totalSeconds = Int(elapsedTime)
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
-
-        if minutes == 0 {
-            if seconds == 1 {
-                return String(localized: "timer_accessibility_one_second")
-            }
-            return String(format: String(localized: "timer_accessibility_seconds"), seconds)
-        } else if minutes == 1 {
-            if seconds == 0 {
-                return String(localized: "timer_accessibility_one_minute")
-            }
-            return String(format: String(localized: "timer_accessibility_one_minute_seconds"), seconds)
-        }
-        if seconds == 0 {
-            return String(format: String(localized: "timer_accessibility_minutes"), minutes)
-        }
-        return String(format: String(localized: "timer_accessibility_minutes_seconds"), minutes, seconds)
+            // Spoken the way every other time in the app is, not read out as digits.
+            .accessibilityLabel(String(localized: "timer_accessibility_label"))
+            .accessibilityValue(elapsedTime.spokenDuration)
     }
 }
 

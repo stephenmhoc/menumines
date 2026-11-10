@@ -316,11 +316,11 @@ MenuMines must be fully playable with VoiceOver. Accessibility is a core require
 
 1. **Cell Labels** - Every cell needs a descriptive accessibility label:
    - Hidden cells: "Row X, Column Y, covered" or "Row X, Column Y, flagged"
-   - Revealed cells: "Row X, Column Y, [number] adjacent mines" or "Row X, Column Y, empty"
+   - Revealed cells: "Row X, Column Y, 1 adjacent mine" (or "3 adjacent mines") or "Row X, Column Y, empty"
    - Mines: "Row X, Column Y, mine"
 
 2. **State Announcements** - Use `AccessibilityNotification.Announcement` to announce:
-   - Game win: "Congratulations! You won in X seconds"
+   - Game win: "Congratulations! You won in 1 minute, 5 seconds" (`TimeInterval.spokenDuration`)
    - Game loss: "Game over. You hit a mine"
    - Timer updates (on demand, not continuously)
 
@@ -328,8 +328,8 @@ MenuMines must be fully playable with VoiceOver. Accessibility is a core require
 
 4. **Control Labels** - All buttons need accessibility labels:
    - Reset button: "Reset game"
-   - Timer display: "Elapsed time: X seconds"
-   - Mine counter: "X mines remaining"
+   - Timer display: label "Elapsed time", value `spokenDuration` ("1 minute, 5 seconds")
+   - Mine counter: "3 flags placed, 9 mines remaining"
 
 ### Implementation Notes
 

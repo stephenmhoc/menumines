@@ -262,7 +262,7 @@ struct DailyCompletionCalendarView: View {
         .focusEffectDisabled()
         .onKeyPress(phases: [.down, .repeat], action: handleKey)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(String(format: String(localized: "stats_calendar_month_accessibility"), monthTitle))
+        .accessibilityLabel(String(localized: "stats_calendar_month_accessibility \(monthTitle)"))
     }
 
     @ViewBuilder

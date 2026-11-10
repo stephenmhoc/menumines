@@ -216,10 +216,8 @@ struct StatsWindow: View {
     @ViewBuilder
     private var trackedSinceFooter: some View {
         if let trackedSince = store.trackedSince {
-            Text(String(
-                format: String(localized: "stats_tracked_since"),
-                trackedSince.formatted(date: .abbreviated, time: .omitted)
-            ))
+            let date = trackedSince.formatted(date: .abbreviated, time: .omitted)
+            Text(String(localized: "stats_tracked_since \(date)"))
             .foregroundStyle(.secondary)
         }
     }
@@ -339,12 +337,11 @@ private struct RecentDailyResultsView: View {
     }
 
     private func accessibilityLabel(for result: GameResult) -> String {
-        String(
-            format: String(localized: "stats_recent_accessibility_label"),
-            StatsRecentResults.formattedDate(for: result),
-            status(of: result),
-            result.elapsedTime.spokenDuration
-        )
+        let date = StatsRecentResults.formattedDate(for: result)
+        let time = result.elapsedTime.spokenDuration
+        return result.won
+            ? String(localized: "stats_recent_won_accessibility \(date) \(time)")
+            : String(localized: "stats_recent_lost_accessibility \(date) \(time)")
     }
 }
 

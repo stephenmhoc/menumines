@@ -45,13 +45,13 @@
         }
       }
     },
-    "announcement_selection_changed" : {
+    "announcement_selection_changed %lld %lld %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Row %d, Column %d, %@"
+            "value" : "Row %1$lld, Column %2$lld, %3$@"
           }
         }
       }
@@ -67,24 +67,13 @@
         }
       }
     },
-    "announcement_win" : {
+    "announcement_win %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Congratulations! You won in %d seconds"
-          }
-        }
-      }
-    },
-    "announcement_win_one_second" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Congratulations! You won in 1 second"
+            "value" : "Congratulations! You won in %@"
           }
         }
       }
@@ -177,24 +166,24 @@
         }
       }
     },
-    "build_info_version" : {
+    "build_info_version %@ %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version %@ (%@)"
+            "value" : "Version %1$@ (%2$@)"
           }
         }
       }
     },
-    "cell_accessibility_label" : {
+    "cell_accessibility_label %lld %lld %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Row %d, Column %d, %@"
+            "value" : "Row %1$lld, Column %2$lld, %3$@"
           }
         }
       }
@@ -320,24 +309,25 @@
         }
       }
     },
-    "cell_state_mines" : {
+    "cell_state_mines %lld" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d adjacent mines"
-          }
-        }
-      }
-    },
-    "cell_state_one_mine" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 adjacent mine"
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adjacent mine"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld adjacent mines"
+                }
+              }
+            }
           }
         }
       }
@@ -595,24 +585,55 @@
         }
       }
     },
-    "flag_count_accessibility_one_remaining" : {
+    "flag_count_accessibility %lld %lld" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%d flags placed, 1 mine remaining"
-          }
-        }
-      }
-    },
-    "flag_count_accessibility_remaining" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%d flags placed, %d mines remaining"
+            "value" : "%#@flags@, %#@mines@"
+          },
+          "substitutions" : {
+            "flags" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg flag placed"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg flags placed"
+                    }
+                  }
+                }
+              }
+            },
+            "mines" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg mine remaining"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg mines remaining"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -650,13 +671,13 @@
         }
       }
     },
-    "menu_bar_accessibility_complete" : {
+    "menu_bar_accessibility_complete %lld" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines, daily puzzle complete, current streak %d"
+            "value" : "MenuMines, daily puzzle complete, current streak %lld"
           }
         }
       }
@@ -683,7 +704,7 @@
         }
       }
     },
-    "menu_bar_accessibility_paused" : {
+    "menu_bar_accessibility_paused %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -694,7 +715,7 @@
         }
       }
     },
-    "menu_bar_accessibility_playing" : {
+    "menu_bar_accessibility_playing %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -705,7 +726,7 @@
         }
       }
     },
-    "menu_bar_accessibility_update_available" : {
+    "menu_bar_accessibility_update_available %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -727,18 +748,7 @@
         }
       }
     },
-    "metric_accessibility_label" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@: %@"
-          }
-        }
-      }
-    },
-    "next_puzzle_countdown" : {
+    "next_puzzle_countdown %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -749,24 +759,13 @@
         }
       }
     },
-    "past_daily_description" : {
+    "past_daily_description %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Past daily for %@, recorded as played later"
-          }
-        }
-      }
-    },
-    "puzzle_type_accessibility_label" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ puzzle"
           }
         }
       }
@@ -782,6 +781,17 @@
         }
       }
     },
+    "puzzle_type_daily_accessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily puzzle"
+          }
+        }
+      }
+    },
     "puzzle_type_past_daily" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -793,7 +803,29 @@
         }
       }
     },
+    "puzzle_type_past_daily_accessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Past daily puzzle"
+          }
+        }
+      }
+    },
     "puzzle_type_practice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replay"
+          }
+        }
+      }
+    },
+    "puzzle_type_practice_accessibility" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -815,6 +847,17 @@
         }
       }
     },
+    "puzzle_type_random_accessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Random puzzle"
+          }
+        }
+      }
+    },
     "quit_menu_item" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -826,7 +869,7 @@
         }
       }
     },
-    "replay_description" : {
+    "replay_description %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1376,7 +1419,7 @@
         }
       }
     },
-    "settings_updates_last_checked" : {
+    "settings_updates_last_checked %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1409,7 +1452,7 @@
         }
       }
     },
-    "settings_window_title" : {
+    "settings_window_title %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1728,7 +1771,7 @@
         }
       }
     },
-    "stats_calendar_day_in_progress" : {
+    "stats_calendar_day_in_progress %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1739,7 +1782,7 @@
         }
       }
     },
-    "stats_calendar_day_lost" : {
+    "stats_calendar_day_lost %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1750,7 +1793,7 @@
         }
       }
     },
-    "stats_calendar_day_lost_later" : {
+    "stats_calendar_day_lost_later %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1761,7 +1804,7 @@
         }
       }
     },
-    "stats_calendar_day_not_played" : {
+    "stats_calendar_day_not_played %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1772,18 +1815,40 @@
         }
       }
     },
-    "stats_calendar_day_today_prefix" : {
+    "stats_calendar_day_today_lost %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Today, %@"
+            "value" : "Today, %@, lost"
           }
         }
       }
     },
-    "stats_calendar_day_unavailable" : {
+    "stats_calendar_day_today_not_played %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today, %@, not played"
+          }
+        }
+      }
+    },
+    "stats_calendar_day_today_won %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today, %@, won"
+          }
+        }
+      }
+    },
+    "stats_calendar_day_unavailable %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1794,7 +1859,7 @@
         }
       }
     },
-    "stats_calendar_day_won" : {
+    "stats_calendar_day_won %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1805,7 +1870,7 @@
         }
       }
     },
-    "stats_calendar_day_won_later" : {
+    "stats_calendar_day_won_later %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1838,7 +1903,7 @@
         }
       }
     },
-    "stats_calendar_detail_lost" : {
+    "stats_calendar_detail_lost %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1849,7 +1914,7 @@
         }
       }
     },
-    "stats_calendar_detail_lost_later" : {
+    "stats_calendar_detail_lost_later %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1882,7 +1947,7 @@
         }
       }
     },
-    "stats_calendar_detail_today_lost" : {
+    "stats_calendar_detail_today_lost %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1893,7 +1958,7 @@
         }
       }
     },
-    "stats_calendar_detail_today_won" : {
+    "stats_calendar_detail_today_won %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1915,7 +1980,7 @@
         }
       }
     },
-    "stats_calendar_detail_won" : {
+    "stats_calendar_detail_won %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1926,7 +1991,7 @@
         }
       }
     },
-    "stats_calendar_detail_won_later" : {
+    "stats_calendar_detail_won_later %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2047,7 +2112,7 @@
         }
       }
     },
-    "stats_calendar_month_accessibility" : {
+    "stats_calendar_month_accessibility %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2256,17 +2321,6 @@
         }
       }
     },
-    "stats_recent_accessibility_label" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, %@, %@"
-          }
-        }
-      }
-    },
     "stats_recent_empty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2285,6 +2339,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Finished daily puzzles appear here."
+          }
+        }
+      }
+    },
+    "stats_recent_lost_accessibility %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, lost after %2$@"
+          }
+        }
+      }
+    },
+    "stats_recent_won_accessibility %@ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, won in %2$@"
           }
         }
       }
@@ -2454,7 +2530,7 @@
         }
       }
     },
-    "stats_tracked_since" : {
+    "stats_tracked_since %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2553,68 +2629,13 @@
         }
       }
     },
-    "timer_accessibility_minutes" : {
+    "timer_accessibility_label" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elapsed time: %d minutes"
-          }
-        }
-      }
-    },
-    "timer_accessibility_minutes_seconds" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elapsed time: %d minutes, %d seconds"
-          }
-        }
-      }
-    },
-    "timer_accessibility_one_minute" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elapsed time: 1 minute"
-          }
-        }
-      }
-    },
-    "timer_accessibility_one_minute_seconds" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elapsed time: 1 minute, %d seconds"
-          }
-        }
-      }
-    },
-    "timer_accessibility_one_second" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elapsed time: 1 second"
-          }
-        }
-      }
-    },
-    "timer_accessibility_seconds" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elapsed time: %d seconds"
+            "value" : "Elapsed time"
           }
         }
       }

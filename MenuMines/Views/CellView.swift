@@ -110,12 +110,8 @@ struct CellView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
-        String(
-            format: String(localized: "cell_accessibility_label"),
-            row + 1,
-            col + 1,
-            cell.accessibilityStateDescription(isStartHint: isStartHint, isGameLost: gameStatus == .lost)
-        )
+        let state = cell.accessibilityStateDescription(isStartHint: isStartHint, isGameLost: gameStatus == .lost)
+        return String(localized: "cell_accessibility_label \(row + 1) \(col + 1) \(state)")
     }
 
     private var accessibilityHint: String {

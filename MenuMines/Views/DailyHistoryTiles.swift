@@ -20,16 +20,14 @@ struct DayDescription {
     let spoken: String
 
     init(day: DailyHistory.Day, todayResult: GameResult?) {
+        /// The line with the time shown as the clock shows it, and with it spoken.
         func result(
             _ result: GameResult,
-            won: String.LocalizationValue,
-            lost: String.LocalizationValue
+            won: (String) -> String,
+            lost: (String) -> String
         ) -> (String, String) {
-            let key = result.won ? won : lost
-            return (
-                String(format: String(localized: key), result.elapsedTime.clockString),
-                String(format: String(localized: key), result.elapsedTime.spokenDuration)
-            )
+            let line = result.won ? won : lost
+            return (line(result.elapsedTime.clockString), line(result.elapsedTime.spokenDuration))
         }
 
         let text: (String, String)
@@ -41,8 +39,8 @@ struct DayDescription {
             if let todayResult {
                 text = result(
                     todayResult,
-                    won: "stats_calendar_detail_today_won",
-                    lost: "stats_calendar_detail_today_lost"
+                    won: { String(localized: "stats_calendar_detail_today_won \($0)") },
+                    lost: { String(localized: "stats_calendar_detail_today_lost \($0)") }
                 )
             } else {
                 let line = String(localized: "stats_calendar_detail_today")
@@ -58,9 +56,17 @@ struct DayDescription {
             let line = String(localized: "stats_calendar_detail_carried_over")
             text = (line, line)
         case .playedOnTheDay(let played):
-            text = result(played, won: "stats_calendar_detail_won", lost: "stats_calendar_detail_lost")
+            text = result(
+                played,
+                won: { String(localized: "stats_calendar_detail_won \($0)") },
+                lost: { String(localized: "stats_calendar_detail_lost \($0)") }
+            )
         case .playedLater(let played):
-            text = result(played, won: "stats_calendar_detail_won_later", lost: "stats_calendar_detail_lost_later")
+            text = result(
+                played,
+                won: { String(localized: "stats_calendar_detail_won_later \($0)") },
+                lost: { String(localized: "stats_calendar_detail_lost_later \($0)") }
+            )
         }
         shown = text.0
         spoken = text.1
@@ -367,30 +373,28 @@ struct CalendarDayCell: View {
         guard let date = cell.date, let day else { return "" }
         let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
 
-        let key: String.LocalizationValue
         switch day {
         case .beforeLaunch, .future:
-            key = "stats_calendar_day_unavailable"
+            return String(localized: "stats_calendar_day_unavailable \(dateString)")
         case .today:
-            let state: String.LocalizationValue
-            if let todayResult {
-                state = todayResult.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"
-            } else {
-                state = "stats_calendar_day_not_played"
+            guard let todayResult else {
+                return String(localized: "stats_calendar_day_today_not_played \(dateString)")
             }
-            return String(
-                format: String(localized: "stats_calendar_day_today_prefix"),
-                String(format: String(localized: state), dateString)
-            )
+            return todayResult.won
+                ? String(localized: "stats_calendar_day_today_won \(dateString)")
+                : String(localized: "stats_calendar_day_today_lost \(dateString)")
         case .unplayed:
-            key = "stats_calendar_day_not_played"
+            return String(localized: "stats_calendar_day_not_played \(dateString)")
         case .inProgress, .carriedOver:
-            key = "stats_calendar_day_in_progress"
+            return String(localized: "stats_calendar_day_in_progress \(dateString)")
         case .playedOnTheDay(let result):
-            key = result.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"
+            return result.won
+                ? String(localized: "stats_calendar_day_won \(dateString)")
+                : String(localized: "stats_calendar_day_lost \(dateString)")
         case .playedLater(let result):
-            key = result.won ? "stats_calendar_day_won_later" : "stats_calendar_day_lost_later"
+            return result.won
+                ? String(localized: "stats_calendar_day_won_later \(dateString)")
+                : String(localized: "stats_calendar_day_lost_later \(dateString)")
         }
-        return String(format: String(localized: key), dateString)
     }
 }

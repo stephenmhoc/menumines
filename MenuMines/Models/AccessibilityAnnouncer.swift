@@ -23,12 +23,8 @@ final class AccessibilityAnnouncer {
             try? await Task.sleep(for: debounceDelay)
             guard !Task.isCancelled else { return }
 
-            let message = String(
-                format: String(localized: "announcement_selection_changed"),
-                row + 1,
-                col + 1,
-                cell.accessibilityStateDescription(isGameLost: isGameLost)
-            )
+            let state = cell.accessibilityStateDescription(isGameLost: isGameLost)
+            let message = String(localized: "announcement_selection_changed \(row + 1) \(col + 1) \(state)")
             AccessibilityNotification.Announcement(message).post()
         }
     }
@@ -64,10 +60,8 @@ extension Cell {
                 return String(localized: "cell_state_mine")
             } else if adjacentMines == 0 {
                 return String(localized: "cell_state_empty")
-            } else if adjacentMines == 1 {
-                return String(localized: "cell_state_one_mine")
             } else {
-                return String(format: String(localized: "cell_state_mines"), adjacentMines)
+                return String(localized: "cell_state_mines \(adjacentMines)")
             }
         }
     }

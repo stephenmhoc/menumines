@@ -169,7 +169,7 @@ final class StatusIconUpdater {
         }
         let label = accessibilityLabel(for: state)
         button.setAccessibilityLabel(updateDot
-            ? String(format: String(localized: "menu_bar_accessibility_update_available"), label)
+            ? String(localized: "menu_bar_accessibility_update_available \(label)")
             : label)
     }
 
@@ -186,11 +186,14 @@ final class StatusIconUpdater {
         case .incomplete:
             return String(localized: "menu_bar_accessibility_incomplete")
         case .playing:
-            return String(format: String(localized: "menu_bar_accessibility_playing"), announcedElapsedTime.clockString)
+            let time = announcedElapsedTime.spokenDuration
+            return String(localized: "menu_bar_accessibility_playing \(time)")
         case .paused:
-            return String(format: String(localized: "menu_bar_accessibility_paused"), announcedElapsedTime.clockString)
+            let time = announcedElapsedTime.spokenDuration
+            return String(localized: "menu_bar_accessibility_paused \(time)")
         case .complete:
-            return String(format: String(localized: "menu_bar_accessibility_complete"), StatsStore.shared.currentStreak)
+            let streak = StatsStore.shared.currentStreak
+            return String(localized: "menu_bar_accessibility_complete \(streak)")
         case .lost:
             return String(localized: "menu_bar_accessibility_lost")
         }

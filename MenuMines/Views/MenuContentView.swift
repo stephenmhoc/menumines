@@ -120,12 +120,8 @@ struct MenuContentView: View {
     private func announceGameResult(won: Bool) {
         let message: String
         if won {
-            let seconds = Int(gameState.elapsedTime)
-            if seconds == 1 {
-                message = String(localized: "announcement_win_one_second")
-            } else {
-                message = String(format: String(localized: "announcement_win"), seconds)
-            }
+            let time = gameState.elapsedTime.spokenDuration
+            message = String(localized: "announcement_win \(time)")
         } else {
             message = String(localized: "announcement_lose")
         }

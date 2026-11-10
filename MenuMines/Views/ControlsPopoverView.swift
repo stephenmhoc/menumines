@@ -61,12 +61,10 @@ struct ControlsPopoverView: View {
             }
             actionText(action)
         }
+        // Read as the keys, then what they do. Any one of the keys will do.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(
-            format: String(localized: "metric_accessibility_label"),
-            keys.joined(separator: ", "),
-            action
-        ))
+        .accessibilityLabel(keys.formatted(.list(type: .or)))
+        .accessibilityValue(action)
     }
 
     private func mouseRow(_ gesture: String, action: String) -> some View {
@@ -77,7 +75,8 @@ struct ControlsPopoverView: View {
             actionText(action)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(String(format: String(localized: "metric_accessibility_label"), gesture, action))
+        .accessibilityLabel(gesture)
+        .accessibilityValue(action)
     }
 }
 

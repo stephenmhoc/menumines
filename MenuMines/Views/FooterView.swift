@@ -69,9 +69,7 @@ struct FooterView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize()
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(
-                    String(format: String(localized: "puzzle_type_accessibility_label"), puzzleType.label)
-                )
+                .accessibilityLabel(puzzleType.accessibilityName)
             }
 
             if let nextPuzzleDate {
@@ -231,6 +229,20 @@ extension PuzzleType {
         }
     }
 
+    /// The type named in full, for VoiceOver.
+    var accessibilityName: String {
+        switch self {
+        case .daily:
+            String(localized: "puzzle_type_daily_accessibility")
+        case .random:
+            String(localized: "puzzle_type_random_accessibility")
+        case .practice:
+            String(localized: "puzzle_type_practice_accessibility")
+        case .pastDaily:
+            String(localized: "puzzle_type_past_daily_accessibility")
+        }
+    }
+
     var iconName: String {
         switch self {
         case .daily:
@@ -270,8 +282,9 @@ extension PuzzleType {
     /// Says which earlier day is on the board and whether its result counts, in full.
     func pastDayDescription(for date: Date) -> String {
         let day = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
-        let key: String.LocalizationValue = self == .pastDaily ? "past_daily_description" : "replay_description"
-        return String(format: String(localized: key), day)
+        return self == .pastDaily
+            ? String(localized: "past_daily_description \(day)")
+            : String(localized: "replay_description \(day)")
     }
 }
 
@@ -290,7 +303,8 @@ private struct NextPuzzleCountdown: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let remaining = max(60, date.timeIntervalSince(context.date))
-            Text(String(format: String(localized: "next_puzzle_countdown"), formatter.string(from: remaining) ?? ""))
+            let countdown = formatter.string(from: remaining) ?? ""
+            Text(String(localized: "next_puzzle_countdown \(countdown)"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
