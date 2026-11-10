@@ -22,12 +22,22 @@ struct GamePanelTests {
     /// Sends a key with Command held through the application, which is where key equivalents
     /// are dispatched from.
     func pressCommand(_ key: (code: UInt16, characters: String), in controller: StatusItemController) async throws {
+        try await pressThroughApp(key, modifiers: .command, in: controller)
+    }
+
+    /// Sends a key through the application, as a real key press arrives, so key equivalents
+    /// such as a default button's Return get their turn before the focused view.
+    func pressThroughApp(
+        _ key: (code: UInt16, characters: String),
+        modifiers: NSEvent.ModifierFlags = [],
+        in controller: StatusItemController
+    ) async throws {
         try await takeKeyboard(for: controller)
 
         let event = try #require(NSEvent.keyEvent(
             with: .keyDown,
             location: .zero,
-            modifierFlags: .command,
+            modifierFlags: modifiers,
             timestamp: ProcessInfo.processInfo.systemUptime,
             windowNumber: controller.panel.windowNumber,
             context: nil,

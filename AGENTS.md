@@ -173,11 +173,13 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
 - **Redraws:** only `GameClockText` in the header reads `elapsedTime`, and `CellView` is
   `Equatable`, so the clock's tick doesn't rebuild the board. Keep body reads of `elapsedTime` out
   of `MenuContentView`.
-- **Motion:** reveals are instant. Flags pop in over 0.12s and a lost game's mines spread from the
-  one that went off over about 0.2s. Both are off under Reduce Motion.
+- **Motion:** reveals are instant. Flags pop in over 0.12s, a lost game's mines spread from the one
+  that went off over about 0.2s, the reset confirmation fades in, confetti eases and is cleared when
+  a new board arrives. All of it is off under Reduce Motion (read from the environment).
 - **Footer:** icon buttons are 24pt with a hover backing; flag mode is a toggle. Share hands over the
   result's text (and drags it), Copy puts it on the clipboard and keeps its width when it says
   Copied. On a finished past day, Back to Today shrinks to an icon so the footer fits the board.
+  The reset confirmation's default button is Cancel.
 
 Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
 opens on that board (`StatusItemController.openFromWindow`). The app is still active at that

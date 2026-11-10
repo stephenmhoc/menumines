@@ -11,9 +11,8 @@ struct ConfettiView: View {
     private let particleCount = 50
     private let colors: [Color] = [.yellow, .orange, .red, .pink, .purple, .blue, .green]
 
-    private var reduceMotionEnabled: Bool {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-    }
+    /// From the environment rather than asked once, so turning it on mid-celebration counts.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotionEnabled
 
     var body: some View {
         GeometryReader { geometry in
@@ -35,11 +34,20 @@ struct ConfettiView: View {
                 }
             }
             .onChange(of: isActive) { _, newValue in
-                guard newValue else { return }
+                guard newValue else {
+                    // A new board was dealt: nothing left to celebrate.
+                    stopCelebration()
+                    return
+                }
                 if reduceMotionEnabled {
                     showsReducedCelebration = true
                 } else {
                     startCelebration(in: geometry.size)
+                }
+            }
+            .onChange(of: reduceMotionEnabled) { _, reduce in
+                if reduce {
+                    stopCelebration()
                 }
             }
             .task(id: showsReducedCelebration) {
@@ -85,6 +93,12 @@ struct ConfettiView: View {
         initializeParticles(in: size)
         animationStartTime = Date()
     }
+
+    private func stopCelebration() {
+        animationStartTime = nil
+        particles = []
+        showsReducedCelebration = false
+    }
 }
 
 struct ConfettiParticle: Identifiable {
@@ -108,8 +122,15 @@ private struct ConfettiParticleView: View {
         max(0, min(1, (phase - particle.delay) / (1 - particle.delay)))
     }
 
+    /// Thrown up and falling back: quick at first, slowing as it drifts down, rather than
+    /// sliding at one speed.
+    private var fallProgress: CGFloat {
+        let progress = adjustedPhase
+        return 1 - (1 - progress) * (1 - progress) * (1 - progress)
+    }
+
     private var currentY: CGFloat {
-        particle.startY + (particle.endY - particle.startY) * adjustedPhase
+        particle.startY + (particle.endY - particle.startY) * fallProgress
     }
 
     private var currentX: CGFloat {
@@ -117,7 +138,7 @@ private struct ConfettiParticleView: View {
     }
 
     private var currentRotation: CGFloat {
-        particle.rotation + particle.rotationSpeed * adjustedPhase
+        particle.rotation + particle.rotationSpeed * fallProgress
     }
 
     private var opacity: CGFloat {

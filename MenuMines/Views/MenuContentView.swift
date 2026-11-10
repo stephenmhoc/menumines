@@ -216,19 +216,24 @@ struct MenuContentView: View {
 
             ConfettiView(isActive: showCelebration)
 
-            // Inline reset confirmation overlay
-            if showResetConfirmation {
-                ResetConfirmationOverlay(
-                    message: gameState.puzzleType.resetConfirmationMessage,
-                    onCancel: {
-                        showResetConfirmation = false
-                    },
-                    onConfirm: {
-                        showResetConfirmation = false
-                        gameState.reset()
-                    }
-                )
+            // Inline reset confirmation overlay. The fade is scoped to this container, so the
+            // reset that confirming deals isn't animated along with it.
+            ZStack {
+                if showResetConfirmation {
+                    ResetConfirmationOverlay(
+                        message: gameState.puzzleType.resetConfirmationMessage,
+                        onCancel: {
+                            showResetConfirmation = false
+                        },
+                        onConfirm: {
+                            showResetConfirmation = false
+                            gameState.reset()
+                        }
+                    )
+                    .transition(.opacity)
+                }
             }
+            .animation(.easeOut(duration: 0.12), value: showResetConfirmation)
         }
         .frame(width: 300, height: contentHeight, alignment: .top)
         // No background of its own: the panel puts it on the system material.
@@ -254,7 +259,11 @@ struct MenuContentView: View {
             gameState.save()
         }
         .onChange(of: showResetConfirmation) { _, isShowing in
-            if !isShowing {
+            guard !isShowing else { return }
+            // On the next turn, once the board is focusable again. Asked in the same update,
+            // the board can still be unfocusable and the request is dropped, which left the
+            // keys going nowhere after Return dismissed the confirmation.
+            Task { @MainActor in
                 isBoardFocused = true
             }
         }
@@ -304,10 +313,13 @@ private struct ResetConfirmationOverlay: View {
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         ZStack {
-            // Semi-transparent background
-            Color.black.opacity(0.4)
+            // Enough to set the card apart and say the board is out of reach, while it stays
+            // in view behind.
+            Color.black.opacity(colorScheme == .dark ? 0.3 : 0.15)
                 .ignoresSafeArea()
                 .accessibilityHidden(true)
 
@@ -323,18 +335,29 @@ private struct ResetConfirmationOverlay: View {
                 }
                 .accessibilityElement(children: .combine)
 
+                // Return keeps the game: a reset can't be undone, so it isn't the default.
                 HStack(spacing: 12) {
+                    Button(role: .destructive) {
+                        onConfirm()
+                    } label: {
+                        Text(String(localized: "reset_confirmation_confirm"))
+                            .foregroundStyle(Color(nsColor: .systemRed))
+                    }
+
                     Button(String(localized: "reset_confirmation_cancel")) {
                         onCancel()
                     }
-                    .keyboardShortcut(.cancelAction)
-
-                    Button(String(localized: "reset_confirmation_confirm")) {
-                        onConfirm()
-                    }
                     .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
+                }
+                .controlSize(.large)
+                .background {
+                    // Escape cancels too. A button carries one shortcut, so this one is unseen.
+                    Button(String(localized: "reset_confirmation_cancel"), action: onCancel)
+                        .keyboardShortcut(.cancelAction)
+                        .focusable(false)
+                        .opacity(0)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
             }
             .padding(20)
