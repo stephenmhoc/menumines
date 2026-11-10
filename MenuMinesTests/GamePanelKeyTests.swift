@@ -21,6 +21,21 @@ extension GamePanelTests {
         #expect(state.board.cells[row][col].state != .hidden)
     }
 
+    @Test("A key after one that closed the panel is reported, not quietly sent to a reopened panel")
+    func closedPanelIsReported() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let controller = try await openPanel(for: todaysDaily())
+        defer { controller.close() }
+        try await press(Key.escape, in: controller)
+        try #require(!controller.isOpen)
+
+        await withKnownIssue {
+            try await press(Key.right, in: controller)
+        }
+    }
+
     @Test("Return and Escape both keep the game when a reset asks first")
     func resetConfirmationDefaultsToCancel() async throws {
         let cleanup = setupCleanPersistenceState(continuousPlay: true)

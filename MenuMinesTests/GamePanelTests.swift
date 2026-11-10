@@ -48,6 +48,7 @@ struct GamePanelTests {
         ))
         NSApp.sendEvent(event)
         try await settle()
+        noteIfClosed(by: key, in: controller)
     }
 
     func press(_ key: (code: UInt16, characters: String), in controller: StatusItemController) async throws {
@@ -67,11 +68,19 @@ struct GamePanelTests {
         ))
         controller.panel.sendEvent(event)
         try await settle()
+        noteIfClosed(by: key, in: controller)
     }
 
     /// Another process can take activation from a test run at any moment, more so with the
     /// screen locked. That closes the panel, as it should, but says nothing about the keys.
+    ///
+    /// A panel that the test's own last key closed is reopened too, but that's recorded as an
+    /// issue: otherwise the next key would pass against a fresh panel, and say nothing about
+    /// the state the test meant to check.
     func takeKeyboard(for controller: StatusItemController) async throws {
+        if let code = Self.closedByKey.removeValue(forKey: ObjectIdentifier(controller)), !controller.isOpen {
+            Issue.record("The previous key (code \(code)) closed the panel, so this one would go to a reopened panel")
+        }
         // A panel fading out is still key for a moment, but it's closed.
         for _ in 0..<20 where !(controller.panel.isKeyWindow && controller.isOpen) {
             controller.open()
@@ -312,5 +321,17 @@ struct GamePanelTests {
             #expect(window.isKeyWindow)
         }
         window.close()
+    }
+}
+
+/// Which panels the test's own keys closed, for `takeKeyboard`.
+extension GamePanelTests {
+    /// The panels that a key sent by `press` or `pressThroughApp` closed, and which key.
+    fileprivate static var closedByKey: [ObjectIdentifier: UInt16] = [:]
+
+    fileprivate func noteIfClosed(by key: (code: UInt16, characters: String), in controller: StatusItemController) {
+        if !controller.isOpen {
+            Self.closedByKey[ObjectIdentifier(controller)] = key.code
+        }
     }
 }

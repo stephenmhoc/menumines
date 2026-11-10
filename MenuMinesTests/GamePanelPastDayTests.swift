@@ -217,6 +217,7 @@ extension GamePanelTests {
         #expect(state.pastDailySeedsInProgress == [yesterdaySeed()], "Closing the panel saves the game")
         try await settle()
 
+        controller.open()
         try await takeKeyboard(for: controller)
         #expect(controller.isOpen)
         #expect(state.puzzleType == .pastDaily, "The past daily is still on the board")
