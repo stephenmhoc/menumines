@@ -60,6 +60,8 @@ struct GameBoardView: View {
     static let platePadding: CGFloat = 3
     /// The board's full width, plate included, for lining the header and footer up with it.
     static let width = CellMetrics.boardWidth + platePadding * 2
+    /// The board is square.
+    static let height = width
 
     /// The mine that went off, once the game is lost.
     private var explodedCell: (row: Int, col: Int)? {

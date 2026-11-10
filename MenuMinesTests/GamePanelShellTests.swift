@@ -373,7 +373,7 @@ extension GamePanelTests {
     @Test("Placement hangs the panel under the icon, clamps it to the screen, and falls back only without an icon")
     func placement() {
         let screen = NSRect(x: 0, y: 0, width: 1440, height: 875)
-        let size = NSSize(width: 300, height: 372)
+        let size = NSSize(width: 300, height: MenuContentView.contentHeight)
         let margin = StatusItemController.margin
 
         let icon = NSRect(x: 1000, y: 875, width: 22, height: 24)

@@ -81,8 +81,11 @@ struct HeaderView: View {
         }
         // Inset to the cells, so the counter and the clock line up with the board's edges.
         .padding(.horizontal, GameBoardView.platePadding)
-        .frame(width: GameBoardView.width)
+        .frame(width: GameBoardView.width, height: Self.height)
     }
+
+    /// As tall as the face button. The panel's height is worked out from it.
+    static let height: CGFloat = 30
 }
 
 /// The game clock. It's its own view so that the time, which changes every second, is read

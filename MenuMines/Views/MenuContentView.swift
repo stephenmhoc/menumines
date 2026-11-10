@@ -30,8 +30,13 @@ struct MenuContentView: View {
         return nextDailyPuzzleDate(after: Date())
     }
 
-    private let contentHeight: CGFloat = 372
-    private let rowSpacing: CGFloat = 12
+    private static let rowSpacing: CGFloat = 12
+    private static let margin: CGFloat = 16
+
+    /// The panel's height: the header, board and footer, the space between them, and the same
+    /// margin all round. Fixed, so the panel never changes size during a game.
+    static let contentHeight = margin * 2
+        + HeaderView.height + rowSpacing + GameBoardView.height + rowSpacing + FooterView.height
 
     /// Tells VoiceOver which board has just arrived, since nothing else about a covered
     /// board says which day it is or whether it counts.
@@ -136,7 +141,7 @@ struct MenuContentView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            VStack(spacing: rowSpacing) {
+            VStack(spacing: Self.rowSpacing) {
                 HeaderView(
                     status: gameState.status,
                     elapsedTime: { gameState.elapsedTime },
@@ -215,7 +220,7 @@ struct MenuContentView: View {
                     onAbout: AboutWindow.show
                 )
             }
-            .padding()
+            .padding(Self.margin)
 
             ConfettiView(isActive: showCelebration)
 
@@ -238,7 +243,7 @@ struct MenuContentView: View {
             }
             .animation(.easeOut(duration: 0.12), value: showResetConfirmation)
         }
-        .frame(width: 300, height: contentHeight, alignment: .top)
+        .frame(width: 300, height: Self.contentHeight, alignment: .top)
         // No background of its own: the panel puts it on the system material.
         .onAppear {
             gameState.dayMayHaveChanged()

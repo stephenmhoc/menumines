@@ -104,8 +104,11 @@ struct FooterView: View {
                 gearMenu
             }
         }
-        .frame(width: GameBoardView.width)
+        .frame(width: GameBoardView.width, height: Self.height)
     }
+
+    /// As tall as its icon buttons. The panel's height is worked out from it.
+    static let height = FooterIconMetrics.size
 
     /// Spelled out while there's room, and an icon beside a finished game's Copy and Share,
     /// where the words would push the footer past the board.
