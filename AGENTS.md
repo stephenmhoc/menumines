@@ -69,7 +69,7 @@ MenuMines/
 │   └── DailyHistoryTiles.swift # Its tiles, legend and colours
 ├── Resources/
 │   ├── Assets.xcassets         # App icons (AppIcon, AppIcon-Dev), accent color
-│   └── en.lproj/Localizable.strings
+│   └── Localizable.xcstrings   # String Catalog, English the development language
 MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the Debug app
 ├── AuditRegressionTests.swift  # Daily lifecycle, timer, leaderboard, iCloud sync, sharing, puzzle day
 ├── BoardTests.swift, DailyBoardTests.swift, DailyBoardFairnessTests.swift

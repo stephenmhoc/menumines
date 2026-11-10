@@ -16,7 +16,6 @@
 		0EBFE296B29B9CC4D34600EE /* PastDailyCloudTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68CC64B53A0282B780EDAF4 /* PastDailyCloudTests.swift */; };
 		0EFDF9A8E3C5ABE7473ABCB9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7188B7AA63E85EB97FFF5C /* SettingsView.swift */; };
 		0F028CE2D0CE702690C2190A /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35754B0EBFF0F9FFFE8AC10A /* Telemetry.swift */; };
-		0FF59A8B1802AE5A5EBF6C73 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0358F0DEFF953EA33642A528 /* Localizable.strings */; };
 		10F2FE36A6F14E920B043B33 /* Leaderboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CFAB132FB1C3335D3D5797 /* Leaderboard.swift */; };
 		167AD792370C9A6079CF6390 /* StatsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3675EEBB405EC344C21CFED /* StatsSync.swift */; };
 		17C08DAA326D67CC98D54EB3 /* ShareTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B648A394DE0AEEF23F9828 /* ShareTextGenerator.swift */; };
@@ -30,6 +29,7 @@
 		2C92E3E0575A902D35A6EEA3 /* GameStateCodableTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51EE3C2BF5B7F305699EEB33 /* GameStateCodableTests.swift */; };
 		2D5279247206B69CEFA04AB2 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF004F261AAD7D0403DDA9E9 /* Board.swift */; };
 		2E5A99AAD758490FAD9DE535 /* GameBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 211C61B027C57AADD9AFC86E /* GameBoardView.swift */; };
+		2EB4B0AE666172D44AF4CCF6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1833148887623D5ECC18BCB5 /* Localizable.xcstrings */; };
 		347F770E749A3528D2FDD63D /* DailyBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF8CF567A33A61FD98739A92 /* DailyBoard.swift */; };
 		3527522E30F870CFA1FFC91A /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24A066240BAF20DDCAD6357 /* MenuBarIconState.swift */; };
 		356B3336E60963F43634D2A9 /* GamePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4A44B0AA3E0C1CD61461F8 /* GamePanel.swift */; };
@@ -69,7 +69,6 @@
 		743198F34B7804689B493A95 /* AppStoreScreenshotExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E832B1B6390C23CF9C532BAE /* AppStoreScreenshotExporter.swift */; };
 		77EDCD81B3566ADA2D0826A0 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F92D798C5BD2A4E2E6B47E2 /* StatsStore.swift */; };
 		79B54EA133D9E8136726C408 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF4FBFA8C13C34184586766 /* MenuContentView.swift */; };
-		7A5EE840528F3DE81AED5162 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0358F0DEFF953EA33642A528 /* Localizable.strings */; };
 		7C90BE18F09BFAF04F1584F2 /* GameStateTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EE8476158113B5CD8067E29 /* GameStateTimerTests.swift */; };
 		824CA27BCA866A87E0240F27 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 79AB36E29D3B16C2CCEE0730 /* Sentry */; };
 		82D975A8AAD8FDA2591A745B /* UpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4C713A74D7E9BDE4015CD4 /* UpdateManager.swift */; };
@@ -104,6 +103,7 @@
 		B9C6270E685762216713CA93 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35754B0EBFF0F9FFFE8AC10A /* Telemetry.swift */; };
 		B9CBD0947B5F97B62AE76547 /* GameTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0475F5E6B022FD3F4257E80B /* GameTimer.swift */; };
 		BBD229798BBAC3D3BB367A73 /* DailyCompletionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D22B8D1E2CFE95B6E3BE6D /* DailyCompletionTests.swift */; };
+		C0C9FE4AA51E44558DBD2084 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1833148887623D5ECC18BCB5 /* Localizable.xcstrings */; };
 		C16A8CA2342284B437A6DAE6 /* StatusItemController+Position.swift in Sources */ = {isa = PBXBuildFile; fileRef = 563E6DCE165D50096F39514C /* StatusItemController+Position.swift */; };
 		C194D01B9A37E46A6F4A47DA /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C570A1572EB5966AA34E46CC /* GameState.swift */; };
 		C3E5A081A0ACEF4287A9A9F6 /* AppWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45053DA2FA6A137CADC990B /* AppWindows.swift */; };
@@ -163,6 +163,7 @@
 		10C6CEC95940867CDD5B6B19 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		1250B5B1B5005EE50C62F4FE /* AuditRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditRegressionTests.swift; sourceTree = "<group>"; };
 		16D2EEFC4A1818B208768146 /* DailyRolloverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRolloverTests.swift; sourceTree = "<group>"; };
+		1833148887623D5ECC18BCB5 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		18503DFF1CFFB1AAB6AB4022 /* GamePanelKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelKeyTests.swift; sourceTree = "<group>"; };
 		195CC1F34A5A9FA082761E52 /* Cell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cell.swift; sourceTree = "<group>"; };
 		1C12ED5500D3B3ACCDC81ED6 /* DailyHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyHistoryTests.swift; sourceTree = "<group>"; };
@@ -221,7 +222,6 @@
 		C5C7B135A92EEE0D01E729E4 /* AccessibilityAnnouncer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAnnouncer.swift; sourceTree = "<group>"; };
 		CC7188B7AA63E85EB97FFF5C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D19CB6DD51B0160F6A05D8B3 /* CellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellView.swift; sourceTree = "<group>"; };
-		D1C8FEE1A94B7F6E2B37D8C2 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D3675EEBB405EC344C21CFED /* StatsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsSync.swift; sourceTree = "<group>"; };
 		DA2A987C41C36C974D88974B /* GlobalHotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotKey.swift; sourceTree = "<group>"; };
 		DF8AF0D176896737D5485EA5 /* CarriedOverDailyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarriedOverDailyTests.swift; sourceTree = "<group>"; };
@@ -389,8 +389,8 @@
 		B3000DFCD4C43EF7423120EF /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				0358F0DEFF953EA33642A528 /* Localizable.strings */,
 				FC2F543118650223B289CEB5 /* Assets.xcassets */,
+				1833148887623D5ECC18BCB5 /* Localizable.xcstrings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -518,7 +518,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7ADF7E923EB5299A3D4EB8E /* Assets.xcassets in Resources */,
-				0FF59A8B1802AE5A5EBF6C73 /* Localizable.strings in Resources */,
+				C0C9FE4AA51E44558DBD2084 /* Localizable.xcstrings in Resources */,
 				C6BAB0A438AA6BF5C4629778 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -528,7 +528,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				87ECB81C4023C58C537147D7 /* Assets.xcassets in Resources */,
-				7A5EE840528F3DE81AED5162 /* Localizable.strings in Resources */,
+				2EB4B0AE666172D44AF4CCF6 /* Localizable.xcstrings in Resources */,
 				442F1B5B717D7B195986D303 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -690,17 +690,6 @@
 			targetProxy = 06F18258B1FE3ECED098EAC9 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin PBXVariantGroup section */
-		0358F0DEFF953EA33642A528 /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				D1C8FEE1A94B7F6E2B37D8C2 /* en */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		0050B6D318746BCF110D90D9 /* Debug */ = {
