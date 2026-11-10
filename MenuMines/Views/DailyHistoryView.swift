@@ -1,9 +1,89 @@
+import AppKit
 import SwiftUI
 
-// MARK: - Daily Completion Calendar
+// MARK: - Cursor
+
+/// The day selected in Daily History, which decides the month on show.
+///
+/// It stays between launch day and today, the days there's a board for (today's is played
+/// from the menu bar, but it can still be looked at). Moving it by days crosses into the
+/// next or previous month, and moving it by months keeps the day of the month where it can.
+struct DailyHistoryCursor: Equatable {
+    private(set) var day: Date
+    private(set) var first: Date
+    private(set) var last: Date
+
+    init(todaySeed: Int64, selectedSeed: Int64? = nil) {
+        let first = dateFromSeed(DailyHistory.launchSeed) ?? .distantPast
+        let last = max(dateFromSeed(todaySeed) ?? first, first)
+        self.first = first
+        self.last = last
+        let wanted = selectedSeed.flatMap(dateFromSeed) ?? last
+        day = min(max(wanted, first), last)
+    }
+
+    private static var calendar: Calendar { .utc }
+
+    var seed: Int64 { seedFromDate(day) }
+    var todaySeed: Int64 { seedFromDate(last) }
+
+    /// The first of the selected day's month.
+    var monthStart: Date {
+        Self.monthStart(of: day)
+    }
+
+    var canMoveToPreviousMonth: Bool {
+        monthStart > Self.monthStart(of: first)
+    }
+
+    var canMoveToNextMonth: Bool {
+        monthStart < Self.monthStart(of: last)
+    }
+
+    var isOnToday: Bool { day == last }
+
+    mutating func move(days: Int) {
+        guard let moved = Self.calendar.date(byAdding: .day, value: days, to: day) else { return }
+        day = min(max(moved, first), last)
+    }
+
+    mutating func move(months: Int) {
+        guard let moved = Self.calendar.date(byAdding: .month, value: months, to: day) else { return }
+        day = min(max(moved, first), last)
+    }
+
+    mutating func goToToday() {
+        day = last
+    }
+
+    /// Selects a day, if it's one there's a board for.
+    mutating func select(_ date: Date) {
+        guard date >= first, date <= last else { return }
+        day = date
+    }
+
+    /// Follows a change of day while the window is open, keeping the selection where it was
+    /// unless it was on today.
+    mutating func updateToday(_ todaySeed: Int64) {
+        let wasOnToday = isOnToday
+        self = DailyHistoryCursor(todaySeed: todaySeed, selectedSeed: wasOnToday ? nil : seed)
+    }
+
+    private static func monthStart(of date: Date) -> Date {
+        let components = calendar.dateComponents([.year, .month], from: date)
+        return calendar.date(from: components) ?? date
+    }
+}
+
+// MARK: - Calendar
 
 /// A month of puzzle days. It shows how each one went, and it's where a past day is picked
 /// to play: a day with no result as a recorded past daily, any other as a replay.
+///
+/// The grid is one control: click or arrow to a day, and its result and what playing it
+/// means show underneath with a Play, Continue or Replay button. Double-click, Return or
+/// Space plays it. Page Up and Page Down change month, Home goes to today. VoiceOver reaches
+/// each day on its own, and activating one plays it.
 struct DailyCompletionCalendarView: View {
     let todaySeed: Int64
     /// Results from the day itself.
@@ -16,7 +96,28 @@ struct DailyCompletionCalendarView: View {
     let carriedOver: Int64?
     let onPlay: (Int64) -> Void
 
-    @State private var displayedMonth = Self.currentMonthStart()
+    @State private var cursor: DailyHistoryCursor
+    @FocusState private var isGridFocused: Bool
+
+    static let rows = 6
+    static let spacing: CGFloat = 6
+
+    init(
+        todaySeed: Int64,
+        onTheDay: [Int64: GameResult],
+        later: [Int64: GameResult],
+        inProgress: Set<Int64>,
+        carriedOver: Int64?,
+        onPlay: @escaping (Int64) -> Void
+    ) {
+        self.todaySeed = todaySeed
+        self.onTheDay = onTheDay
+        self.later = later
+        self.inProgress = inProgress
+        self.carriedOver = carriedOver
+        self.onPlay = onPlay
+        _cursor = State(initialValue: DailyHistoryCursor(todaySeed: todaySeed))
+    }
 
     /// Each tile is a puzzle, and puzzles are UTC days. Laying the month out in the player's
     /// time zone would put a result on the wrong tile and replay the wrong board.
@@ -28,135 +129,201 @@ struct DailyCompletionCalendarView: View {
         return calendar
     }
 
-    private static func currentMonthStart() -> Date {
-        let calendar = Self.calendar
-        let now = Date()
-        let components = calendar.dateComponents([.year, .month], from: now)
-        return calendar.date(from: components) ?? now
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(String(localized: "stats_calendar_title"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+            header
+            weekdayRow
+            grid
+            detail
+            CalendarLegend()
+            Text(String(localized: "stats_calendar_footnote"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .onChange(of: todaySeed) { _, newValue in
+            cursor.updateToday(newValue)
+        }
+        .onChange(of: cursor.monthStart) {
+            // Paging is silent otherwise, since the month title isn't what has focus.
+            AccessibilityNotification.Announcement(monthTitle).post()
+        }
+        .onAppear {
+            // On the next turn, once the grid is in the window and can take focus.
+            Task { @MainActor in isGridFocused = true }
+        }
+    }
 
-                Spacer()
+    // MARK: Header
 
-                Button(String(localized: "stats_calendar_today")) {
-                    displayedMonth = Self.currentMonthStart()
-                }
-                    .buttonStyle(.borderless)
-                    .font(.caption)
-                    .disabled(isShowingCurrentOrFutureMonth)
-                    .accessibilityLabel(String(localized: "stats_calendar_today_accessibility"))
+    private var header: some View {
+        HStack(spacing: 8) {
+            Text(monthTitle)
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
 
+            Spacer()
+
+            Button(String(localized: "stats_calendar_today")) {
+                cursor.goToToday()
+            }
+            .disabled(cursor.isOnToday)
+            .help(String(localized: "stats_calendar_today_help"))
+            .accessibilityLabel(String(localized: "stats_calendar_today_accessibility"))
+
+            ControlGroup {
                 Button {
-                    moveMonth(by: -1)
+                    cursor.move(months: -1)
                 } label: {
                     Image(systemName: "chevron.left")
                 }
-                .buttonStyle(.borderless)
-                .disabled(isShowingLaunchMonthOrEarlier)
-                .help(String(localized: isShowingLaunchMonthOrEarlier
-                    ? "stats_calendar_first_month_help"
-                    : "stats_calendar_previous_month"))
+                .disabled(!cursor.canMoveToPreviousMonth)
+                .help(String(localized: cursor.canMoveToPreviousMonth
+                    ? "stats_calendar_previous_month"
+                    : "stats_calendar_first_month_help"))
                 .accessibilityLabel(String(localized: "stats_calendar_previous_month"))
 
                 Button {
-                    moveMonth(by: 1)
+                    cursor.move(months: 1)
                 } label: {
                     Image(systemName: "chevron.right")
                 }
-                .buttonStyle(.borderless)
-                .disabled(isShowingCurrentOrFutureMonth)
+                .disabled(!cursor.canMoveToNextMonth)
+                .help(String(localized: "stats_calendar_next_month"))
                 .accessibilityLabel(String(localized: "stats_calendar_next_month"))
             }
-
-            Text(monthTitle)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .accessibilityLabel(String(format: String(localized: "stats_calendar_month_accessibility"), monthTitle))
-
-            HStack(spacing: 6) {
-                ForEach(weekdaySymbols, id: \.self) { symbol in
-                    Text(symbol)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                }
-            }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                ForEach(calendarCells) { cell in
-                    CalendarDayCell(
-                        cell: cell,
-                        day: day(for: cell),
-                        todayResult: onTheDay[todaySeed],
-                        onPlay: playAction(for: cell)
-                    )
-                }
-            }
-
-            CalendarLegend()
-
-            Text(String(localized: "stats_calendar_replay_hint"))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .fixedSize()
         }
     }
 
     private var monthTitle: String {
-        displayedMonth.formatted(
-            Date.FormatStyle(timeZone: .gmt).month(.wide).year()
-        )
+        cursor.monthStart.formatted(Date.FormatStyle(timeZone: .gmt).month(.wide).year())
     }
 
-    private var weekdaySymbols: [String] {
+    // MARK: Weekdays
+
+    private var weekdayRow: some View {
+        let short = Self.weekdaySymbols(\.veryShortStandaloneWeekdaySymbols)
+        let full = Self.weekdaySymbols(\.standaloneWeekdaySymbols)
+        return HStack(spacing: Self.spacing) {
+            ForEach(short.indices, id: \.self) { index in
+                Text(short[index])
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(index < full.count ? full[index] : short[index])
+            }
+        }
+    }
+
+    /// The week's day names, starting on the player's first weekday.
+    private static func weekdaySymbols(_ keyPath: KeyPath<DateFormatter, [String]?>) -> [String] {
         let formatter = DateFormatter()
-        formatter.calendar = Self.calendar
+        formatter.calendar = calendar
         formatter.locale = .current
-        let symbols = formatter.veryShortWeekdaySymbols ?? []
+        let symbols = formatter[keyPath: keyPath] ?? []
         guard symbols.count == 7 else { return symbols }
 
-        let firstIndex = Self.calendar.firstWeekday - 1
+        let firstIndex = calendar.firstWeekday - 1
         return Array(symbols[firstIndex...]) + Array(symbols[..<firstIndex])
     }
 
-    private var isShowingCurrentOrFutureMonth: Bool {
-        Self.calendar.compare(displayedMonth, to: Self.currentMonthStart(), toGranularity: .month) != .orderedAscending
-    }
+    // MARK: Grid
 
-    /// There are no puzzles before launch, so there's nothing to page back to.
-    private var isShowingLaunchMonthOrEarlier: Bool {
-        let order = Self.calendar.compare(displayedMonth, to: DailyHistory.launchMonthStart, toGranularity: .month)
-        return order != .orderedDescending
-    }
-
-    private var calendarCells: [CalendarCell] {
+    /// Six weeks, always, so the calendar is the same height whichever month it shows.
+    private var cells: [CalendarCell] {
         let calendar = Self.calendar
-        guard let dayRange = calendar.range(of: .day, in: .month, for: displayedMonth) else {
-            return []
+        let monthStart = cursor.monthStart
+        let firstWeekday = calendar.component(.weekday, from: monthStart)
+        let leading = (firstWeekday - calendar.firstWeekday + 7) % 7
+        let dayCount = calendar.range(of: .day, in: .month, for: monthStart)?.count ?? 0
+
+        return (0..<(Self.rows * 7)).map { index in
+            let day = index - leading + 1
+            guard day >= 1, day <= dayCount,
+                  let date = calendar.date(byAdding: .day, value: day - 1, to: monthStart) else {
+                return CalendarCell(id: "empty-\(index)", date: nil, day: nil)
+            }
+            return CalendarCell(id: "day-\(day)", date: date, day: day)
         }
+    }
 
-        let firstWeekday = calendar.component(.weekday, from: displayedMonth)
-        let leadingEmptyCells = (firstWeekday - calendar.firstWeekday + 7) % 7
-        var cells = (0..<leadingEmptyCells).map { CalendarCell(id: "empty-\($0)", date: nil, day: nil) }
-
-        for day in dayRange {
-            guard let date = calendar.date(byAdding: .day, value: day - 1, to: displayedMonth) else { continue }
-            cells.append(CalendarCell(id: "day-\(day)", date: date, day: day))
+    private var grid: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: Self.spacing), count: 7),
+            spacing: Self.spacing
+        ) {
+            ForEach(cells) { cell in
+                tile(for: cell)
+            }
         }
+        .focusable()
+        .focused($isGridFocused)
+        .focusEffectDisabled()
+        .onKeyPress(phases: [.down, .repeat], action: handleKey)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(String(format: String(localized: "stats_calendar_month_accessibility"), monthTitle))
+    }
 
-        return cells
+    @ViewBuilder
+    private func tile(for cell: CalendarCell) -> some View {
+        let day = day(for: cell)
+        let seed = cell.date.map(seedFromDate)
+        let isSelected = seed != nil && seed == cursor.seed
+        CalendarDayCell(
+            cell: cell,
+            day: day,
+            todayResult: onTheDay[todaySeed],
+            isSelected: isSelected,
+            isFocused: isSelected && isGridFocused,
+            onPlay: seed.flatMap { seed in day?.play == nil ? nil : { onPlay(seed) } }
+        )
+        .onTapGesture(count: 2) {
+            if let date = cell.date {
+                cursor.select(date)
+                playSelected()
+            }
+        }
+        .simultaneousGesture(TapGesture().onEnded {
+            if let date = cell.date {
+                cursor.select(date)
+                isGridFocused = true
+            }
+        })
+    }
+
+    private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        switch press.key {
+        case .leftArrow:
+            cursor.move(days: -1)
+        case .rightArrow:
+            cursor.move(days: 1)
+        case .upArrow:
+            cursor.move(days: -7)
+        case .downArrow:
+            cursor.move(days: 7)
+        case .pageUp:
+            cursor.move(months: -1)
+        case .pageDown:
+            cursor.move(months: 1)
+        case .home:
+            cursor.goToToday()
+        case .return, .space:
+            playSelected()
+        default:
+            return .ignored
+        }
+        return .handled
     }
 
     private func day(for cell: CalendarCell) -> DailyHistory.Day? {
         guard let date = cell.date else { return nil }
-        return DailyHistory.day(
-            forSeed: seedFromDate(date),
+        return day(forSeed: seedFromDate(date))
+    }
+
+    private func day(forSeed seed: Int64) -> DailyHistory.Day {
+        DailyHistory.day(
+            forSeed: seed,
             todaySeed: todaySeed,
             onTheDay: onTheDay,
             later: later,
@@ -165,271 +332,41 @@ struct DailyCompletionCalendarView: View {
         )
     }
 
-    /// Returns an action only for days that can be played from here. Today is the ranked
-    /// puzzle and is played as itself, future days have no board yet, and there was no
-    /// puzzle before launch.
-    private func playAction(for cell: CalendarCell) -> (() -> Void)? {
-        guard let date = cell.date, day(for: cell)?.play != nil else { return nil }
-
-        let seed = seedFromDate(date)
-        return { onPlay(seed) }
+    /// Plays the selected day, if it's one that can be played from here. Today is the ranked
+    /// puzzle and is played from the menu bar, and there's no board before launch.
+    private func playSelected() {
+        guard day(forSeed: cursor.seed).play != nil else { return }
+        onPlay(cursor.seed)
     }
 
-    private func moveMonth(by value: Int) {
-        guard let month = Self.calendar.date(byAdding: .month, value: value, to: displayedMonth) else { return }
-        displayedMonth = max(month, DailyHistory.launchMonthStart)
-    }
-}
+    // MARK: Detail
 
-private struct CalendarCell: Identifiable {
-    let id: String
-    let date: Date?
-    let day: Int?
-}
+    /// The selected day: its date, how it went, what playing it means, and the button.
+    private var detail: some View {
+        let selected = day(forSeed: cursor.seed)
+        let description = DayDescription(day: selected, todayResult: onTheDay[todaySeed])
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(cursor.day.formatted(Date.FormatStyle(date: .complete, time: .omitted, timeZone: .gmt)))
+                    .font(.subheadline.weight(.semibold))
+                Text(description.shown)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(description.spoken)
+            }
+            .accessibilityElement(children: .combine)
 
-/// Says what the tiles' marks mean. The words carry it, so it reads the same to VoiceOver.
-private struct CalendarLegend: View {
-    var body: some View {
-        HStack(spacing: 8) {
-            entry(String(localized: "stats_calendar_legend_on_the_day")) {
-                CalendarTileBackground(style: .onTheDay, tint: .accentColor)
-            }
-            entry(String(localized: "stats_calendar_legend_later")) {
-                CalendarTileBackground(style: .later, tint: .accentColor)
-            }
-            entry(String(localized: "stats_calendar_legend_in_progress")) {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 8, weight: .heavy))
-                    .foregroundStyle(Color.orange)
-            }
-            entry(String(localized: "stats_calendar_legend_not_played")) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 6, weight: .bold))
-                    .foregroundStyle(Color.accentColor)
+            Spacer(minLength: 0)
+
+            if let action = selected.play {
+                Button(action.buttonTitle) {
+                    playSelected()
+                }
+                .keyboardShortcut(.defaultAction)
             }
         }
-        .font(.caption2)
-        .foregroundStyle(.secondary)
-    }
-
-    private func entry(_ text: String, @ViewBuilder swatch: () -> some View) -> some View {
-        HStack(spacing: 4) {
-            swatch()
-                .frame(width: 12, height: 10)
-                .accessibilityHidden(true)
-            Text(text)
-                .lineLimit(1)
-        }
-    }
-}
-
-/// A tile's fill and outline. A result from the day itself is filled with a solid outline,
-/// and one from later is hollow with a dashed outline, so they differ by more than color.
-private struct CalendarTileBackground: View {
-    enum Style {
-        case plain, onTheDay, later
-    }
-
-    let style: Style
-    var tint: Color = .accentColor
-    var isToday = false
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(fillColor)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(borderColor, style: strokeStyle)
-            )
-    }
-
-    private var fillColor: Color {
-        style == .onTheDay ? tint.opacity(0.26) : Color(nsColor: .controlBackgroundColor)
-    }
-
-    private var borderColor: Color {
-        if isToday {
-            return Color.accentColor
-        }
-        switch style {
-        case .plain:
-            return Color(nsColor: .separatorColor).opacity(0.7)
-        case .onTheDay:
-            return tint.opacity(0.6)
-        case .later:
-            return tint.opacity(0.85)
-        }
-    }
-
-    private var strokeStyle: StrokeStyle {
-        if isToday {
-            return StrokeStyle(lineWidth: 2)
-        }
-        return style == .later ? StrokeStyle(lineWidth: 1.5, dash: [3, 2]) : StrokeStyle(lineWidth: 1)
-    }
-}
-
-private struct CalendarDayCell: View {
-    let cell: CalendarCell
-    /// Nil for the blank tiles before the 1st.
-    let day: DailyHistory.Day?
-    /// Today's tile shows how today went, though it can't be played from here.
-    let todayResult: GameResult?
-    let onPlay: (() -> Void)?
-
-    @State private var isHovered = false
-
-    var body: some View {
-        if let onPlay {
-            Button(action: onPlay) { tile }
-                .buttonStyle(.plain)
-                .onHover { isHovered = $0 }
-                .help(playHint)
-                .accessibilityLabel(accessibilityLabel)
-                .accessibilityHint(playHint)
-                .accessibilityAddTraits(.isButton)
-        } else {
-            tile
-                .accessibilityLabel(accessibilityLabel)
-        }
-    }
-
-    /// The result to draw, from the day itself or from later.
-    private var result: GameResult? {
-        switch day {
-        case .playedOnTheDay(let result), .playedLater(let result):
-            return result
-        case .today:
-            return todayResult
-        default:
-            return nil
-        }
-    }
-
-    private var isInProgress: Bool {
-        day?.isInProgress == true
-    }
-
-    private var isPlayedLater: Bool {
-        if case .playedLater = day { return true }
-        return false
-    }
-
-    /// Before launch and the future: there's no board to play.
-    private var isUnavailable: Bool {
-        day == .beforeLaunch || day == .future
-    }
-
-    private var backgroundStyle: CalendarTileBackground.Style {
-        guard result != nil else { return .plain }
-        return isPlayedLater ? .later : .onTheDay
-    }
-
-    /// The mark in the corner. Each state has a shape of its own, so none depends on color.
-    private var symbol: (name: String, color: Color)? {
-        if let result {
-            return result.won ? ("checkmark", .accentColor) : ("xmark", .red)
-        }
-        switch day {
-        case .inProgress, .carriedOver:
-            return ("ellipsis", .orange)
-        case .unplayed:
-            return ("play.fill", .accentColor)
-        default:
-            return nil
-        }
-    }
-
-    private var tile: some View {
-        ZStack {
-            CalendarTileBackground(
-                style: backgroundStyle,
-                tint: result?.won == false ? .red : .accentColor,
-                isToday: day == .today
-            )
-
-            if onPlay != nil, isHovered {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.primary.opacity(0.08))
-            }
-
-            if let number = cell.day {
-                Text("\(number)")
-                    .font(.caption2)
-                    .fontWeight(result == nil && !isInProgress ? .regular : .semibold)
-                    .monospacedDigit()
-                    .foregroundStyle(textColor)
-            }
-
-            if let symbol {
-                Image(systemName: symbol.name)
-                    .font(.system(size: isInProgress ? 8 : 6, weight: isInProgress ? .heavy : .bold))
-                    .foregroundStyle(symbol.color)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(2.5)
-            }
-        }
-        .frame(height: 26)
-        .opacity(isUnavailable ? 0.45 : 1)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityHidden(cell.date == nil)
-    }
-
-    private var textColor: Color {
-        if result != nil || isInProgress {
-            return .primary
-        }
-        // A day that's waiting to be played reads as something to click.
-        return day == .unplayed ? .accentColor : .secondary
-    }
-
-    /// What clicking the tile does, so the player knows before they click whether the game
-    /// will be recorded.
-    private var playHint: String {
-        switch day?.play {
-        case .recorded:
-            return String(localized: "stats_calendar_hint_play")
-        case .resume:
-            let key: String.LocalizationValue = day == .carriedOver
-                ? "stats_calendar_hint_continue_on_the_day"
-                : "stats_calendar_hint_continue"
-            return String(localized: key)
-        case .practice:
-            return String(localized: "stats_calendar_hint_replay")
-        case nil:
-            return ""
-        }
-    }
-
-    private var accessibilityLabel: String {
-        guard let date = cell.date, let day else { return "" }
-        let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
-
-        let key: String.LocalizationValue
-        switch day {
-        case .beforeLaunch, .future:
-            key = "stats_calendar_day_unavailable"
-        case .today:
-            let state: String.LocalizationValue
-            if let todayResult {
-                state = todayResult.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"
-            } else {
-                state = "stats_calendar_day_not_played"
-            }
-            return String(
-                format: String(localized: "stats_calendar_day_today_prefix"),
-                String(format: String(localized: state), dateString)
-            )
-        case .unplayed:
-            key = "stats_calendar_day_not_played"
-        case .inProgress, .carriedOver:
-            key = "stats_calendar_day_in_progress"
-        case .playedOnTheDay(let result):
-            key = result.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"
-        case .playedLater(let result):
-            key = result.won ? "stats_calendar_day_won_later" : "stats_calendar_day_lost_later"
-        }
-        return String(format: String(localized: key), dateString)
+        .frame(minHeight: 44)
     }
 }

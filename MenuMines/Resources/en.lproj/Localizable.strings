@@ -120,8 +120,24 @@
 "stats_tab_summary" = "Summary";
 "stats_tab_history" = "History";
 "stats_tab_recent" = "Recent";
-"stats_calendar_title" = "Daily History";
 "stats_calendar_today" = "Today";
+"stats_calendar_footnote" = "Days follow UTC. Double-click a day to play it.";
+"stats_calendar_today_help" = "Go to today";
+"stats_calendar_today_tile_help" = "Today's puzzle is played from the menu bar.";
+"stats_calendar_action_play" = "Play";
+"stats_calendar_action_continue" = "Continue";
+"stats_calendar_action_replay" = "Replay";
+"stats_calendar_detail_unavailable" = "There's no puzzle for this day.";
+"stats_calendar_detail_today" = "Today's puzzle. Play it from the menu bar.";
+"stats_calendar_detail_today_won" = "Won in %@. Today's puzzle is played from the menu bar.";
+"stats_calendar_detail_today_lost" = "Lost after %@. Today's puzzle is played from the menu bar.";
+"stats_calendar_detail_not_played" = "Not played. It's recorded as played later and doesn't count toward streaks.";
+"stats_calendar_detail_in_progress" = "In progress. It's recorded as played later.";
+"stats_calendar_detail_carried_over" = "In progress since its day. It counts as played on the day.";
+"stats_calendar_detail_won" = "Won in %@. Replays aren't recorded.";
+"stats_calendar_detail_lost" = "Lost after %@. Replays aren't recorded.";
+"stats_calendar_detail_won_later" = "Won later in %@. Replays aren't recorded.";
+"stats_calendar_detail_lost_later" = "Lost later after %@. Replays aren't recorded.";
 "stats_calendar_today_accessibility" = "Show today in daily history";
 "stats_calendar_previous_month" = "Previous month";
 "stats_calendar_first_month_help" = "MenuMines launched this month";
@@ -246,7 +262,6 @@
 
 /* Past dailies and replays */
 "puzzle_type_practice" = "Replay";
-"stats_calendar_replay_hint" = "Click a day you haven't played to play it now. It's recorded as played later and doesn't count toward streaks. Days you've already played open as a replay, which isn't recorded.";
 "return_to_today_button" = "Back to Today";
 "return_to_today_help" = "Leave this replay and go back to today's puzzle";
 "return_to_today_help_past_daily" = "Go back to today's puzzle. This game is kept for when you come back to it.";

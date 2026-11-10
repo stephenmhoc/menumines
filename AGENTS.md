@@ -64,7 +64,9 @@ MenuMines/
 │   ├── MenuContentView.swift   # Game panel content and keyboard handling
 │   ├── SettingsView.swift      # App settings
 │   ├── ShortcutRecorderView.swift # Records the global shortcut in Settings
-│   └── StatsWindow.swift       # Statistics, and the Daily History calendar where past days are picked
+│   ├── StatsWindow.swift       # Statistics: summary, recent results, toolbar tabs
+│   ├── DailyHistoryView.swift  # The Daily History calendar where past days are picked
+│   └── DailyHistoryTiles.swift # Its tiles, legend and colours
 ├── Resources/
 │   ├── Assets.xcassets         # App icons (AppIcon, AppIcon-Dev), accent color
 │   └── en.lproj/Localizable.strings
@@ -73,6 +75,7 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── BoardTests.swift, DailyBoardTests.swift, DailyBoardFairnessTests.swift
 ├── DailyCompletionTests.swift, DailyRolloverTests.swift
 ├── DailyHistoryTests.swift     # Launch bound, and which days are playable, practice or unavailable
+├── DailyHistoryCursorTests.swift # The calendar's keyboard selection
 ├── GamePanelTests.swift        # Real key events sent to a real panel; windows, menus, icon
 ├── GlobalShortcutTests.swift   # Shortcut validation, storage and registration
 ├── GamePanelKeyTests.swift     # Same suite: Return, and the reset confirmation's keys
@@ -210,6 +213,16 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   through iCloud in the App Store build. The content reports its height, and `AppWindows.fit`
   resizes the window to it with the top edge pinned, animated unless Reduce Motion is on. It
   works in the toolbar-free part of the content (`contentLayoutRect`), so it can be asked again.
+- **Daily History** (`DailyHistoryView.swift`, tiles in `DailyHistoryTiles.swift`) always lays out
+  six weeks, so its height never changes with the month. The grid is one focusable control with
+  a selected day (`DailyHistoryCursor`, pure and tested): arrows move it across months, Page
+  Up/Down change month, Home goes to today, and Return/Space or a double-click play it. A click
+  only selects, and the line under the grid gives the day's result and what playing it records,
+  with a default Play, Continue or Replay button. VoiceOver still reaches each tile, with its
+  label and hint, and activating one plays it. Every way in goes through `onPlay`, which is
+  `AppWindows.playPastDay`. Wins are system green and losses system red whatever the accent;
+  the accent means playable (today's ring, an unplayed day). Increase Contrast strengthens fills
+  and outlines, and days with no board have no tile at all.
 - **Launch at login** is read from `SMAppService`, never stored, and read again whenever the app
   becomes active. `.requiresApproval` shows as on, with a line and an Open Login Items button.
 

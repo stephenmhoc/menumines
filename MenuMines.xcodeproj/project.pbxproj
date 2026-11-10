@@ -61,6 +61,7 @@
 		64873F8507A1A78BD2007591 /* PastDailyTestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B2243EB54C0CF88762FA1B /* PastDailyTestHelpers.swift */; };
 		64A247DDD180A8367546512F /* FooterIconButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79067E497CACAE3CBCBC8177 /* FooterIconButtons.swift */; };
 		674F7F5F5E87170A8D975E58 /* DailyRolloverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D2EEFC4A1818B208768146 /* DailyRolloverTests.swift */; };
+		68BB9B7DBE3D102E38E688B8 /* DailyHistoryTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F78D97A8C31E08D5A2714 /* DailyHistoryTiles.swift */; };
 		6BF2A249296866F834C5A5BC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7188B7AA63E85EB97FFF5C /* SettingsView.swift */; };
 		6E5CAFAEE3F4D41120177106 /* GamePanelKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18503DFF1CFFB1AAB6AB4022 /* GamePanelKeyTests.swift */; };
 		6E88DF96BB3FB5BF08671823 /* ShortcutRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF240F6DE6112EEB6E826E7F /* ShortcutRecorderView.swift */; };
@@ -74,6 +75,7 @@
 		82D975A8AAD8FDA2591A745B /* UpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4C713A74D7E9BDE4015CD4 /* UpdateManager.swift */; };
 		8591B2A36DF2446CB198D386 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10C6CEC95940867CDD5B6B19 /* Constants.swift */; };
 		85A2F3E9AE8C648D52FC56F8 /* StatusIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C0C642FEE86870A148890C /* StatusIcon.swift */; };
+		8668E08B607F880C60A77DC1 /* DailyHistoryTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7F78D97A8C31E08D5A2714 /* DailyHistoryTiles.swift */; };
 		87772E587E37A459854DCA12 /* GlobalShortcutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D21ED796BBA954A737F92C3 /* GlobalShortcutTests.swift */; };
 		87ECB81C4023C58C537147D7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC2F543118650223B289CEB5 /* Assets.xcassets */; };
 		8C2B3C78F839E7C582162415 /* GamePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4632585BC265407DD04189A5 /* GamePersistence.swift */; };
@@ -130,6 +132,7 @@
 		F1A29913535AC6F69D5F3D08 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 06ABC6450E31F9B81E787328 /* Sentry */; };
 		F33F5053C1A2CF236C4CE3F7 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF004F261AAD7D0403DDA9E9 /* Board.swift */; };
 		F3EF270F0D735A7A9261D3BE /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7151E195DBE64A666349DFC1 /* HeaderView.swift */; };
+		F41C9EE394AE9732D910985F /* DailyHistoryCursorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15D25D8B1EACB949212B3DE /* DailyHistoryCursorTests.swift */; };
 		F70A324D943163F7EBC6BAC2 /* GameStateWinLoseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D4966B2DF115A8B661B8A7 /* GameStateWinLoseTests.swift */; };
 		F8FE750F9D204989B720DBCA /* GamePanelWindowSizeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8B14B521BE50D31D40DF28 /* GamePanelWindowSizeTests.swift */; };
 		FAAF67913135A670CDC15000 /* ControlsPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D431003B9D93530847D758 /* ControlsPopoverView.swift */; };
@@ -171,6 +174,7 @@
 		29EE99428D74A94E71EFBAC7 /* GamePanelShellAboutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelShellAboutTests.swift; sourceTree = "<group>"; };
 		2BF97F7F956D585A6B65F9F9 /* MenuMinesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuMinesApp.swift; sourceTree = "<group>"; };
 		2D0C9892A123D85AE470B4B5 /* GamePanelShellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelShellTests.swift; sourceTree = "<group>"; };
+		2D7F78D97A8C31E08D5A2714 /* DailyHistoryTiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyHistoryTiles.swift; sourceTree = "<group>"; };
 		34CB11039692BF50D0C6D391 /* MenuMinesDirect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MenuMinesDirect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35754B0EBFF0F9FFFE8AC10A /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
 		36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyHistoryView.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 		97CFAB132FB1C3335D3D5797 /* Leaderboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Leaderboard.swift; sourceTree = "<group>"; };
 		9AB4EFD332F1CCAB5C85EBF9 /* SettingsViewLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewLayoutTests.swift; sourceTree = "<group>"; };
 		9CBBAE5B199A7FEB7BABAA82 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
+		A15D25D8B1EACB949212B3DE /* DailyHistoryCursorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyHistoryCursorTests.swift; sourceTree = "<group>"; };
 		B09FF2D7A87AF6F7EDEFAE0F /* GameStateChordRevealTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateChordRevealTests.swift; sourceTree = "<group>"; };
 		B41D617D5DE64B68D019AC9E /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
 		BF004F261AAD7D0403DDA9E9 /* Board.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Board.swift; sourceTree = "<group>"; };
@@ -323,6 +328,7 @@
 				52A6FF436F3A01C0E75E63EB /* DailyBoardFairnessTests.swift */,
 				EAE94260F11C8942153B783A /* DailyBoardTests.swift */,
 				05D22B8D1E2CFE95B6E3BE6D /* DailyCompletionTests.swift */,
+				A15D25D8B1EACB949212B3DE /* DailyHistoryCursorTests.swift */,
 				1C12ED5500D3B3ACCDC81ED6 /* DailyHistoryTests.swift */,
 				16D2EEFC4A1818B208768146 /* DailyRolloverTests.swift */,
 				18503DFF1CFFB1AAB6AB4022 /* GamePanelKeyTests.swift */,
@@ -366,6 +372,7 @@
 				D19CB6DD51B0160F6A05D8B3 /* CellView.swift */,
 				9CBBAE5B199A7FEB7BABAA82 /* ConfettiView.swift */,
 				75D431003B9D93530847D758 /* ControlsPopoverView.swift */,
+				2D7F78D97A8C31E08D5A2714 /* DailyHistoryTiles.swift */,
 				36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */,
 				79067E497CACAE3CBCBC8177 /* FooterIconButtons.swift */,
 				C31DCBAC03DE11ECC9873CE3 /* FooterView.swift */,
@@ -546,6 +553,7 @@
 				D058C61BFA283FBBC37B45FB /* ControlsPopoverView.swift in Sources */,
 				347F770E749A3528D2FDD63D /* DailyBoard.swift in Sources */,
 				1AAB4FA4851A7989916CD057 /* DailyHistory.swift in Sources */,
+				8668E08B607F880C60A77DC1 /* DailyHistoryTiles.swift in Sources */,
 				D0F4BFD88C1AD54D2EA543E4 /* DailyHistoryView.swift in Sources */,
 				D69CE3CC844734CEB42B61BD /* DayWatcher.swift in Sources */,
 				64A247DDD180A8367546512F /* FooterIconButtons.swift in Sources */,
@@ -595,6 +603,7 @@
 				FAAF67913135A670CDC15000 /* ControlsPopoverView.swift in Sources */,
 				530EDE0E7FFCD83958319055 /* DailyBoard.swift in Sources */,
 				53DC059A8C6B0D6539378F2E /* DailyHistory.swift in Sources */,
+				68BB9B7DBE3D102E38E688B8 /* DailyHistoryTiles.swift in Sources */,
 				37AC931E2C074C6D837F1384 /* DailyHistoryView.swift in Sources */,
 				9EAA2E637493CCB62C973254 /* DayWatcher.swift in Sources */,
 				28BC797D3F8B20F5FE56FFE6 /* FooterIconButtons.swift in Sources */,
@@ -637,6 +646,7 @@
 				DC4D8A3CA437BEDFE7BD534C /* DailyBoardFairnessTests.swift in Sources */,
 				3E908CE513FC68AFE2A26B45 /* DailyBoardTests.swift in Sources */,
 				BBD229798BBAC3D3BB367A73 /* DailyCompletionTests.swift in Sources */,
+				F41C9EE394AE9732D910985F /* DailyHistoryCursorTests.swift in Sources */,
 				FF490BBDB7C70E8DA79CA896 /* DailyHistoryTests.swift in Sources */,
 				674F7F5F5E87170A8D975E58 /* DailyRolloverTests.swift in Sources */,
 				6E5CAFAEE3F4D41120177106 /* GamePanelKeyTests.swift in Sources */,
