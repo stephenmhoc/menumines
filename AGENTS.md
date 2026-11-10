@@ -21,7 +21,8 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 MenuMines/
 ├── MenuMinesApp.swift          # App entry point, lifecycle and the menu bar icon view
 ├── AppWindows.swift            # Stats and Settings windows
-├── StatusItemController.swift  # Menu bar icon and game panel: opening, closing, dismissal
+├── StatusItemController.swift  # Menu bar icon and game panel: opening and closing
+├── StatusItemController+Dismissal.swift # What closes the panel: clicks elsewhere, other apps, sleep
 ├── StatusItemController+Position.swift # Where the panel goes: always under the icon
 ├── StatusItemController+Menu.swift # The icon's right-click menu
 ├── GamePanel.swift             # The non-activating panel and its material backdrop

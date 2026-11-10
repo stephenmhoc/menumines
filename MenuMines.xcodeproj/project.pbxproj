@@ -32,6 +32,7 @@
 		2EB4B0AE666172D44AF4CCF6 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1833148887623D5ECC18BCB5 /* Localizable.xcstrings */; };
 		347F770E749A3528D2FDD63D /* DailyBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF8CF567A33A61FD98739A92 /* DailyBoard.swift */; };
 		3527522E30F870CFA1FFC91A /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F24A066240BAF20DDCAD6357 /* MenuBarIconState.swift */; };
+		353D01CBBEC1BA6DB30DCDB4 /* StatusItemController+Dismissal.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7780E3885A24E41D2A98091 /* StatusItemController+Dismissal.swift */; };
 		356B3336E60963F43634D2A9 /* GamePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4A44B0AA3E0C1CD61461F8 /* GamePanel.swift */; };
 		35C7E0EEFC36DFB80C8D1830 /* StatusItemController+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C48A4CC9144931FD69D05 /* StatusItemController+Menu.swift */; };
 		36C1DE9BB547A98067E779A0 /* AboutWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261DF9BFF0447B4AC12A501C /* AboutWindow.swift */; };
@@ -133,6 +134,7 @@
 		ECBC25201F52E6DF328DA120 /* GameStateShareTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2DFA59EA1A69CF8FE07C2E /* GameStateShareTests.swift */; };
 		ECD402090472617017A94B24 /* GamePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4A44B0AA3E0C1CD61461F8 /* GamePanel.swift */; };
 		EFD50B5F11A51E23CA971D45 /* Cell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 195CC1F34A5A9FA082761E52 /* Cell.swift */; };
+		F0B3F334BC840F9A244BB2D0 /* StatusItemController+Dismissal.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7780E3885A24E41D2A98091 /* StatusItemController+Dismissal.swift */; };
 		F14CD8F244C4F08CE209A115 /* GameTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0475F5E6B022FD3F4257E80B /* GameTimer.swift */; };
 		F1A29913535AC6F69D5F3D08 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 06ABC6450E31F9B81E787328 /* Sentry */; };
 		F33F5053C1A2CF236C4CE3F7 /* Board.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF004F261AAD7D0403DDA9E9 /* Board.swift */; };
@@ -236,6 +238,7 @@
 		DF8AF0D176896737D5485EA5 /* CarriedOverDailyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarriedOverDailyTests.swift; sourceTree = "<group>"; };
 		E4F5ED289366798F46A91135 /* PastDailyPlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyPlayTests.swift; sourceTree = "<group>"; };
 		E620214384CC311557AEF2AF /* GameResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameResult.swift; sourceTree = "<group>"; };
+		E7780E3885A24E41D2A98091 /* StatusItemController+Dismissal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatusItemController+Dismissal.swift"; sourceTree = "<group>"; };
 		E832B1B6390C23CF9C532BAE /* AppStoreScreenshotExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreScreenshotExporter.swift; sourceTree = "<group>"; };
 		EA2DFA59EA1A69CF8FE07C2E /* GameStateShareTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateShareTests.swift; sourceTree = "<group>"; };
 		EAE94260F11C8942153B783A /* DailyBoardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBoardTests.swift; sourceTree = "<group>"; };
@@ -322,6 +325,7 @@
 				81CEE9D9AF11F8C014D5DB43 /* PrivacyInfo.xcprivacy */,
 				79C0C642FEE86870A148890C /* StatusIcon.swift */,
 				B41D617D5DE64B68D019AC9E /* StatusItemController.swift */,
+				E7780E3885A24E41D2A98091 /* StatusItemController+Dismissal.swift */,
 				FB2C48A4CC9144931FD69D05 /* StatusItemController+Menu.swift */,
 				563E6DCE165D50096F39514C /* StatusItemController+Position.swift */,
 				3C4C713A74D7E9BDE4015CD4 /* UpdateManager.swift */,
@@ -592,6 +596,7 @@
 				167AD792370C9A6079CF6390 /* StatsSync.swift in Sources */,
 				0349057A2902EA08A23A4BF4 /* StatsWindow.swift in Sources */,
 				DA4F0CF46E7B1A49629EE145 /* StatusIcon.swift in Sources */,
+				F0B3F334BC840F9A244BB2D0 /* StatusItemController+Dismissal.swift in Sources */,
 				35C7E0EEFC36DFB80C8D1830 /* StatusItemController+Menu.swift in Sources */,
 				C16A8CA2342284B437A6DAE6 /* StatusItemController+Position.swift in Sources */,
 				FDCBD0C1B7C0055B7313AAF2 /* StatusItemController.swift in Sources */,
@@ -643,6 +648,7 @@
 				471C505F453F60A0FE886F14 /* StatsSync.swift in Sources */,
 				541C202E8ACCB02B95B3E9DB /* StatsWindow.swift in Sources */,
 				85A2F3E9AE8C648D52FC56F8 /* StatusIcon.swift in Sources */,
+				353D01CBBEC1BA6DB30DCDB4 /* StatusItemController+Dismissal.swift in Sources */,
 				DD7052A10D4FA01491F9EE3E /* StatusItemController+Menu.swift in Sources */,
 				4F6FA2B59A371336DEC1E73C /* StatusItemController+Position.swift in Sources */,
 				DD6C07E5CE92788BA55180F7 /* StatusItemController.swift in Sources */,
