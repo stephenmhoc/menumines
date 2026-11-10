@@ -212,10 +212,8 @@
 "stats_no_data" = "—";
 
 /* About window */
-"about_title" = "MenuMines";
 "about_description" = "A new Minesweeper puzzle in your menu bar every day.";
 "about_support_email" = "support@merimerimeri.com";
-"about_copyright" = "© 2026";
 
 /* Updates (Direct Distribution only) */
 "check_for_updates_menu_item" = "Check for Updates…";

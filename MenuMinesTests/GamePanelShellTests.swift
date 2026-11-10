@@ -216,11 +216,15 @@ extension GamePanelTests {
 
         let opens: [(() -> Void, String)] = [
             (AppWindows.showSettings, AppWindows.settingsTitle),
-            (AboutWindow.show, String(localized: "about_menu_item")),
+            // The standard About panel has no title of its own.
+            (AboutWindow.show, ""),
             ({ AppWindows.showStats(gameState: todaysDaily()) }, String(localized: "stats_window_title"))
         ]
         for (open, title) in opens {
-            let window = try await openWindow(open, titled: title)
+            let window = title.isEmpty
+                ? try await { open(); try await settle(); return try #require(AboutWindow.panel) }()
+                : try await openWindow(open, titled: title)
+            #expect(window.isVisible)
             #expect(!window.styleMask.contains(.miniaturizable), "\(title) can be minimised")
             #expect(window.collectionBehavior.contains(.moveToActiveSpace))
             #expect(window.collectionBehavior.contains(.fullScreenAuxiliary))

@@ -1,70 +1,75 @@
 import AppKit
-import SwiftUI
 
+/// About MenuMines, as the standard About panel.
+///
+/// AppKit fills in the icon, the name this build goes by, the version and build (selectable),
+/// and the copyright from `NSHumanReadableCopyright`. The credits add what's ours: a line on
+/// what the app is, the support address, and which channel this copy came from.
+///
+/// The panel is AppKit's, so there's no controller of ours to hold. It's treated like the
+/// app's own windows all the same: the game panel gets out of its way, it comes forward over
+/// whatever the player was using, it joins the active Space, and when it closes,
+/// `AppWindows.windowWillClose` (which hears every window close) hands focus back.
 @MainActor
 enum AboutWindow {
+    /// The panel on screen, if it's up. AppKit reuses it while it's open and builds a new
+    /// one after it's closed, so a closed one is never brought back.
+    private(set) static weak var panel: NSWindow?
+
     static func show() {
-        AppWindows.show(id: "about", title: String(localized: "about_menu_item")) {
-            AboutView()
+        AppWindows.onWillShowWindow?()
+
+        let onScreen = Set(NSApp.windows.filter(\.isVisible).map(ObjectIdentifier.init))
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: [
+            .applicationName: Bundle.main.appName,
+            .credits: credits
+        ])
+
+        if let shown = NSApp.windows.first(where: {
+            $0 is NSPanel && $0.isVisible && !onScreen.contains(ObjectIdentifier($0))
+        }) {
+            panel = shown
         }
-    }
-}
+        guard let panel, panel.isVisible else { return }
 
-private struct AboutView: View {
-    private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-    }
-
-    private var buildNumber: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+        // As for the app's own windows: an agent app has no Dock icon to bring a minimised
+        // window back from, and one opened from the menu bar joins whatever is on screen.
+        panel.styleMask.remove(.miniaturizable)
+        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
     }
 
-    private var channel: BuildChannel {
-        BuildChannel.current
-    }
+    /// What the app is, where to get help, and which build this is.
+    static var credits: NSAttributedString {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.paragraphSpacing = 6
 
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 80, height: 80)
-                .accessibilityHidden(true)
+        let font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        let body: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: paragraph
+        ]
 
-            VStack(spacing: 4) {
-                Text(String(localized: "about_title"))
-                    .font(.title)
-                    .fontWeight(.semibold)
+        let credits = NSMutableAttributedString(string: String(localized: "about_description") + "\n", attributes: body)
 
-                Text(String(format: String(localized: "build_info_version"), appVersion, buildNumber))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text(channel.displayName)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(channel.isPreRelease ? Color.orange : Color.secondary)
-            }
-
-            Text(String(localized: "about_description"))
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let supportURL = URL(string: "mailto:support@merimerimeri.com") {
-                Link(String(localized: "about_support_email"), destination: supportURL)
-                    .font(.caption)
-            }
-
-            Text(String(localized: "about_copyright"))
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+        let address = String(localized: "about_support_email")
+        var link = body
+        if let url = URL(string: "mailto:\(address)") {
+            link[.link] = url
         }
-        .padding(24)
-        .frame(width: 300)
-    }
-}
+        credits.append(NSAttributedString(string: address + "\n", attributes: link))
 
-#Preview {
-    AboutView()
+        let channel = BuildChannel.current
+        var channelAttributes = body
+        if channel.isPreRelease {
+            channelAttributes[.foregroundColor] = NSColor.systemOrange
+            channelAttributes[.font] = NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize)
+        }
+        credits.append(NSAttributedString(string: channel.displayName, attributes: channelAttributes))
+        return credits
+    }
 }

@@ -20,7 +20,7 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 ```
 MenuMines/
 ├── MenuMinesApp.swift          # App entry point, lifecycle and the menu bar icon view
-├── AppWindows.swift            # Stats, Settings and About windows
+├── AppWindows.swift            # Stats and Settings windows
 ├── StatusItemController.swift  # Menu bar icon and game panel: opening, closing, dismissal
 ├── StatusItemController+Position.swift # Where the panel goes: always under the icon
 ├── StatusItemController+Menu.swift # The icon's right-click menu
@@ -52,7 +52,7 @@ MenuMines/
 │   ├── StatsSync.swift         # iCloud key-value sync, App Store build only
 │   └── Telemetry.swift         # The only file that talks to Sentry
 ├── Views/
-│   ├── AboutWindow.swift       # About window
+│   ├── AboutWindow.swift       # The standard About panel and its credits
 │   ├── CellView.swift          # One cell: state, accessibility, hover/press and motion
 │   ├── CellTile.swift          # Tiles, flag and mine glyphs, number colours, the cell's click view
 │   ├── ConfettiView.swift      # Win celebration animation
@@ -122,8 +122,8 @@ let seed = Int64(year * 10000 + month * 100 + day)
 
 ### Menu Bar Shell
 AppKit owns the shell and SwiftUI draws the content. `StatusItemController` runs the icon and the
-non-activating game panel, and `AppWindows` builds Stats, Settings and About. Each panel open makes
-a new hosting controller, because `MenuContentView`'s `onAppear`/`onDisappear` start and stop the
+non-activating game panel, `AppWindows` builds Stats and Settings, and About is the standard
+panel. Each panel open makes a new hosting controller, because `MenuContentView`'s `onAppear`/`onDisappear` start and stop the
 game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app must declare a scene.
 `GamePanelTests` sends real key events to a real panel, so run them after changing focus handling.
 
@@ -189,6 +189,13 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   reporting is compiled in), Updates (direct build only), and Build, which only a pre-release
   channel shows. Labels are sentence case with a one-line description in plain HIG voice. The
   window is as tall as the form and scrolls only when the screen is shorter.
+- **About** is AppKit's standard About panel (`NSApp.orderFrontStandardAboutPanel`): name, version
+  and copyright come from the Info dictionary, the credits add the description, support address
+  and build channel. `AboutWindow.show` treats it like the app's own windows (panel out of the way,
+  raised over other apps, joins the active Space, focus handed back on close through
+  `AppWindows.windowWillClose`). AppKit builds a new panel after one is closed, so a closed one is
+  never reused. In a synchronous test, reopening it inside one autorelease pool crashes AppKit;
+  drain a pool between opens (the real event loop does).
 - **Launch at login** is read from `SMAppService`, never stored, and read again whenever the app
   becomes active. `.requiresApproval` shows as on, with a line and an Open Login Items button.
 
