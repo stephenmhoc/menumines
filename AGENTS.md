@@ -294,7 +294,7 @@ The app maintains consistent behavior across resume, pause, completion, and reco
 
 | `PuzzleType` | What it is | Recorded | Streaks, daily stats, leaderboard | Reset |
 | --- | --- | --- | --- | --- |
-| `.daily` | Today's board, played on its day | `StatsStore.results`, once per day | Yes | Locked once started |
+| `.daily` | Today's board, started on its day (may be finished after it, see below) | `StatsStore.results`, once per day | Yes (leaderboard only if finished on the day) | Locked once started |
 | `.random` | Continuous play after the daily | `StatsStore.results`, every game | All-games stats only | Free |
 | `.pastDaily` | An earlier day with no result, played for the first time | `StatsStore.pastDailyResults`, once per day | Never | Locked once started |
 | `.practice` | An earlier day that already has a result | Never | Never | Free |
@@ -314,9 +314,37 @@ the calendar without ever joining or repairing a streak. Do not move them into `
   "today" state, and is never submitted to Game Center.
 - The panel offers the most recent missed day once today's puzzle is done and the game on the
   board is over. Continuous play is unchanged: reset still deals a random board.
+- A random game under way when the player goes to a past day is held in memory (never on disk) and
+  Back to Today returns to it, if continuous play is still on, today is still done and no daily is
+  under way. Otherwise Back to Today goes to today's puzzle as usual.
 - Versions up to 1.0.22 can't decode `"pastDaily"`. Past dailies are only ever written under keys
   those versions don't read, so keep them out of `gameSnapshot`, `gameSnapshot.daily`,
   `gameResults` and the `results.*` iCloud keys.
+
+### Carried-Over Dailies
+
+A daily started before UTC midnight and still `.playing` afterwards is **carried over**. It's the
+player's one attempt at that day, so it's treated as that day's game in progress everywhere:
+
+- **It stays a `.daily` and counts on its day.** Finishing it records an on-the-day result for its
+  seed (streak, daily stats, `dailyCompletionSeed` only moves forward), whenever it's finished. It's
+  never submitted to Game Center, which only takes a win finished on the day itself. The rule is
+  simply "started on its day": it doesn't depend on continuous play, relaunches or visiting other days.
+- **It's never dropped.** It lives in `gameSnapshot` (or on the board) until it's finished. Launch
+  restores it whichever way continuous play is set (`restoreFreshGame` used to drop it with continuous
+  play on), rollover never clears it, and Back to Today from a past day returns to it.
+- **It can't be reset.** Today's puzzle waits until it's finished.
+- **There's never a second attempt at its board.** `GameState.playPastDay` puts the carried-over game
+  back when its day is picked, instead of starting a `.pastDaily`, and clears any `gameSnapshot.past.<seed>`
+  for that day. Daily History shows the day as `DailyHistory.Day.carriedOver` (in progress, "counts as
+  played on the day"), ahead of any result synced from another Mac, because picking it always resumes
+  this game. It's in `pastDailySeedsInProgress` and it's never offered as a missed day.
+- `GameSnapshot.carriedOverDaily(todaySeed:)` and `GameState.carriedOverDailySeed` find it.
+
+Why not convert it into a `.pastDaily`: midnight UTC falls in the afternoon or evening for much of the
+world, so games that span it are common, and they've always counted on their day. Converting only on
+some paths (say, a relaunch with continuous play on) would make the same game count differently
+depending on the setting.
 
 ### Completion
 - **Completion = win or loss**: A daily puzzle is complete when the game status becomes `.won` or `.lost`
@@ -326,13 +354,18 @@ the calendar without ever joining or repairing a streak. Do not move them into `
 ### Timer Behavior
 - **Starts**: On first `reveal()` call (not on flag)
 - **Pauses**: When menu bar popover closes (`onDisappear`)
-- **Resumes**: When popover reopens (`onAppear`) if status is `.playing`
+- **Resumes**: When popover reopens (`onAppear`) if status is `.playing`, and whenever another board is
+  put in an open panel (Back to Today, the missed-day offer, and `AppWindows.playPastDay`, which can run
+  with the panel already up when a calendar tile is activated from the keyboard or VoiceOver).
+  `resumeTimer()` leaves a running clock alone, so a second call is harmless
 - **Stops**: On win, loss, or reset
 
 ### Reset Lock
 - Once today's puzzle is complete (win or loss), reset is disabled for the rest of the day
 - Today's daily also can't be reset once started, because a reset would be a free retry at a ranked board
-- `canReset` checks `isDailyPuzzleComplete()` using UTC date, and a playing daily's seed against today's
+- A daily carried over from an earlier day can't be reset either: dropping it would leave its day
+  unplayed, free to start again as a recorded past daily on a board the player has seen
+- `canReset` returns false for any `.playing` daily, and otherwise checks `isDailyPuzzleComplete()` using UTC date
 - A past daily can't be reset once its first cell is revealed, for the same reason. Before that a reset
   only clears flags, and once it's finished a reset replays the board as unrecorded practice
 - A replay (`.practice`) can always be reset
@@ -341,13 +374,16 @@ the calendar without ever joining or repairing a streak. Do not move them into `
 ### Persistence
 
 **Storage Keys:**
-- `gameSnapshot`: Active game state (cleared when starting random puzzles)
+- `gameSnapshot`: Active game state (cleared when starting random puzzles). A daily, today's or carried
+  over, is saved here after every move (reveal, chord, flag) while it's under way, so a crash or force
+  quit never rolls it back or hands out a fresh board
 - `gameSnapshot.daily`: Completed daily puzzle with full board state (preserved until day changes)
 - `dailyCompletionSeed`: Tracks if today's puzzle was completed
 - `dailyStatsRecordedSeed`: Prevents duplicate stats recording
 - `dailyStats_<seed>`: Stores DailyStats struct for each completed day
-- `gameSnapshot.past.<seed>`: A past daily left in progress, one per day. Written at the first reveal
-  and whenever the game is left, cleared when it's finished. This is what stops a restart being a retry
+- `gameSnapshot.past.<seed>`: A past daily left in progress, one per day. Written after every move
+  and whenever the game is left, cleared when it's finished. This is what stops a restart being a retry.
+  Never exists for a day that has a carried-over daily
 - `gameResults`: On-the-day daily results and random results (`StatsStore.results`)
 - `pastDailyResults`: Past-daily results (`StatsStore.storedPastDailyResults`), one per day
 - `statsResetAt`: When statistics were last erased. Covers both kinds of result
@@ -364,9 +400,9 @@ Do NOT attempt to simplify by removing the daily namespace in favor of stats-onl
 
 ### Error Recovery
 When app launches:
-0. Today's in-progress daily always comes back, whichever way continuous play is set. A launch
-   always starts on today: a past daily in progress waits under its own key until its day is
-   picked again, from Daily History or the missed-day offer
+0. A daily in progress always comes back, today's or carried over from an earlier day, whichever way
+   continuous play is set. Otherwise a launch starts on today: a past daily in progress waits under
+   its own key until its day is picked again, from Daily History or the missed-day offer
 1. Try to load snapshot → restore full state if valid and today's seed
 2. If snapshot missing/corrupted but daily complete → restore from stats (won/lost, time, flags)
 3. Otherwise → fresh game with today's board

@@ -22,6 +22,9 @@ enum DailyHistory {
         case unplayed
         /// A past daily started and left. Playing it carries on from there.
         case inProgress
+        /// Today's daily from that day, started before the day ended and not yet finished.
+        /// Playing it carries on from there, and it counts on its day.
+        case carriedOver
         /// Finished on its own day.
         case playedOnTheDay(GameResult)
         /// Finished afterwards, as a past daily.
@@ -34,11 +37,16 @@ enum DailyHistory {
                 return nil
             case .unplayed:
                 return .recorded
-            case .inProgress:
+            case .inProgress, .carriedOver:
                 return .resume
             case .playedOnTheDay, .playedLater:
                 return .practice
             }
+        }
+
+        /// Whether a game is under way on this day, of either kind.
+        var isInProgress: Bool {
+            self == .inProgress || self == .carriedOver
         }
     }
 
@@ -64,16 +72,23 @@ enum DailyHistory {
     }
 
     /// Classifies one day. A result from the day itself wins over one from later.
+    ///
+    /// A daily carried over from its day comes before any result, because picking that day
+    /// always puts that game back on the board. A result can only be there alongside it if it
+    /// came from another Mac.
     static func day(
         forSeed seed: Int64,
         todaySeed: Int64,
         onTheDay: [Int64: GameResult],
         later: [Int64: GameResult],
-        inProgress: Set<Int64>
+        inProgress: Set<Int64>,
+        carriedOver: Int64? = nil
     ) -> Day {
         guard isDate(seed), seed >= launchSeed else { return .beforeLaunch }
         if seed == todaySeed { return .today }
         if seed > todaySeed { return .future }
+
+        if seed == carriedOver { return .carriedOver }
 
         if let result = onTheDay[seed] { return .playedOnTheDay(result) }
         if let result = later[seed] { return .playedLater(result) }

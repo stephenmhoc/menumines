@@ -13,6 +13,8 @@ struct FooterView: View {
     var pastDay: Date?
     /// The title for the missed-day item, when there's a missed day to offer.
     var missedDayTitle: String?
+    /// Why reset is unavailable, when the puzzle type alone doesn't say.
+    var resetLockedHint: String?
     let onReset: () -> Void
     let onToggleFlagMode: () -> Void
     let onCopy: () -> Void
@@ -132,7 +134,8 @@ struct FooterView: View {
                         showCopiedFeedback = false
                         onPlayMissedDay()
                     }
-                    .keyboardShortcut("m", modifiers: .command)
+                    // Not plain ⌘M, which is Minimize everywhere else on the Mac.
+                    .keyboardShortcut("m", modifiers: [.command, .shift])
                 }
 
                 Button(String(localized: "reset_button")) {
@@ -141,7 +144,7 @@ struct FooterView: View {
                 }
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(!canReset)
-                .accessibilityHint(canReset ? puzzleType.resetHint : puzzleType.resetLockedHint)
+                .accessibilityHint(canReset ? puzzleType.resetHint : (resetLockedHint ?? puzzleType.resetLockedHint))
 
                 Divider()
 
@@ -181,6 +184,13 @@ struct FooterView: View {
             .accessibilityLabel(String(localized: "footer_menu_accessibility_label"))
         }
         .frame(width: 260)
+    }
+}
+
+extension GameState {
+    /// Why reset is unavailable. A daily carried over from its day isn't today's puzzle.
+    var resetLockedHint: String {
+        isCarriedOverDaily ? String(localized: "reset_locked_hint_carried_over") : puzzleType.resetLockedHint
     }
 }
 

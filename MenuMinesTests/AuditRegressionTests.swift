@@ -104,18 +104,20 @@ struct DailyLifecycleTests {
         #expect(state.status == .playing)
     }
 
-    @Test("A game carried over from yesterday can be abandoned for today's")
-    func testYesterdaysGameCanBeReset() throws {
+    @Test("A game carried over from an earlier day can't be abandoned, since its day could then be retried")
+    func testYesterdaysGameCannotBeReset() throws {
         let cleanup = setupCleanPersistenceState(continuousPlay: false)
         defer { cleanup() }
 
         let state = try startedDaily(seed: 20200101)
         state.pauseTimer()
+        let board = state.board
 
-        #expect(state.canReset)
+        #expect(!state.canReset)
         state.reset()
-        #expect(state.dailySeed == seedFromDate(Date()))
-        #expect(state.status == .notStarted)
+        #expect(state.dailySeed == 20200101)
+        #expect(state.board == board)
+        #expect(state.status == .playing)
     }
 
     @Test("Replaying a past day leaves today's game untouched, and the replay stays")

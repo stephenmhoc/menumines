@@ -12,14 +12,16 @@ struct DailyHistoryTests {
         _ seed: Int64,
         onTheDay: [GameResult] = [],
         later laterResults: [GameResult] = [],
-        inProgress: Set<Int64> = []
+        inProgress: Set<Int64> = [],
+        carriedOver: Int64? = nil
     ) -> DailyHistory.Day {
         DailyHistory.day(
             forSeed: seed,
             todaySeed: today,
             onTheDay: Dictionary(uniqueKeysWithValues: onTheDay.map { ($0.dailySeed, $0) }),
             later: Dictionary(uniqueKeysWithValues: laterResults.map { ($0.dailySeed, $0) }),
-            inProgress: inProgress
+            inProgress: inProgress,
+            carriedOver: carriedOver
         )
     }
 
@@ -79,6 +81,20 @@ struct DailyHistoryTests {
     func testInProgressDay() {
         #expect(day(2026_11_08, inProgress: [2026_11_08]) == .inProgress)
         #expect(DailyHistory.Day.inProgress.play == .resume)
+    }
+
+    @Test("A daily carried over from its day is carried on with, and comes before anything else known about the day")
+    func testCarriedOverDay() {
+        #expect(day(2026_11_08, inProgress: [2026_11_08], carriedOver: 2026_11_08) == .carriedOver)
+        #expect(DailyHistory.Day.carriedOver.play == .resume)
+        #expect(DailyHistory.Day.carriedOver.isInProgress)
+        #expect(DailyHistory.Day.inProgress.isInProgress)
+        // Picking the day puts that game back, so a result synced from another Mac doesn't
+        // get to say it's a replay.
+        #expect(day(2026_11_08, later: [pastDailyResult(2026_11_08)], carriedOver: 2026_11_08) == .carriedOver)
+        #expect(day(2026_11_07, carriedOver: 2026_11_08) == .unplayed)
+        // Today is today, even if the clock went back.
+        #expect(day(today, carriedOver: today) == .today)
     }
 
     @Test("A day with a result, from its own day or later, is an unrecorded replay")

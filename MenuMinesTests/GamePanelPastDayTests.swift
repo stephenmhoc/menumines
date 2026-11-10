@@ -116,6 +116,64 @@ extension GamePanelTests {
         #expect(!state.isPaused, "The clock runs while the panel is up")
     }
 
+    @Test("Resuming a past daily from Stats while the panel is already up keeps its clock running")
+    func resumingPastDailyWithPanelOpenRunsClock() async throws {
+        let cleanup = setupUnplayedHistory()
+        defer { cleanup() }
+
+        let state = todaysDaily()
+        let controller = try await openPanel(for: state)
+        defer { controller.close() }
+        let yesterday = yesterdaySeed()
+
+        // Start yesterday's past daily, then go back to today, all in the open panel.
+        #expect(state.playPastDay(seed: yesterday))
+        state.resumeTimer()
+        try selectSafeCell(in: state)
+        state.revealSelected()
+        try #require(state.status == .playing)
+        state.returnToToday()
+        state.resumeTimer()
+        try #require(controller.isOpen)
+
+        // A calendar tile activated from the keyboard or VoiceOver: the panel never closes, so
+        // it never appears again either.
+        AppWindows.playPastDay(seed: yesterday, gameState: state)
+        try await settle()
+        #expect(controller.isOpen)
+        #expect(state.puzzleType == .pastDaily)
+        #expect(state.status == .playing)
+        #expect(!state.isPaused, "The clock runs while the panel is up")
+
+        let before = state.elapsedTime
+        try await Task.sleep(for: .milliseconds(1_300))
+        try selectSafeCell(in: state)
+        state.revealSelected()
+        state.pauseTimer()
+        #expect(state.elapsedTime >= before + 1.2, "Time spent on the resumed game counts")
+    }
+
+    @Test("Picking a past daily with the panel closed leaves the clock to the panel")
+    func pickingPastDailyWithPanelClosedOpensBeforeTiming() async throws {
+        let cleanup = setupUnplayedHistory()
+        defer { cleanup() }
+
+        let state = todaysDaily()
+        state.playPastDay(seed: yesterdaySeed())
+        try selectSafeCell(in: state)
+        state.revealSelected()
+        state.pauseTimer()
+        state.returnToToday()
+
+        // No controller to show the panel, so nothing is on screen.
+        AppWindows.onShowGame = nil
+        AppWindows.isGameShowing = { false }
+        AppWindows.playPastDay(seed: yesterdaySeed(), gameState: state)
+
+        #expect(state.puzzleType == .pastDaily)
+        #expect(state.isPaused, "Nothing times a game that isn't on screen")
+    }
+
     @Test("A day that can't be played leaves Stats where it is")
     func pickingUnavailableDayDoesNothing() async throws {
         let cleanup = setupUnplayedHistory()

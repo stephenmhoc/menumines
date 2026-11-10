@@ -5,6 +5,7 @@
 "reset_locked_hint" = "Today's puzzle can't be reset once it's started";
 "reset_accessibility_hint_past_day" = "Click to restart this day's board";
 "reset_locked_hint_past_daily" = "A past daily can't be reset once it's started";
+"reset_locked_hint_carried_over" = "This daily was started on its day and can't be reset. Finish it to move on to today's puzzle";
 "about_menu_item" = "About MenuMines";
 "settings_menu_item" = "Settings…";
 "quit_menu_item" = "Quit MenuMines";
@@ -108,6 +109,7 @@
 "stats_calendar_day_unavailable" = "%@, not available";
 "stats_calendar_hint_play" = "Play this day's puzzle. It's recorded as played later and doesn't count toward your streak.";
 "stats_calendar_hint_continue" = "Continue the game you started. It's recorded as played later.";
+"stats_calendar_hint_continue_on_the_day" = "Continue the game you started on the day. It counts as played on the day.";
 "stats_calendar_hint_replay" = "Replay this board. Replays aren't recorded.";
 "stats_calendar_legend_on_the_day" = "On the day";
 "stats_calendar_legend_later" = "Played later";

@@ -95,6 +95,7 @@
 		C6BAB0A438AA6BF5C4629778 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 81CEE9D9AF11F8C014D5DB43 /* PrivacyInfo.xcprivacy */; };
 		D5F709C9CCB57E7DCD041AA0 /* PastDailyRecordingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4194045ED18EF437746217D3 /* PastDailyRecordingTests.swift */; };
 		D69CE3CC844734CEB42B61BD /* DayWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 281F15FCF92D92422E1B0F06 /* DayWatcher.swift */; };
+		DB26632CE2D631A4A1FB6224 /* CarriedOverDailyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF8AF0D176896737D5485EA5 /* CarriedOverDailyTests.swift */; };
 		DC4D8A3CA437BEDFE7BD534C /* DailyBoardFairnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52A6FF436F3A01C0E75E63EB /* DailyBoardFairnessTests.swift */; };
 		DC9EBF293EFEB97A73D688A8 /* GameStateBasicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DCE9598B0809B6DEDAE129 /* GameStateBasicTests.swift */; };
 		DD6C07E5CE92788BA55180F7 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41D617D5DE64B68D019AC9E /* StatusItemController.swift */; };
@@ -181,6 +182,7 @@
 		D19CB6DD51B0160F6A05D8B3 /* CellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellView.swift; sourceTree = "<group>"; };
 		D1C8FEE1A94B7F6E2B37D8C2 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D3675EEBB405EC344C21CFED /* StatsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsSync.swift; sourceTree = "<group>"; };
+		DF8AF0D176896737D5485EA5 /* CarriedOverDailyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarriedOverDailyTests.swift; sourceTree = "<group>"; };
 		E4F5ED289366798F46A91135 /* PastDailyPlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyPlayTests.swift; sourceTree = "<group>"; };
 		E620214384CC311557AEF2AF /* GameResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameResult.swift; sourceTree = "<group>"; };
 		E832B1B6390C23CF9C532BAE /* AppStoreScreenshotExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreScreenshotExporter.swift; sourceTree = "<group>"; };
@@ -272,6 +274,7 @@
 			children = (
 				1250B5B1B5005EE50C62F4FE /* AuditRegressionTests.swift */,
 				52A04223D059B03B419515F2 /* BoardTests.swift */,
+				DF8AF0D176896737D5485EA5 /* CarriedOverDailyTests.swift */,
 				52A6FF436F3A01C0E75E63EB /* DailyBoardFairnessTests.swift */,
 				EAE94260F11C8942153B783A /* DailyBoardTests.swift */,
 				05D22B8D1E2CFE95B6E3BE6D /* DailyCompletionTests.swift */,
@@ -555,6 +558,7 @@
 			files = (
 				C54A432038B0A1EAAB14DF16 /* AuditRegressionTests.swift in Sources */,
 				91BE3A9D11FB244BFCF6544A /* BoardTests.swift in Sources */,
+				DB26632CE2D631A4A1FB6224 /* CarriedOverDailyTests.swift in Sources */,
 				DC4D8A3CA437BEDFE7BD534C /* DailyBoardFairnessTests.swift in Sources */,
 				3E908CE513FC68AFE2A26B45 /* DailyBoardTests.swift in Sources */,
 				BBD229798BBAC3D3BB367A73 /* DailyCompletionTests.swift in Sources */,

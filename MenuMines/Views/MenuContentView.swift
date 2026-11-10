@@ -156,7 +156,7 @@ struct MenuContentView: View {
                     canReset: gameState.canReset,
                     isHoldingCell: isHoldingCell,
                     resetHint: gameState.puzzleType.resetHint,
-                    resetLockedHint: gameState.puzzleType.resetLockedHint,
+                    resetLockedHint: gameState.resetLockedHint,
                     onReset: handleResetRequest
                 )
 
@@ -203,6 +203,7 @@ struct MenuContentView: View {
                     nextPuzzleDate: nextPuzzleDate,
                     pastDay: gameState.pastDay,
                     missedDayTitle: missedDay?.title,
+                    resetLockedHint: gameState.resetLockedHint,
                     onReset: handleResetRequest,
                     onToggleFlagMode: {
                         isFlagMode.toggle()

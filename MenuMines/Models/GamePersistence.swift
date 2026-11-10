@@ -126,6 +126,23 @@ struct GameSnapshot: Codable {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
+    // MARK: - Carried-over dailies
+
+    /// Today's-daily snapshot that is still under way although its day has ended: a daily
+    /// started before UTC midnight and not yet finished.
+    ///
+    /// It is still the player's game for that day, not a past daily. It stays in the active
+    /// snapshot, comes back at launch whatever continuous play is set to, can't be reset, and
+    /// counts on its day when it's finished. While it's waiting here, picking its day puts it
+    /// back on the board, so there's never a second attempt at the same board.
+    /// - Parameter todaySeed: Today's seed. Only an earlier day's game counts as carried over.
+    static func carriedOverDaily(todaySeed: Int64) -> GameSnapshot? {
+        guard let snapshot = loadAnyDay() else { return nil }
+        guard snapshot.puzzleType == .daily, snapshot.status == .playing,
+              snapshot.dailySeed < todaySeed else { return nil }
+        return snapshot
+    }
+
     // MARK: - Past dailies
 
     /// Prefix of the namespaces that hold past dailies left in progress, one per day
@@ -179,7 +196,8 @@ struct GameSnapshot: Codable {
 /// Single entry point for restore eliminates scattered logic.
 ///
 /// Decision tree for restore:
-/// 1. continuousPlay ON → today's game if it's under way, otherwise a fresh game
+/// 1. continuousPlay ON → the daily that's under way (today's, or one carried over from its own
+///    day), otherwise a fresh game
 /// 2. continuousPlay OFF → restore exact saved state
 enum GamePersistenceCoordinator {
 
@@ -203,6 +221,11 @@ enum GamePersistenceCoordinator {
         restoreSavedState(todaySeed: seedFromDate(Date()))
     }
 
+    /// Rebuilds a game from a snapshot, paused until something starts its clock.
+    static func restoreGame(from snapshot: GameSnapshot) -> GameState {
+        restoreFromSnapshot(snapshot)
+    }
+
     /// Restores a past daily the player started and left, exactly as they left it.
     /// - Returns: Nil if there's nothing saved for that day.
     static func restorePastDaily(seed: Int64) -> GameState? {
@@ -214,15 +237,18 @@ enum GamePersistenceCoordinator {
 
     // MARK: - Private Decision Logic
 
-    /// continuousPlay ON: Keep today's game if there is one under way, otherwise start fresh.
+    /// continuousPlay ON: Keep the daily that's under way if there is one, otherwise start fresh.
     /// Continuous play is about what comes after the daily. Losing a game to a restart or an
     /// update would also hand the player a fresh clock on a board they've already seen.
-    /// - If daily is under way: restore it
+    ///
+    /// That includes a daily carried over from an earlier day, exactly as with continuous play
+    /// off. Dropping it would leave its day unplayed, so it could be started again as a fresh,
+    /// recorded past daily: a free retry, and the player's progress gone.
+    /// - If a daily is under way, today's or carried over: restore it
     /// - If daily complete: fresh random puzzle
     /// - If daily not complete: fresh daily puzzle
     private static func restoreFreshGame(todaySeed: Int64) -> GameState {
-        if let snapshot = GameSnapshot.loadAnyDay(), snapshot.dailySeed == todaySeed,
-           snapshot.status == .playing, snapshot.puzzleType == .daily {
+        if let snapshot = GameSnapshot.loadAnyDay(), snapshot.status == .playing, snapshot.puzzleType == .daily {
             return restoreFromSnapshot(snapshot)
         }
 

@@ -99,6 +99,7 @@ struct StatsWindow: View {
             onTheDay: store.dailyResultsBySeed,
             later: store.pastDailyResultsBySeed,
             inProgress: gameState.pastDailySeedsInProgress,
+            carriedOver: gameState.carriedOverDailySeed,
             onPlay: onPlayDay
         )
         .padding()
@@ -302,6 +303,8 @@ private struct DailyCompletionCalendarView: View {
     let later: [Int64: GameResult]
     /// Days with a past daily started and not finished.
     let inProgress: Set<Int64>
+    /// The day of a daily started on that day and still under way, if there is one.
+    let carriedOver: Int64?
     let onPlay: (Int64) -> Void
 
     @State private var displayedMonth = Self.currentMonthStart()
@@ -448,7 +451,8 @@ private struct DailyCompletionCalendarView: View {
             todaySeed: todaySeed,
             onTheDay: onTheDay,
             later: later,
-            inProgress: inProgress
+            inProgress: inProgress,
+            carriedOver: carriedOver
         )
     }
 
@@ -593,6 +597,10 @@ private struct CalendarDayCell: View {
         }
     }
 
+    private var isInProgress: Bool {
+        day?.isInProgress == true
+    }
+
     private var isPlayedLater: Bool {
         if case .playedLater = day { return true }
         return false
@@ -614,7 +622,7 @@ private struct CalendarDayCell: View {
             return result.won ? ("checkmark", .accentColor) : ("xmark", .red)
         }
         switch day {
-        case .inProgress:
+        case .inProgress, .carriedOver:
             return ("ellipsis", .orange)
         case .unplayed:
             return ("play.fill", .accentColor)
@@ -639,14 +647,14 @@ private struct CalendarDayCell: View {
             if let number = cell.day {
                 Text("\(number)")
                     .font(.caption2)
-                    .fontWeight(result == nil && day != .inProgress ? .regular : .semibold)
+                    .fontWeight(result == nil && !isInProgress ? .regular : .semibold)
                     .monospacedDigit()
                     .foregroundStyle(textColor)
             }
 
             if let symbol {
                 Image(systemName: symbol.name)
-                    .font(.system(size: day == .inProgress ? 8 : 6, weight: day == .inProgress ? .heavy : .bold))
+                    .font(.system(size: isInProgress ? 8 : 6, weight: isInProgress ? .heavy : .bold))
                     .foregroundStyle(symbol.color)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(2.5)
@@ -660,7 +668,7 @@ private struct CalendarDayCell: View {
     }
 
     private var textColor: Color {
-        if result != nil || day == .inProgress {
+        if result != nil || isInProgress {
             return .primary
         }
         // A day that's waiting to be played reads as something to click.
@@ -674,7 +682,10 @@ private struct CalendarDayCell: View {
         case .recorded:
             return String(localized: "stats_calendar_hint_play")
         case .resume:
-            return String(localized: "stats_calendar_hint_continue")
+            let key: String.LocalizationValue = day == .carriedOver
+                ? "stats_calendar_hint_continue_on_the_day"
+                : "stats_calendar_hint_continue"
+            return String(localized: key)
         case .practice:
             return String(localized: "stats_calendar_hint_replay")
         case nil:
@@ -703,7 +714,7 @@ private struct CalendarDayCell: View {
             )
         case .unplayed:
             key = "stats_calendar_day_not_played"
-        case .inProgress:
+        case .inProgress, .carriedOver:
             key = "stats_calendar_day_in_progress"
         case .playedOnTheDay(let result):
             key = result.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"

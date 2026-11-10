@@ -48,6 +48,9 @@ final class GameState {
     /// Goes up when a past daily's saved progress changes. That lives in UserDefaults, which
     /// views can't observe, so they read it through this.
     private var pastDailyProgressRevision = 0
+    /// A random game the player was in the middle of when they went to a past day, so that
+    /// Back to Today returns to it. Kept in memory only, like every random game.
+    private var parkedRandomGame: GameSnapshot?
 
     /// Timer for tracking elapsed game time.
     private let gameTimer = GameTimer()
@@ -60,8 +63,8 @@ final class GameState {
     }
 
     /// Whether reset is allowed.
-    /// Today's puzzle can't be reset once it's started, and once it's completed, reset only
-    /// moves on to a random puzzle if continuous play is enabled.
+    /// A daily can't be reset once it's started, whichever day it's from, and once today's is
+    /// completed, reset only moves on to a random puzzle if continuous play is enabled.
     var canReset: Bool {
         // The lock exists to stop today's result being rerolled. A replay has no result to
         // protect, so it stays restartable even once today's puzzle is settled.
@@ -71,14 +74,21 @@ final class GameState {
         // there's nothing to protect, and afterwards a reset replays it unrecorded.
         if puzzleType == .pastDaily { return status != .playing }
         // The board never changes, so restarting the clock on it would let anyone learn the
-        // mines and then post a fast time. A game carried over from yesterday isn't ranked.
-        if puzzleType == .daily, status == .playing, dailySeed == seedFromDate(Date()) {
+        // mines and then post a fast time. A daily carried over from an earlier day is locked
+        // too: it still counts on its day, and dropping it would leave the day unplayed, free
+        // to start again as a recorded past daily on a board the player has now seen.
+        if puzzleType == .daily, status == .playing {
             return false
         }
         if isDailyPuzzleComplete() {
             return isContinuousPlayEnabled
         }
         return true
+    }
+
+    /// Whether the board holds a daily started on an earlier day and still under way.
+    var isCarriedOverDaily: Bool {
+        puzzleType == .daily && status == .playing && dailySeed < currentDaySeed
     }
 
     init(board: Board, dailySeed: Int64 = seedFromDate(Date()), puzzleType: PuzzleType = .daily) {
@@ -172,11 +182,7 @@ final class GameState {
             finishIfWon()
         }
 
-        // From here a past daily can't be started over, so it's saved straight away rather
-        // than when the panel closes. Otherwise a crash or a force quit would be a retry.
-        if isFirstClick, puzzleType == .pastDaily, status == .playing {
-            save()
-        }
+        saveRecordedProgress()
     }
 
     /// Counts the number of flags currently placed on mines.
@@ -215,6 +221,7 @@ final class GameState {
                 Telemetry.warn("Attempted to decrement flagCount below zero", area: "game_state")
             }
         }
+        saveRecordedProgress()
     }
 
     /// Starts an unrecorded replay of an earlier day's board.
@@ -257,7 +264,15 @@ final class GameState {
 
         leaveCurrentGame()
 
-        if justFinishedThatDay || StatsStore.shared.hasDailyResult(forSeed: seed) {
+        if let carriedOver = GameSnapshot.carriedOverDaily(todaySeed: seedFromDate(Date())),
+           carriedOver.dailySeed == seed {
+            // The player started this day's daily on the day and hasn't finished it. That game
+            // is the day's only attempt, so it comes back rather than a fresh past daily that
+            // could be used to learn the board. Anything saved under the day's own key is a
+            // second attempt that should never have existed, and goes.
+            clearPastDailyProgress(seed: seed)
+            apply(GamePersistenceCoordinator.restoreGame(from: carriedOver))
+        } else if justFinishedThatDay || StatsStore.shared.hasDailyResult(forSeed: seed) {
             // Progress saved here is from before another Mac finished the day.
             clearPastDailyProgress(seed: seed)
             startFresh(Board(dailySeed: seed), seed: seed, type: .practice)
@@ -271,29 +286,68 @@ final class GameState {
 
     /// Leaves a past day and goes back to today's puzzle, exactly as it was left. A past
     /// daily that's under way is kept for the next time its day is picked.
+    ///
+    /// A random game the player left to visit a past day comes back instead, as long as it
+    /// still makes sense: continuous play is on, today's puzzle is done and no daily is under
+    /// way. Otherwise today's puzzle comes back as usual.
     func returnToToday() {
         guard puzzleType == .practice || puzzleType == .pastDaily else { return }
         leaveCurrentGame()
-        apply(GamePersistenceCoordinator.restoreToday())
+
+        let parked = parkedRandomGame
+        parkedRandomGame = nil
+        let todaySeed = seedFromDate(Date())
+        if let parked, isContinuousPlayEnabled, isDailyPuzzleComplete(forSeed: todaySeed),
+           GameSnapshot.carriedOverDaily(todaySeed: todaySeed) == nil {
+            apply(GamePersistenceCoordinator.restoreGame(from: parked))
+        } else {
+            apply(GamePersistenceCoordinator.restoreToday())
+        }
     }
 
     /// Stops the clock and saves the game on the board, before another takes its place. The
     /// player is only visiting the next board, so this one has to be there when they come
     /// back, with its time.
+    ///
+    /// A random game is never saved to disk, so one under way is held in memory for Back to
+    /// Today instead.
     private func leaveCurrentGame() {
         stopTimer()
         announcer.cancelPendingAnnouncement()
+        if puzzleType == .random, status == .playing {
+            parkedRandomGame = makeSnapshot()
+        }
         save()
+        // A daily saved here may be one carried over from its day, which the calendar shows.
+        pastDailyProgressRevision += 1
     }
 
-    /// The days that have a past daily started and not yet finished.
+    /// The days that picking resumes a game already under way: past dailies started and not
+    /// yet finished, and a daily carried over from its own day.
     var pastDailySeedsInProgress: Set<Int64> {
         _ = pastDailyProgressRevision
         var seeds = GameSnapshot.pastDailySeedsInProgress()
         if puzzleType == .pastDaily, status == .playing {
             seeds.insert(dailySeed)
         }
+        if let carriedOver = carriedOverDailySeed {
+            seeds.insert(carriedOver)
+        }
         return seeds
+    }
+
+    /// The day of a daily started on that day and still under way, if there is one: on the
+    /// board, or waiting in the saved game while the player visits a past day.
+    ///
+    /// That day isn't missed and isn't unplayed. Picking it puts this game back, and finishing
+    /// it counts on its day.
+    var carriedOverDailySeed: Int64? {
+        _ = pastDailyProgressRevision
+        if puzzleType == .daily, status == .playing {
+            // A daily on the board is the saved game, so there's nothing else to look at.
+            return dailySeed < currentDaySeed ? dailySeed : nil
+        }
+        return GameSnapshot.carriedOverDaily(todaySeed: currentDaySeed)?.dailySeed
     }
 
     /// The most recent earlier day the player has no result for, if there is one. This is
@@ -302,9 +356,14 @@ final class GameState {
         // A game that has just ended on this board may not have reached the store yet.
         let isFinished = status == .won || status == .lost
         let justFinished = isFinished && (puzzleType == .pastDaily || puzzleType == .daily) ? dailySeed : nil
+        // A daily carried over from its day isn't missed: it's waiting, and counts on its day.
+        var played = StatsStore.shared.playedDailySeeds
+        if let carriedOver = carriedOverDailySeed {
+            played.insert(carriedOver)
+        }
         return DailyHistory.mostRecentMissedSeed(
             todaySeed: currentDaySeed,
-            played: StatsStore.shared.playedDailySeeds,
+            played: played,
             excluding: justFinished
         )
     }
@@ -397,6 +456,20 @@ final class GameState {
         }
     }
 
+    /// Saves a game that will be recorded, after every move while it's under way.
+    ///
+    /// A daily (today's, or one carried over from its day) or a past daily can't be started
+    /// over once it's begun, so what's on disk must keep up with the board. If it only caught
+    /// up when the panel closed, a crash or a force quit would roll the game back to an older
+    /// position with an older clock, or for a daily that had just begun, to a fresh board.
+    /// A snapshot is one small JSON value, so this is cheap.
+    private func saveRecordedProgress() {
+        guard status == .playing, puzzleType == .daily || puzzleType == .pastDaily else { return }
+        // The clock only updates `elapsedTime` once a second, so take it exactly.
+        captureElapsedTime()
+        save()
+    }
+
     private func logStep(_ step: PlayStep) {
         guard playLog.count < PlayStep.maximumRecorded else { return }
         playLog.append(step)
@@ -455,9 +528,15 @@ final class GameState {
     }
 
     /// Resumes the timer (e.g., when popover reopens).
+    ///
+    /// Harmless when the clock is already running: a second call, such as the panel appearing
+    /// just after a past day was put on the board, leaves it alone rather than restarting it
+    /// from the last displayed second.
     func resumeTimer() {
         guard status == .playing else { return }
-        gameTimer.start(from: elapsedTime)
+        if !gameTimer.isRunning {
+            gameTimer.start(from: elapsedTime)
+        }
         isPaused = false
     }
 
@@ -512,9 +591,17 @@ final class GameState {
     }
 
     /// Performs a rollover to a new day's puzzle.
+    ///
+    /// A daily carried over from its day is never thrown away here. If one is waiting in the
+    /// saved game, it's what comes back, because clearing it would make its day playable again
+    /// as a fresh, recorded past daily.
     private func rolloverToNewDay(seed: Int64) {
         stopTimer()
         announcer.cancelPendingAnnouncement()
+        if let carriedOver = GameSnapshot.carriedOverDaily(todaySeed: seed) {
+            apply(GamePersistenceCoordinator.restoreGame(from: carriedOver))
+            return
+        }
         startFresh(Board(dailySeed: seed), seed: seed, type: .daily)
         GameSnapshot.clear()
         // Clear daily namespace too since we're starting a new day
@@ -604,6 +691,7 @@ final class GameState {
             }
             finishIfWon()
         }
+        saveRecordedProgress()
     }
 
     // MARK: - Private

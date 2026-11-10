@@ -50,11 +50,20 @@ enum AppWindows {
 
     /// Takes the player straight to a past day's board: Stats comes down and the game panel
     /// opens on it, with the keyboard on the board.
+    ///
+    /// The clock is started here as well as by the panel appearing. A tile can be activated
+    /// from the keyboard or VoiceOver while the panel is already up, and then nothing appears:
+    /// a resumed game would sit paused, and since only the first reveal starts the clock, the
+    /// rest of it would be played for free. Starting a running clock again does nothing, and
+    /// with the panel closed the clock is left for the panel to start when it opens.
     static func playPastDay(seed: Int64, gameState: GameState) {
         guard gameState.playPastDay(seed: seed) else { return }
 
         controllers[statsWindowID]?.window?.close()
         onShowGame?()
+        if isGameShowing() {
+            gameState.resumeTimer()
+        }
     }
 
     static func showSettings() {

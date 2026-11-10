@@ -212,12 +212,11 @@ struct GameStatePersistenceTests {
         let board = Board(seed: 12345)
         let gameState = GameState(board: board, dailySeed: yesterdaySeed())
 
-        // Start and save (but don't complete)
-        gameState.reveal(row: 0, col: 0)
+        // A finished game from yesterday. One still under way couldn't be reset.
+        gameState.status = .lost
         gameState.save()
-        #expect(GameSnapshot.loadAnyDay() != nil, "Snapshot should exist while playing")
+        #expect(GameSnapshot.loadAnyDay() != nil, "Snapshot should exist for the finished game")
 
-        // Reset (allowed because a game carried over from yesterday isn't ranked)
         gameState.reset()
         #expect(GameSnapshot.loadAnyDay() == nil, "Snapshot should be cleared after reset")
     }
@@ -479,7 +478,8 @@ struct GameStatePersistenceTests {
         UserDefaults.standard.set(true, forKey: settingKey)
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
+        // A started daily can't be reset, whichever day it's from, so this uses a random game.
+        let gameState = GameState(board: board, dailySeed: GameState.randomPuzzleSeed(), puzzleType: .random)
 
         // Start but don't complete
         guard let safe = findSafeCell(in: gameState.board) else {
@@ -719,7 +719,8 @@ struct GameStatePersistenceTests {
         defer { UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed") }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
+        // A started daily can't be reset, whichever day it's from, so this uses a random game.
+        let gameState = GameState(board: board, dailySeed: GameState.randomPuzzleSeed(), puzzleType: .random)
 
         // Play the game (don't complete it)
         gameState.reveal(row: 0, col: 0)
@@ -755,7 +756,8 @@ struct GameStatePersistenceTests {
         defer { UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed") }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
+        // A started daily can't be reset, whichever day it's from, so this uses a random game.
+        let gameState = GameState(board: board, dailySeed: GameState.randomPuzzleSeed(), puzzleType: .random)
 
         gameState.reveal(row: 0, col: 0)
         gameState.reveal(row: 1, col: 1)
@@ -775,7 +777,8 @@ struct GameStatePersistenceTests {
         defer { UserDefaults.standard.removeObject(forKey: "dailyCompletionSeed") }
 
         let board = Board(seed: 12345)
-        let gameState = GameState(board: board, dailySeed: yesterdaySeed())
+        // A started daily can't be reset, whichever day it's from, so this uses a random game.
+        let gameState = GameState(board: board, dailySeed: GameState.randomPuzzleSeed(), puzzleType: .random)
 
         gameState.reveal(row: 0, col: 0)
         gameState.pauseTimer()
@@ -1219,8 +1222,8 @@ struct GameStatePersistenceTests {
         #expect(restoredState.elapsedTime == elapsedTimeAtWin, "Should restore elapsed time")
     }
 
-    @Test("continuousPlay ON + yesterday's in-progress does not delay rollover")
-    func testContinuousPlayOnNoRolloverDelay() {
+    @Test("continuousPlay ON + yesterday's in-progress game is kept, as with it off")
+    func testContinuousPlayOnKeepsCarriedOverDaily() {
         GameSnapshot.clear()
         let settingKey = Constants.SettingsKeys.continuousPlay
         let initialSettingValue = UserDefaults.standard.object(forKey: settingKey)
@@ -1260,13 +1263,14 @@ struct GameStatePersistenceTests {
         )
         snapshot.save()
 
-        // Restore with continuousPlay ON should NOT delay rollover
-        // It should give a fresh daily puzzle for today, not yesterday's in-progress game
+        // Yesterday's daily is still under way, so it comes back just as it does with continuous
+        // play off. Dropping it would leave the day unplayed, free to start over as a past daily.
         let restoredState = GameState.restored()
 
-        #expect(restoredState.status == .notStarted, "Should start fresh, not restore yesterday's game")
-        #expect(restoredState.puzzleType == .daily, "Should be today's daily puzzle")
-        #expect(restoredState.elapsedTime == 0, "Should have zero elapsed time")
+        #expect(restoredState.status == .playing, "Yesterday's game in progress comes back")
+        #expect(restoredState.puzzleType == .daily)
+        #expect(restoredState.dailySeed == yesterdaySeed)
+        #expect(restoredState.elapsedTime == 50.0)
     }
 
     // MARK: - Daily Namespace Snapshot Tests
