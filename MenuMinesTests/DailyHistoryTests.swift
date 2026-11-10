@@ -117,27 +117,4 @@ struct DailyHistoryTests {
         #expect(both == .playedOnTheDay(onTheDay))
         #expect(day(2026_11_08, later: [playedLater], inProgress: [2026_11_08]) == .playedLater(playedLater))
     }
-
-    @Test("The missed day offered is the most recent one with no result")
-    func testMostRecentMissedDay() {
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: today, played: []) == 2026_11_08)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: today, played: [2026_11_08, 2026_11_07]) == 2026_11_06)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: today, played: [2026_11_07]) == 2026_11_08)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: today, played: [], excluding: 2026_11_08) == 2026_11_07)
-    }
-
-    @Test("Looking for a missed day crosses month and year ends by the calendar")
-    func testMissedDayAcrossMonths() {
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2026_03_01, played: []) == 2026_02_28)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2026_03_01, played: [2026_02_28]) == 2026_02_27)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2027_01_01, played: []) == 2026_12_31)
-    }
-
-    @Test("Nothing is offered from before launch")
-    func testMissedDayStopsAtLaunch() {
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2026_01_31, played: []) == nil)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2026_02_01, played: []) == 2026_01_31)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2026_02_02, played: [2026_02_01, 2026_01_31]) == nil)
-        #expect(DailyHistory.mostRecentMissedSeed(todaySeed: 2026_02_01, played: [], excluding: 2026_01_31) == nil)
-    }
 }

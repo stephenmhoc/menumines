@@ -73,26 +73,6 @@ struct PastDailyReplayTests {
         #expect(StatsStore.shared.pastDailyResults == [arrived])
     }
 
-    // MARK: The missed-day offer
-
-    @Test("The day offered is the most recent one without a result, and moves on as days are played")
-    func testNextMissedDay() async throws {
-        let cleanup = setupCleanPastDailyState()
-        defer { cleanup() }
-
-        let state = freshTodaysDaily()
-        #expect(state.nextMissedDaySeed == pastSeed(daysAgo: 1))
-
-        state.playPastDay(seed: pastSeed(daysAgo: 1))
-        try loseGame(state)
-        #expect(state.nextMissedDaySeed == pastSeed(daysAgo: 2))
-        await waitForRecording()
-        #expect(state.nextMissedDaySeed == pastSeed(daysAgo: 2))
-
-        StatsStore.shared.merge(dailyResults: [onTheDayResult(pastSeed(daysAgo: 2), at: Date().addingTimeInterval(60))])
-        #expect(state.nextMissedDaySeed == pastSeed(daysAgo: 3))
-    }
-
     @Test("Continuous play is unchanged: reset after the daily still deals a random board")
     func testContinuousPlayStillDealsRandomBoards() async throws {
         let cleanup = setupCleanPastDailyState(continuousPlay: true)
@@ -103,12 +83,11 @@ struct PastDailyReplayTests {
         try #require(state.status == .won)
         await waitForRecording()
 
-        #expect(state.nextMissedDaySeed != nil, "A missed day is on offer")
         #expect(state.canReset)
         state.reset()
         #expect(state.puzzleType == .random, "And reset does what it always did")
 
-        // From a random board, a missed day is one step away and today is still done.
+        // From a random board, a past day is one step away and today is still done.
         #expect(state.playPastDay(seed: pastSeed(daysAgo: 1)))
         #expect(state.puzzleType == .pastDaily)
         state.returnToToday()

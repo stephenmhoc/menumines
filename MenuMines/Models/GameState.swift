@@ -350,24 +350,6 @@ final class GameState {
         return GameSnapshot.carriedOverDaily(todaySeed: currentDaySeed)?.dailySeed
     }
 
-    /// The most recent earlier day the player has no result for, if there is one. This is
-    /// the day offered once today's puzzle is done.
-    var nextMissedDaySeed: Int64? {
-        // A game that has just ended on this board may not have reached the store yet.
-        let isFinished = status == .won || status == .lost
-        let justFinished = isFinished && (puzzleType == .pastDaily || puzzleType == .daily) ? dailySeed : nil
-        // A daily carried over from its day isn't missed: it's waiting, and counts on its day.
-        var played = StatsStore.shared.playedDailySeeds
-        if let carriedOver = carriedOverDailySeed {
-            played.insert(carriedOver)
-        }
-        return DailyHistory.mostRecentMissedSeed(
-            todaySeed: currentDaySeed,
-            played: played,
-            excluding: justFinished
-        )
-    }
-
     private func clearPastDailyProgress(seed: Int64) {
         GameSnapshot.clearPastDaily(seed: seed)
         pastDailyProgressRevision += 1

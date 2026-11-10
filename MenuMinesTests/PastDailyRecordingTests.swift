@@ -82,7 +82,6 @@ struct PastDailyRecordingTests {
         try loseGame(state)
 
         // No waiting: the result is still on its way to the store.
-        #expect(state.nextMissedDaySeed != yesterday, "The day just finished isn't offered again")
         #expect(state.playPastDay(seed: yesterday))
         #expect(state.puzzleType == .practice)
 

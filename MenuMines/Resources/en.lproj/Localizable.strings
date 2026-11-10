@@ -205,9 +205,6 @@
 "past_daily_description" = "Past daily for %@, recorded as played later";
 "replay_description" = "Replay of %@, not recorded";
 "announcement_todays_puzzle" = "Today's puzzle";
-"missed_day_button" = "Play a Missed Day";
-"missed_day_continue_button" = "Continue a Missed Day";
-"missed_day_hint" = "Plays the puzzle for %@. It's recorded as played later and doesn't count toward your streak.";
 "share_play_line" = "⚡️ %d clicks · 🔗 %d chords · 🌊 %d opened at once";
 
 /* Next puzzle */

@@ -55,24 +55,6 @@ struct CarriedOverDailyTests {
         #expect(state.puzzleType == .practice, "With its result in, the day is only a replay")
     }
 
-    @Test("A carried-over daily isn't offered as a missed day while it waits")
-    func testNotOfferedAsMissed() throws {
-        let cleanup = setupCleanPastDailyState(continuousPlay: false)
-        defer { cleanup() }
-
-        let yesterday = pastSeed(daysAgo: 1)
-        let twoDaysAgo = pastSeed(daysAgo: 2)
-        let state = try carriedOverDaily()
-
-        // Visit another day and finish it, with today done on another Mac.
-        #expect(state.playPastDay(seed: twoDaysAgo))
-        try loseGame(state)
-        UserDefaults.standard.set(seedFromDate(Date()), forKey: "dailyCompletionSeed")
-
-        #expect(state.nextMissedDaySeed != yesterday, "It was played on its day and is waiting, not missed")
-        #expect(state.pastDailySeedsInProgress.contains(yesterday))
-    }
-
     @Test("Back to Today from a past day returns to the carried-over daily")
     func testBackToTodayReturnsToIt() throws {
         let cleanup = setupCleanPastDailyState(continuousPlay: true)

@@ -11,15 +11,12 @@ struct FooterView: View {
     var nextPuzzleDate: Date?
     /// The day on the board, when it's an earlier one.
     var pastDay: Date?
-    /// The title for the missed-day item, when there's a missed day to offer.
-    var missedDayTitle: String?
     /// Why reset is unavailable, when the puzzle type alone doesn't say.
     var resetLockedHint: String?
     let onReset: () -> Void
     let onToggleFlagMode: () -> Void
     let onCopy: () -> Void
     var onReturnToToday: () -> Void = {}
-    var onPlayMissedDay: () -> Void = {}
     var onDailyHistory: () -> Void = {}
     let onStats: () -> Void
     let onSettings: () -> Void
@@ -126,16 +123,6 @@ struct FooterView: View {
             Menu {
                 if isPastDay {
                     Button(String(localized: "return_to_today_button"), action: onReturnToToday)
-                }
-
-                // The same offer as the button under the board, here so that it has a key.
-                if let missedDayTitle {
-                    Button(missedDayTitle) {
-                        showCopiedFeedback = false
-                        onPlayMissedDay()
-                    }
-                    // Not plain ⌘M, which is Minimize everywhere else on the Mac.
-                    .keyboardShortcut("m", modifiers: [.command, .shift])
                 }
 
                 Button(String(localized: "reset_button")) {

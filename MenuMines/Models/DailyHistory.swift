@@ -95,22 +95,6 @@ enum DailyHistory {
         return inProgress.contains(seed) ? .inProgress : .unplayed
     }
 
-    /// The most recent day before `todaySeed` that has no result, back to launch.
-    /// - Parameters:
-    ///   - played: Days with a result of either kind.
-    ///   - excluded: A day to pass over, such as one finished a moment ago.
-    static func mostRecentMissedSeed(todaySeed: Int64, played: Set<Int64>, excluding excluded: Int64? = nil) -> Int64? {
-        guard isDate(todaySeed), var date = dateFromSeed(todaySeed) else { return nil }
-
-        while let previous = Calendar.utc.date(byAdding: .day, value: -1, to: date) {
-            let seed = seedFromDate(previous)
-            guard seed >= launchSeed else { return nil }
-            if seed != excluded, !played.contains(seed) { return seed }
-            date = previous
-        }
-        return nil
-    }
-
     /// The first day of the launch month, which is as far back as the calendar pages.
     static var launchMonthStart: Date {
         dateFromSeed(launchSeed / 100 * 100 + 1) ?? .distantPast

@@ -65,7 +65,7 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── DailyCompletionTests.swift, DailyRolloverTests.swift
 ├── DailyHistoryTests.swift     # Launch bound, and which days are playable, practice or unavailable
 ├── GamePanelTests.swift        # Real key events sent to a real panel
-├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel, and the missed-day offer
+├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel
 ├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
 ├── PastDailyTestHelpers.swift
 ├── GameState*Tests.swift       # Basic, chord, Codable, pause, persistence, selection, share, timer, win/lose
@@ -119,8 +119,7 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
 Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
 opens on that board (`StatusItemController.openFromWindow`). The app is still active at that
 point because Stats activated it, so `AppWindows.yieldFocusIfNoWindowsRemain` leaves it alone while
-the panel is up, and closing the panel is what hands focus back. The panel's height follows its
-content: the missed-day row under a finished board makes it 34pt taller, growing downwards.
+the panel is up, and closing the panel is what hands focus back.
 
 ### Agent App Configuration
 Set `LSUIElement = YES` in Info.plist to hide from Dock. The UI must provide a Quit button since there's no Dock icon to right-click. `LSApplicationCategoryType` is set to `public.app-category.utilities` (not `puzzle-games`) to prevent macOS Game Mode from activating.
@@ -312,8 +311,9 @@ the calendar without ever joining or repairing a streak. Do not move them into `
   on-the-day one is shown and counted. `pastDailyResults` leaves that day out, so no day counts twice.
 - A past daily never touches `dailyCompletionSeed`, `dailyStats_<seed>` or the menu bar icon's
   "today" state, and is never submitted to Game Center.
-- The panel offers the most recent missed day once today's puzzle is done and the game on the
-  board is over. Continuous play is unchanged: reset still deals a random board.
+- Daily History is the only way to an earlier day. The panel doesn't offer one: an earlier
+  "Play a Missed Day" button and gear-menu item duplicated the calendar and were removed.
+  Continuous play is unchanged: reset still deals a random board.
 - A random game under way when the player goes to a past day is held in memory (never on disk) and
   Back to Today returns to it, if continuous play is still on, today is still done and no daily is
   under way. Otherwise Back to Today goes to today's puzzle as usual.
@@ -338,7 +338,7 @@ player's one attempt at that day, so it's treated as that day's game in progress
   back when its day is picked, instead of starting a `.pastDaily`, and clears any `gameSnapshot.past.<seed>`
   for that day. Daily History shows the day as `DailyHistory.Day.carriedOver` (in progress, "counts as
   played on the day"), ahead of any result synced from another Mac, because picking it always resumes
-  this game. It's in `pastDailySeedsInProgress` and it's never offered as a missed day.
+  this game. It's in `pastDailySeedsInProgress`.
 - `GameSnapshot.carriedOverDaily(todaySeed:)` and `GameState.carriedOverDailySeed` find it.
 
 Why not convert it into a `.pastDaily`: midnight UTC falls in the afternoon or evening for much of the
@@ -355,7 +355,7 @@ depending on the setting.
 - **Starts**: On first `reveal()` call (not on flag)
 - **Pauses**: When menu bar popover closes (`onDisappear`)
 - **Resumes**: When popover reopens (`onAppear`) if status is `.playing`, and whenever another board is
-  put in an open panel (Back to Today, the missed-day offer, and `AppWindows.playPastDay`, which can run
+  put in an open panel (Back to Today, and `AppWindows.playPastDay`, which can run
   with the panel already up when a calendar tile is activated from the keyboard or VoiceOver).
   `resumeTimer()` leaves a running clock alone, so a second call is harmless
 - **Stops**: On win, loss, or reset
@@ -402,7 +402,7 @@ Do NOT attempt to simplify by removing the daily namespace in favor of stats-onl
 When app launches:
 0. A daily in progress always comes back, today's or carried over from an earlier day, whichever way
    continuous play is set. Otherwise a launch starts on today: a past daily in progress waits under
-   its own key until its day is picked again, from Daily History or the missed-day offer
+   its own key until its day is picked again from Daily History
 1. Try to load snapshot → restore full state if valid and today's seed
 2. If snapshot missing/corrupted but daily complete → restore from stats (won/lost, time, flags)
 3. Otherwise → fresh game with today's board

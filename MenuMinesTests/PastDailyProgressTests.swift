@@ -75,7 +75,6 @@ struct PastDailyProgressTests {
         #expect(relaunched.puzzleType == .daily, "A launch always starts on today")
         #expect(relaunched.dailySeed == seedFromDate(Date()))
         #expect(relaunched.pastDailySeedsInProgress == [yesterday])
-        #expect(relaunched.nextMissedDaySeed == yesterday, "A started day is still a missed one")
 
         #expect(relaunched.playPastDay(seed: yesterday))
 
