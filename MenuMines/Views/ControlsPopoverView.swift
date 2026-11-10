@@ -29,10 +29,10 @@ struct ControlsPopoverView: View {
                 mouseRow(String(localized: "controls_mouse_chord"), action: String(localized: "controls_chord"))
                 GridRow {
                     Image(systemName: "flag")
+                        .accessibilityLabel(String(localized: "controls_flag_mode_description"))
                     actionText(String(localized: "controls_flag_mode_description"))
+                        .accessibilityHidden(true)
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(String(localized: "controls_flag_mode_description"))
             }
         }
         .font(.callout)
@@ -54,17 +54,22 @@ struct ControlsPopoverView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    // A row is read once, as the keys or gesture and then what they do. Accessibility
+    // modifiers on a `GridRow` go to each of its cells, which read the row twice, so the first
+    // cell carries it and the second is hidden.
+
     private func keyRow(_ keys: [String], action: String) -> some View {
         GridRow {
             HStack(spacing: 3) {
                 ForEach(keys, id: \.self) { Keycap(label: $0) }
             }
+            // Any one of the keys will do.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(keys.formatted(.list(type: .or)))
+            .accessibilityValue(action)
             actionText(action)
+                .accessibilityHidden(true)
         }
-        // Read as the keys, then what they do. Any one of the keys will do.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(keys.formatted(.list(type: .or)))
-        .accessibilityValue(action)
     }
 
     private func mouseRow(_ gesture: String, action: String) -> some View {
@@ -72,11 +77,11 @@ struct ControlsPopoverView: View {
             Text(gesture)
                 .foregroundStyle(.secondary)
                 .fixedSize()
+                .accessibilityLabel(gesture)
+                .accessibilityValue(action)
             actionText(action)
+                .accessibilityHidden(true)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gesture)
-        .accessibilityValue(action)
     }
 }
 
