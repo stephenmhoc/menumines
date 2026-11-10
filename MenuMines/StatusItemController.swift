@@ -47,7 +47,8 @@ final class StatusItemController: NSObject {
         self.gameState = gameState
         super.init()
 
-        panel.onCancel = { [weak self] in self?.close() }
+        // Escape and ⌘W: a key closed it, so the next key goes to the player's app at once.
+        panel.onCancel = { [weak self] in self?.close(returningFocus: true, immediately: true) }
         AppWindows.onWillShowWindow = { [weak self] in self?.close() }
         AppWindows.onShowGame = { [weak self] in self?.openFromWindow() }
         AppWindows.isGameShowing = { [weak self] in self?.isOpen ?? false }
@@ -105,7 +106,7 @@ final class StatusItemController: NSObject {
     /// Opens or closes the panel, as the global shortcut does.
     func toggle() {
         if isOpen {
-            close()
+            close(returningFocus: true, immediately: true)
         } else if NSApp.isActive {
             // One of our windows is in front, so the app stays active behind the panel and
             // closing it has to give focus back, as when the panel opens from Stats.
@@ -195,7 +196,10 @@ final class StatusItemController: NSObject {
 
     /// Closes the panel. The game clock stops at once, and the panel fades out after it, as
     /// a menu does, unless Reduce Motion is on.
-    func close(returningFocus: Bool) {
+    /// - Parameter immediately: Skips the fade, for a close that came from a key. The panel
+    ///   stays key until it's off screen and takes no input while it fades, so the keys typed
+    ///   straight after Escape would be lost instead of reaching the player's own app.
+    func close(returningFocus: Bool, immediately: Bool = false) {
         guard isOpen else { return }
         isOpen = false
 
@@ -209,7 +213,7 @@ final class StatusItemController: NSObject {
         closeGeneration += 1
         let generation = closeGeneration
         panel.isClosing = true
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || !panel.isVisible {
+        if immediately || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || !panel.isVisible {
             finishClosingNow()
         } else {
             NSAnimationContext.runAnimationGroup { context in

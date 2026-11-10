@@ -82,6 +82,7 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── GamePanelKeyTests.swift     # Same suite: Return, and the reset confirmation's keys
 ├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel
 ├── GamePanelShortcutTests.swift # Same suite: recording the global shortcut in Settings
+├── GamePanelCloseTests.swift   # Same suite: closing from a key skips the fade
 ├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
 ├── PastDailyTestHelpers.swift
 ├── GameState*Tests.swift       # Basic, chord, Codable, pause, persistence, selection, share, timer, win/lose
@@ -138,7 +139,9 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   is up. Only a right-click or a Control-*click* opens the icon's menu: VoiceOver presses with
   Control held and must open the game. The menu carries the gear menu's app-wide items (keep the
   two in step); New Game/Restart and Back to Today stay in the gear menu.
-- **Panel:** opens instantly and fades out over 0.15s (no fade under Reduce Motion). `isOpen` turns
+- **Panel:** opens instantly and fades out over 0.15s (no fade under Reduce Motion, nor when a key
+  closed it, Esc, ⌘W or the shortcut, since it stays key while it fades and typing straight after
+  must reach the player's app). `isOpen` turns
   false and the clock pauses the moment it starts closing; input is dropped during the fade, and
   opening again during the fade brings the same content straight back (a new host there would have
   the old one's disappear pause the clock after the new one's appear). The content sits on Liquid Glass (`NSGlassEffectView`) on
