@@ -579,28 +579,62 @@ The app is structured to support future localization. Follow these guidelines to
 
 ### String Handling
 
-**Never hard-code user-facing strings.** All text shown to users must go through the localization system:
+**Never hard-code user-facing strings.** All text shown to users must go through the String Catalog:
 
 ```swift
-// ❌ Bad - hard-coded string
+// ❌ Bad - hard-coded string, or a value glued on in code
 Text("Reset")
-Button("Quit") { ... }
+String(format: String(localized: "cell_state_mines"), count)   // %d ignores the locale
 
-// ✅ Good - uses String Catalog / Localizable.strings
-Text("reset_button", tableName: "Localizable")
-Button(String(localized: "quit_button")) { ... }
+// ✅ Good - a semantic key, with values interpolated into it
+Button(String(localized: "quit_menu_item")) { ... }
+String(localized: "cell_state_mines \(count)")              // key "cell_state_mines %lld"
 ```
 
 **Emojis are locale-independent** and don't need localization: 🚩 (share text), 🙂, 😮, 😎, 😵, 🎉
 
-### Localizable.strings
+### The String Catalog
 
-All user-facing text is in `MenuMines/Resources/en.lproj/Localizable.strings`. This includes strings for buttons, menu items, accessibility labels, share text, and stats display.
+All user-facing text is in `MenuMines/Resources/Localizable.xcstrings`, with English as the
+development language. Both app targets bundle it (it's under `MenuMines/`, which `project.yml`
+takes whole). Keys are semantic (`reset_new_game`, not "New Game"). Every entry is marked
+`"extractionState" : "manual"`: the catalog is the source, and some keys are only reached through a
+variable or a ternary, which Xcode's extraction can't see and would otherwise mark stale.
 
-When adding new user-facing strings:
-1. Add the key-value pair to `Localizable.strings`
-2. Use `String(localized:)` or `Text(_:tableName:)` in code
-3. Use descriptive keys that indicate purpose, not content
+- **A string with values** is keyed by its name plus the specifiers its interpolation produces: Int
+  gives `%lld`, String gives `%@`. `String(localized: "share_solved \(time) \(marked) \(mines)")`
+  looks up `share_solved %@ %lld %lld`. Give the English value positional specifiers (`%1$@`,
+  `%2$lld`) when there's more than one, so a translation can reorder them. Interpolation also formats
+  numbers for the locale, which `String(format:)` doesn't.
+- **Plurals** are catalog plural variations, never a "one" key and an "other" key picked in code. A
+  string with two counted values uses substitutions (`flag_count_accessibility %lld %lld`,
+  `share_play_line %lld %lld %lld`).
+- **Whole phrases, not glue.** Don't build a sentence from pieces with keys like `"%@, %@"`,
+  `"%@: %@"` or a prefix wrapped round another phrase: give each variant its own key
+  (`stats_recent_won_accessibility`, `stats_calendar_day_today_won`), use a label and a value for
+  VoiceOver, or `.formatted(.list(type: .and))` / `.or` for a real list.
+- **Not for the catalog:** text that isn't language, through `Text(verbatim:)` so Xcode doesn't add
+  it as a key: board numbers and the mine counter (game glyphs, like the clock), emoji, previews and
+  the English App Store screenshot mock-up.
+
+Adding a string:
+1. Add the key to `Localizable.xcstrings` (in Xcode's catalog editor, or as JSON keeping the file's
+   formatting), with its English value, `manual` extraction state and plural variations if it counts.
+2. Look it up with `String(localized:)`, interpolating its values.
+3. Use a key that says what it's for, not what it says.
+4. If it has values or plurals, cover it in `LocalizationTests`: a key missing from the catalog comes
+   back as the key itself, so comparing the English output catches it.
+
+### Wording
+
+- Buttons and menu items are title case ("New Game", "Reset Statistics…"); descriptive text, toggle
+  labels and footers are sentence case. An ellipsis only where the command asks for more before it
+  acts ("Settings…" excepted by convention), never on a command that just opens a window
+  ("Statistics", "Daily History").
+- "Statistics", never "Stats", anywhere the player reads it. No exclamation marks.
+- The gear menu and the right-click status menu share wording; change both.
+- Time is spoken with `TimeInterval.spokenDuration` everywhere VoiceOver reads it, and shown as
+  `clockString` (MM:SS) everywhere it's shown, the share text included.
 
 ### Date and Number Formatting
 
@@ -609,14 +643,16 @@ When adding new user-facing strings:
 ```swift
 // ❌ Bad - assumes specific locale format
 let dateString = "\(month)/\(day)/\(year)"
-let priceString = "$\(amount)"
+Text("\(store.gamesPlayed)")
 
 // ✅ Good - respects user's locale
 let dateString = date.formatted(date: .abbreviated, time: .omitted)
-let priceString = amount.formatted(.currency(code: "USD"))
+Text(store.gamesPlayed.formatted())
 ```
 
-**Exception:** The game timer (`%02d:%02d`) is intentionally locale-independent since `MM:SS` is a universal stopwatch format, not a localized time display.
+**Exception:** The game timer (`%02d:%02d`) is intentionally locale-independent since `MM:SS` is a
+universal stopwatch format, not a localized time display. The board's numbers and the `3/12` mine
+counter are game glyphs in the same way.
 
 **Exception:** The daily seed calculation must always use UTC timezone to ensure all players worldwide get the same puzzle - this is not a localization concern but a game design requirement.
 
