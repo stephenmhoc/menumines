@@ -56,7 +56,9 @@ MenuMines/
 │   ├── CellView.swift          # One cell: state, accessibility, hover/press and motion
 │   ├── CellTile.swift          # Tiles, flag and mine glyphs, number colours, the cell's click view
 │   ├── ConfettiView.swift      # Win celebration animation
+│   ├── ControlsPopoverView.swift # The footer's keyboard and mouse help
 │   ├── FooterView.swift        # Share, flag mode, controls help and the gear menu
+│   ├── FooterIconButtons.swift # The footer's hover-backed icon button and toggle styles
 │   ├── GameBoardView.swift     # 9x9 grid of cells
 │   ├── HeaderView.swift        # Timer, flag count, reset
 │   ├── MenuContentView.swift   # Game panel content and keyboard handling
@@ -173,6 +175,9 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   of `MenuContentView`.
 - **Motion:** reveals are instant. Flags pop in over 0.12s and a lost game's mines spread from the
   one that went off over about 0.2s. Both are off under Reduce Motion.
+- **Footer:** icon buttons are 24pt with a hover backing; flag mode is a toggle. Share hands over the
+  result's text (and drags it), Copy puts it on the clipboard and keeps its width when it says
+  Copied. On a finished past day, Back to Today shrinks to an icon so the footer fits the board.
 
 Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
 opens on that board (`StatusItemController.openFromWindow`). The app is still active at that

@@ -148,7 +148,18 @@
 
 /* Controls popover */
 "controls_button_accessibility" = "Show keyboard controls";
-"controls_title" = "Keyboard Controls";
+"controls_title" = "Controls";
+"controls_section_keyboard" = "Keyboard";
+"controls_section_mouse" = "Mouse";
+"controls_key_return" = "Return";
+"controls_key_escape" = "Esc";
+"controls_reset" = "Reset game";
+"controls_close" = "Close the game";
+"controls_mouse_click" = "Click";
+"controls_mouse_secondary" = "Right-click or Control-click";
+"controls_mouse_chord" = "Click a number, or middle-click";
+"controls_chord" = "Reveal around a fully flagged number";
+"controls_flag_mode_description" = "Flag mode: clicks place flags";
 "controls_move" = "Move selection";
 "controls_reveal" = "Reveal cell";
 "controls_flag" = "Toggle flag";
@@ -192,8 +203,8 @@
 "flag_count_accessibility_one_remaining" = "%d flags placed, 1 mine remaining";
 "flag_count_accessibility_remaining" = "%d flags placed, %d mines remaining";
 "flag_mode_button_help" = "Toggle flag mode";
-"flag_mode_on_accessibility" = "Turn flag mode off";
-"flag_mode_off_accessibility" = "Turn flag mode on";
+"toggle_value_on" = "on";
+"toggle_value_off" = "off";
 
 /* Stats display */
 "stats_no_data" = "—";

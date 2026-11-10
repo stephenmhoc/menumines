@@ -28,28 +28,14 @@ struct FooterView: View {
     private var isPastDay: Bool { puzzleType.isPastDay }
 
     var body: some View {
-        HStack {
+        HStack(spacing: 6) {
             // Left side: where the player is, or what they can do with a finished game.
             if isPastDay {
-                Button(String(localized: "return_to_today_button"), action: onReturnToToday)
-                    .buttonStyle(.bordered)
-                    .fixedSize()
-                    .help(puzzleType.returnToTodayHelp)
+                returnToTodayButton
             }
 
             if isGameComplete {
-                Button(showCopiedFeedback ? String(localized: "share_copied") : String(localized: "copy_result_button")) {
-                    onCopy()
-                    showCopiedFeedback = true
-                    AccessibilityNotification.Announcement(String(localized: "share_copied")).post()
-                    Task {
-                        try? await Task.sleep(for: .seconds(1.5))
-                        showCopiedFeedback = false
-                    }
-                }
-                .buttonStyle(.bordered)
-                .fixedSize()
-                .accessibilityLabel(String(localized: "copy_result_button"))
+                copyButton
 
                 if let shareText {
                     ResultShareButton(text: shareText)
@@ -92,85 +78,132 @@ struct FooterView: View {
                 NextPuzzleCountdown(date: nextPuzzleDate)
             }
 
-            Spacer()
-                .layoutPriority(1)
+            Spacer(minLength: 0)
 
-            Button {
-                onToggleFlagMode()
-            } label: {
-                Image(systemName: isFlagMode ? "flag.fill" : "flag")
+            HStack(spacing: 2) {
+                Toggle(isOn: Binding(get: { isFlagMode }, set: { _ in onToggleFlagMode() })) {
+                    Image(systemName: isFlagMode ? "flag.fill" : "flag")
+                }
+                .toggleStyle(FooterIconToggleStyle())
+                .disabled(isGameComplete)
+                .help(String(localized: "flag_mode_button_help"))
+                .accessibilityLabel(String(localized: "controls_flag_mode"))
+
+                Button {
+                    showControls.toggle()
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                }
+                .buttonStyle(FooterIconButtonStyle())
+                .help(String(localized: "controls_button_accessibility"))
+                .popover(isPresented: $showControls) {
+                    ControlsPopoverView()
+                }
+                .accessibilityLabel(String(localized: "controls_button_accessibility"))
+
+                gearMenu
             }
-            .buttonStyle(.borderless)
-            .fixedSize()
-            .foregroundStyle(isFlagMode ? Color.accentColor : Color.primary)
-            .disabled(isGameComplete)
-            .help(String(localized: "flag_mode_button_help"))
-            .accessibilityLabel(isFlagMode ? String(localized: "flag_mode_on_accessibility") : String(localized: "flag_mode_off_accessibility"))
-
-            Button {
-                showControls.toggle()
-            } label: {
-                Image(systemName: "questionmark.circle")
-            }
-            .buttonStyle(.borderless)
-            .fixedSize()
-            .help(String(localized: "controls_button_accessibility"))
-            .popover(isPresented: $showControls) {
-                ControlsPopoverView()
-            }
-            .accessibilityLabel(String(localized: "controls_button_accessibility"))
-
-            Menu {
-                if isPastDay {
-                    Button(String(localized: "return_to_today_button"), action: onReturnToToday)
-                }
-
-                Button(String(localized: "reset_button")) {
-                    showCopiedFeedback = false
-                    onReset()
-                }
-                .keyboardShortcut("r", modifiers: .command)
-                .disabled(!canReset)
-                .accessibilityHint(canReset ? puzzleType.resetHint : (resetLockedHint ?? puzzleType.resetLockedHint))
-
-                Divider()
-
-                Button(String(localized: "daily_history_menu_item"), action: onDailyHistory)
-
-                Button(String(localized: "stats_menu_item"), action: onStats)
-
-                Button(String(localized: "settings_menu_item"), action: onSettings)
-                .keyboardShortcut(",", modifiers: .command)
-
-                #if SPARKLE_ENABLED
-                Divider()
-
-                Button(String(localized: "check_for_updates_menu_item")) {
-                    UpdateManager.checkForUpdates()
-                }
-                .disabled(!UpdateManager.canCheckForUpdates)
-                #endif
-
-                Divider()
-
-                Button(String(localized: "about_menu_item")) {
-                    onAbout()
-                }
-
-                Button(String(localized: "quit_menu_item")) {
-                    NSApplication.shared.terminate(nil)
-                }
-                .keyboardShortcut("q", modifiers: .command)
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help(String(localized: "footer_menu_accessibility_label"))
-            .accessibilityLabel(String(localized: "footer_menu_accessibility_label"))
         }
-        .frame(width: 260)
+        .frame(width: GameBoardView.width)
+    }
+
+    /// Spelled out while there's room, and an icon beside a finished game's Copy and Share,
+    /// where the words would push the footer past the board.
+    @ViewBuilder
+    private var returnToTodayButton: some View {
+        let title = String(localized: "return_to_today_button")
+        Group {
+            if isGameComplete {
+                Button(action: onReturnToToday) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .accessibilityLabel(title)
+                }
+            } else {
+                Button(title, action: onReturnToToday)
+            }
+        }
+        .buttonStyle(.bordered)
+        .fixedSize()
+        .help(isGameComplete ? "\(title). \(puzzleType.returnToTodayHelp)" : puzzleType.returnToTodayHelp)
+    }
+
+    private var copyButton: some View {
+        Button {
+            onCopy()
+            showCopiedFeedback = true
+            AccessibilityNotification.Announcement(String(localized: "share_copied")).post()
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                showCopiedFeedback = false
+            }
+        } label: {
+            // Both words are laid out and one is shown, so the button keeps the width of the
+            // longer one and doesn't shove its neighbours when it changes.
+            ZStack {
+                Text(String(localized: "copy_result_button"))
+                    .opacity(showCopiedFeedback ? 0 : 1)
+                Text(String(localized: "share_copied"))
+                    .opacity(showCopiedFeedback ? 1 : 0)
+            }
+        }
+        .buttonStyle(.bordered)
+        .fixedSize()
+        .accessibilityLabel(String(localized: "copy_result_button"))
+    }
+
+    private var gearMenu: some View {
+        Menu {
+            if isPastDay {
+                Button(String(localized: "return_to_today_button"), action: onReturnToToday)
+            }
+
+            Button(String(localized: "reset_button")) {
+                showCopiedFeedback = false
+                onReset()
+            }
+            .keyboardShortcut("r", modifiers: .command)
+            .disabled(!canReset)
+            .accessibilityHint(canReset ? puzzleType.resetHint : (resetLockedHint ?? puzzleType.resetLockedHint))
+
+            Divider()
+
+            Button(String(localized: "daily_history_menu_item"), action: onDailyHistory)
+
+            Button(String(localized: "stats_menu_item"), action: onStats)
+
+            Button(String(localized: "settings_menu_item"), action: onSettings)
+            .keyboardShortcut(",", modifiers: .command)
+
+            #if SPARKLE_ENABLED
+            Divider()
+
+            Button(String(localized: "check_for_updates_menu_item")) {
+                UpdateManager.checkForUpdates()
+            }
+            .disabled(!UpdateManager.canCheckForUpdates)
+            #endif
+
+            Divider()
+
+            Button(String(localized: "about_menu_item")) {
+                onAbout()
+            }
+
+            Button(String(localized: "quit_menu_item")) {
+                NSApplication.shared.terminate(nil)
+            }
+            .keyboardShortcut("q", modifiers: .command)
+        } label: {
+            Image(systemName: "gearshape")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .frame(width: FooterIconMetrics.size, height: FooterIconMetrics.size)
+        .modifier(HoverBacking())
+        .help(String(localized: "footer_menu_accessibility_label"))
+        .accessibilityLabel(String(localized: "footer_menu_accessibility_label"))
     }
 }
 
@@ -258,77 +291,29 @@ private struct NextPuzzleCountdown: View {
             Text(String(format: String(localized: "next_puzzle_countdown"), formatter.string(from: remaining) ?? ""))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                // The footer leaves room for the longest countdown, "23h 59m", so it never
+                // needs shrinking or cutting short.
+                .fixedSize()
         }
     }
 }
 
-/// Offers the result as an image through the system's share menu, or dragged out of the popover.
+/// Offers the result's text through the system's share menu, or dragged out of the panel.
+/// Text, not a picture of it, so it can be pasted, edited and read by a screen reader
+/// wherever it lands.
 private struct ResultShareButton: View {
     let text: String
 
-    @MainActor private var image: Image? {
-        let renderer = ImageRenderer(content: ResultCardView(text: text))
-        renderer.scale = 2
-        return renderer.nsImage.map(Image.init(nsImage:))
-    }
-
     var body: some View {
-        if let image {
-            let title = String(localized: "share_preview_title")
-            ShareLink(item: image, preview: SharePreview(title, image: image)) {
-                Image(systemName: "square.and.arrow.up")
-            }
-            .buttonStyle(.borderless)
-            .fixedSize()
-            .draggable(image)
-            .help(String(localized: "share_button"))
-            .accessibilityLabel(String(localized: "share_button"))
+        ShareLink(item: text, preview: SharePreview(String(localized: "share_preview_title"))) {
+            Image(systemName: "square.and.arrow.up")
         }
-    }
-}
-
-/// The result as a picture, for places where pasted emoji don't survive.
-private struct ResultCardView: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 13, design: .monospaced))
-            .foregroundStyle(.black)
-            .padding(16)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 10))
-    }
-}
-
-// MARK: - Controls Popover
-
-private struct ControlsPopoverView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "controls_title"))
-                .font(.headline)
-
-            VStack(alignment: .leading, spacing: 6) {
-                controlRow(key: "↑ ↓ ← →", action: String(localized: "controls_move"))
-                controlRow(key: String(localized: "controls_key_space"), action: String(localized: "controls_reveal"))
-                controlRow(key: "F", action: String(localized: "controls_flag"))
-                controlRow(key: "🚩", action: String(localized: "controls_flag_mode"))
-            }
-            .font(.system(.body, design: .monospaced))
-        }
-        .padding()
-    }
-
-    private func controlRow(key: String, action: String) -> some View {
-        HStack(spacing: 16) {
-            Text(key)
-                .frame(width: 76, alignment: .leading)
-            Text(action)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(format: String(localized: "metric_accessibility_label"), key, action))
+        .buttonStyle(FooterIconButtonStyle())
+        .draggable(text)
+        .help(String(localized: "share_button"))
+        .accessibilityLabel(String(localized: "share_button"))
     }
 }
 
