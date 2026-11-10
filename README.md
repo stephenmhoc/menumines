@@ -174,8 +174,8 @@ Clear the 9x9 board without hitting any of the 12 hidden mines.
 
 | Action | Mouse | Keyboard |
 |--------|-------|----------|
-| Reveal cell | Left-click | Space or Return |
-| Toggle flag | Right-click or Control+Click | F |
+| Reveal cell | Click | Space or Return |
+| Place or remove a flag | Right-click or Control-click | F |
 | Reveal around a fully flagged number | Click the number, or middle-click | Space or Return on the number |
 | Move selection | - | Arrow keys |
 

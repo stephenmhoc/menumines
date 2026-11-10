@@ -40,7 +40,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Game over. You hit a mine"
+            "value" : "Game over. You hit a mine."
           }
         }
       }
@@ -73,7 +73,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Congratulations! You won in %@"
+            "value" : "You won in %@."
           }
         }
       }
@@ -205,7 +205,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Press to reveal adjacent covered cells"
+            "value" : "Reveals the covered cells around this number."
           }
         }
       }
@@ -216,7 +216,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flag mode is on. Press to flag, or turn off flag mode to reveal again."
+            "value" : "Flags this cell. Flag mode is on."
           }
         }
       }
@@ -227,7 +227,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use the Flag action to remove the flag"
+            "value" : "Can't be revealed while it's flagged."
           }
         }
       }
@@ -238,7 +238,18 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Press to reveal, or use the Flag action"
+            "value" : "Reveals this cell."
+          }
+        }
+      }
+    },
+    "cell_hint_unflag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removes the flag. Flag mode is on."
           }
         }
       }
@@ -371,7 +382,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show keyboard controls"
+            "value" : "Controls"
           }
         }
       }
@@ -404,7 +415,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toggle flag"
+            "value" : "Place or remove a flag"
           }
         }
       }
@@ -426,7 +437,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Flag mode: clicks place flags"
+            "value" : "In flag mode, a click places a flag"
           }
         }
       }
@@ -644,7 +655,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toggle flag mode"
+            "value" : "Make clicks place flags instead of revealing cells"
           }
         }
       }
@@ -677,7 +688,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines, daily puzzle complete, current streak %lld"
+            "value" : "MenuMines, today's puzzle finished, current streak %lld"
           }
         }
       }
@@ -688,7 +699,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines, daily puzzle not completed"
+            "value" : "MenuMines, today's puzzle not finished"
           }
         }
       }
@@ -1062,7 +1073,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Leave this replay and go back to today's puzzle"
+            "value" : "Leave this replay and go back to today's puzzle."
           }
         }
       }
@@ -1183,7 +1194,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Press to record a new shortcut. Escape cancels, Delete clears it."
+            "value" : "Records a new shortcut. While recording, Escape cancels and Delete clears the shortcut."
           }
         }
       }
@@ -1513,7 +1524,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Copied!"
+            "value" : "Copied"
           }
         }
       }
@@ -1797,7 +1808,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Avg Time (wins)"
+            "value" : "Average Win Time"
           }
         }
       }
@@ -2094,7 +2105,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Days follow UTC. Double-click a day to play it."
+            "value" : "Days start at midnight UTC. Double-click a day to play it."
           }
         }
       }
@@ -2105,7 +2116,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue the game you started. It's recorded as played later."
+            "value" : "Continues the game you started. It's recorded as played later."
           }
         }
       }
@@ -2116,7 +2127,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Continue the game you started on the day. It counts as played on the day."
+            "value" : "Continues the game you started on the day. It counts as played on the day."
           }
         }
       }
@@ -2127,7 +2138,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Play this day's puzzle. It's recorded as played later and doesn't count toward your streak."
+            "value" : "Plays this day's puzzle. It's recorded as played later and doesn't count toward your streak."
           }
         }
       }
@@ -2138,7 +2149,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Replay this board. Replays aren't recorded."
+            "value" : "Replays this board. Replays aren't recorded."
           }
         }
       }
@@ -2231,17 +2242,6 @@
         }
       }
     },
-    "stats_calendar_today_accessibility" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show today in daily history"
-          }
-        }
-      }
-    },
     "stats_calendar_today_help" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2249,6 +2249,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Go to today"
+          }
+        }
+      }
+    },
+    "stats_calendar_today_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows this month in Daily History."
           }
         }
       }
@@ -2369,7 +2380,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Days played after the day itself. They aren't counted in daily stats, all games or streaks."
+            "value" : "Days played after the day itself. They don't count toward Daily Puzzles, All Games or streaks."
           }
         }
       }
@@ -2446,7 +2457,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permanently deletes all game statistics"
+            "value" : "Permanently deletes all game statistics."
           }
         }
       }
@@ -2699,7 +2710,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You won!"
+            "value" : "You won"
           }
         }
       }

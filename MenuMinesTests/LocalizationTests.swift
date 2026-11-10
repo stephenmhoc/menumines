@@ -39,6 +39,6 @@ struct LocalizationTests {
     @Test("The menu bar's streak comes through as a number")
     func menuBarStreak() {
         #expect(String(localized: "menu_bar_accessibility_complete \(4)")
-            == "MenuMines, daily puzzle complete, current streak 4")
+            == "MenuMines, today's puzzle finished, current streak 4")
     }
 }

@@ -124,7 +124,7 @@ struct FooterView: View {
         }
         .buttonStyle(.bordered)
         .fixedSize()
-        .help(isGameComplete ? "\(title). \(puzzleType.returnToTodayHelp)" : puzzleType.returnToTodayHelp)
+        .help(puzzleType.returnToTodayHelp)
     }
 
     private var copyButton: some View {

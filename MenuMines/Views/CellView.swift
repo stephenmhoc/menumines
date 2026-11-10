@@ -126,7 +126,8 @@ struct CellView: View {
             }
             return String(localized: "cell_hint_reveal_or_flag")
         case .flagged:
-            return String(localized: "cell_hint_remove_flag")
+            // Flag mode takes the flag off. Otherwise activating it does nothing.
+            return String(localized: isFlagMode ? "cell_hint_unflag" : "cell_hint_remove_flag")
         case .revealed(let adjacentMines) where isChordReady && adjacentMines > 0:
             return String(localized: "cell_hint_chord_ready")
         case .revealed:
@@ -202,7 +203,8 @@ struct CellView: View {
                     MineGlyph()
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
                 } else if adjacentMines > 0 {
-                    Text("\(adjacentMines)")
+                    // A game glyph, like the clock and the mine counter, so not localized.
+                    Text(verbatim: String(adjacentMines))
                         .font(.system(size: 16, weight: contrast == .increased ? .heavy : .bold, design: .rounded))
                         .foregroundStyle(NumberPalette.color(for: adjacentMines))
                 }

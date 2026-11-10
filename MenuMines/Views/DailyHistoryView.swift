@@ -169,7 +169,7 @@ struct DailyCompletionCalendarView: View {
             }
             .disabled(cursor.isOnToday)
             .help(String(localized: "stats_calendar_today_help"))
-            .accessibilityLabel(String(localized: "stats_calendar_today_accessibility"))
+            .accessibilityHint(String(localized: "stats_calendar_today_hint"))
 
             ControlGroup {
                 Button {

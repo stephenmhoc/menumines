@@ -320,8 +320,8 @@ MenuMines must be fully playable with VoiceOver. Accessibility is a core require
    - Mines: "Row X, Column Y, mine"
 
 2. **State Announcements** - Use `AccessibilityNotification.Announcement` to announce:
-   - Game win: "Congratulations! You won in 1 minute, 5 seconds" (`TimeInterval.spokenDuration`)
-   - Game loss: "Game over. You hit a mine"
+   - Game win: "You won in 1 minute, 5 seconds." (`TimeInterval.spokenDuration`)
+   - Game loss: "Game over. You hit a mine."
    - Timer updates (on demand, not continuously)
 
 3. **Keyboard Navigation** - Already implemented via arrow keys + Space/Return/F (see Controls)
@@ -336,11 +336,15 @@ MenuMines must be fully playable with VoiceOver. Accessibility is a core require
 ```swift
 // Cell accessibility label example
 .accessibilityLabel(cellAccessibilityLabel(row: row, col: col, cell: cell))
-.accessibilityHint("Double-tap to reveal, or use F to flag")
+.accessibilityHint(String(localized: "cell_hint_reveal_or_flag"))  // "Reveals this cell."
 
 // State announcement example
-AccessibilityNotification.Announcement("Game over").post()
+AccessibilityNotification.Announcement(String(localized: "announcement_lose")).post()
 ```
+
+Hints say what happens, as a sentence ("Reveals this cell."), never which gesture to make: VoiceOver
+already says how to activate, and lists custom actions such as Flag itself. A control's label is its
+name, and anything that changes, such as the face's game status, goes in its value.
 
 ### Testing Accessibility
 

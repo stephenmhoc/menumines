@@ -296,7 +296,7 @@ struct CalendarDayCell: View {
             }
 
             if let number = cell.day {
-                Text("\(number)")
+                Text(number.formatted())
                     .font(.system(size: 12, weight: isQuiet ? .regular : .semibold))
                     .monospacedDigit()
                     .foregroundStyle(textColor)

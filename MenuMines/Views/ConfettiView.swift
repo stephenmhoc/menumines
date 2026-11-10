@@ -60,7 +60,7 @@ struct ConfettiView: View {
     }
 
     private var reducedMotionCelebration: some View {
-        Text("🎉")
+        Text(verbatim: "🎉")
             .font(.system(size: 48))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .opacity(showsReducedCelebration ? 1 : 0)
@@ -172,11 +172,13 @@ private struct ConfettiPreviewContainer: View {
             ConfettiView(isActive: isActive)
             VStack {
                 Spacer()
-                Button("Trigger Confetti") {
+                Button {
                     isActive = false
                     DispatchQueue.main.async {
                         isActive = true
                     }
+                } label: {
+                    Text(verbatim: "Trigger Confetti")
                 }
                 .padding()
             }

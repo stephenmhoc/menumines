@@ -48,7 +48,8 @@ struct HeaderView: View {
         HStack {
             HStack(spacing: 4) {
                 FlagGlyph(size: 12)
-                Text("\(flagCount)/\(Board.mineCount)")
+                // Read like the clock, so not localized. VoiceOver gets it in words.
+                Text(verbatim: "\(flagCount)/\(Board.mineCount)")
                     .font(.system(size: 14, weight: .medium))
                     .monospacedDigit()
             }

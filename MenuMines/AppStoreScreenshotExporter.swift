@@ -3,7 +3,8 @@ import SwiftUI
 
 // Draws the App Store screenshots in `AppStoreScreenshots/`. Debug builds only, and only when
 // launched with MENUMINES_EXPORT_APP_STORE_SCREENSHOTS=1 (see docs/APPSTORE_SETUP.md). The
-// views here are a styled mock-up for the store page, not the app's own views.
+// views here are a styled mock-up for the store page, not the app's own views. Its copy is
+// English, like the store listing, so it's verbatim and stays out of the String Catalog.
 
 #if DEBUG
 enum AppStoreScreenshotVariant: String, CaseIterable {
@@ -194,11 +195,11 @@ private struct AppStoreScreenshotCanvas: View {
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(variant.accentColor)
 
-            Text("MENU MINES")
+            Text(verbatim: "MENU MINES")
                 .font(.system(size: 54, weight: .bold, design: .monospaced))
                 .foregroundStyle(ScreenshotStyle.indigo)
 
-            Text("A new puzzle every day.")
+            Text(verbatim: "A new puzzle every day.")
                 .font(.system(size: 22, weight: .medium, design: .monospaced))
                 .foregroundStyle(ScreenshotStyle.textSecondary)
         }
@@ -226,7 +227,7 @@ private struct AppStoreScreenshotCanvas: View {
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(variant.bullets, id: \.self) { bullet in
                     HStack(spacing: 10) {
-                        Text("✓")
+                        Text(verbatim: "✓")
                             .font(.system(size: 18, weight: .bold, design: .monospaced))
                             .foregroundStyle(ScreenshotStyle.green)
                         Text(bullet)
@@ -237,7 +238,7 @@ private struct AppStoreScreenshotCanvas: View {
             }
             .padding(.top, 4)
 
-            Text("No ads. No account. No clutter.")
+            Text(verbatim: "No ads. No account. No clutter.")
                 .font(.system(size: 16, weight: .semibold, design: .monospaced))
                 .foregroundStyle(ScreenshotStyle.textMuted)
                 .padding(.top, 2)
@@ -320,7 +321,7 @@ private struct ScreenshotHeaderView: View {
     var body: some View {
         HStack {
             HStack(spacing: 4) {
-                Text("🚩")
+                Text(verbatim: "🚩")
                 Text(mineCounterDisplay)
                     .font(.system(size: 15, weight: .semibold, design: .monospaced))
             }
@@ -425,21 +426,21 @@ private struct ScreenshotCellView: View {
     @ViewBuilder
     private var content: some View {
         if cell.isExploded {
-            Text("💣")
+            Text(verbatim: "💣")
                 .font(.system(size: 14))
         } else {
             switch cell.state {
             case .hidden:
                 EmptyView()
             case .flagged:
-                Text("🚩")
+                Text(verbatim: "🚩")
                     .font(.system(size: 14))
             case .revealed(let adjacentMines):
                 if cell.hasMine {
-                    Text("💣")
+                    Text(verbatim: "💣")
                         .font(.system(size: 14))
                 } else if adjacentMines > 0 {
-                    Text("\(adjacentMines)")
+                    Text(verbatim: String(adjacentMines))
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
                         .foregroundStyle(color(for: adjacentMines))
                 }
