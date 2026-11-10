@@ -75,6 +75,7 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── DailyHistoryTests.swift     # Launch bound, and which days are playable, practice or unavailable
 ├── GamePanelTests.swift        # Real key events sent to a real panel; windows, menus, icon
 ├── GlobalShortcutTests.swift   # Shortcut validation, storage and registration
+├── GamePanelKeyTests.swift     # Same suite: Return, and the reset confirmation's keys
 ├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel
 ├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
 ├── PastDailyTestHelpers.swift

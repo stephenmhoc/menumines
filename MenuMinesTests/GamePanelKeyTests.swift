@@ -1,0 +1,61 @@
+import AppKit
+import Testing
+@testable import MenuMines
+
+/// Keys on the board and in the panel's own overlays. Part of the game panel suite, so these
+/// run in turn with the other tests that own the panel.
+extension GamePanelTests {
+    @Test("Return reveals like Space")
+    func returnReveals() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let state = todaysDaily()
+        let controller = try await openPanel(for: state)
+        defer { controller.close() }
+
+        try selectSafeCell(in: state)
+        let (row, col) = (state.selectedRow, state.selectedCol)
+        try await press(Key.returnKey, in: controller)
+        #expect(state.status == .playing)
+        #expect(state.board.cells[row][col].state != .hidden)
+    }
+
+    @Test("Return and Escape both keep the game when a reset asks first")
+    func resetConfirmationDefaultsToCancel() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        let confirmKey = Constants.SettingsKeys.confirmBeforeReset
+        let initialConfirm = UserDefaults.standard.object(forKey: confirmKey)
+        UserDefaults.standard.set(true, forKey: confirmKey)
+        defer {
+            cleanup()
+            if let initialConfirm {
+                UserDefaults.standard.set(initialConfirm, forKey: confirmKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: confirmKey)
+            }
+        }
+
+        let seed = seedFromDate(Date().addingTimeInterval(-86_400))
+        let state = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .practice)
+        let controller = try await openPanel(for: state)
+        defer { controller.close() }
+        try selectSafeCell(in: state)
+        try await press(Key.space, in: controller)
+        #expect(state.status == .playing)
+
+        for key in [Key.returnKey, Key.escape] {
+            try await pressCommand(Key.commandR, in: controller)
+            try await pressThroughApp(key, in: controller)
+
+            #expect(state.status == .playing)
+            #expect(controller.isOpen)
+
+            // The board only takes keys again once the confirmation has gone.
+            try selectSafeCell(in: state)
+            let (row, col) = (state.selectedRow, state.selectedCol)
+            try await press(Key.space, in: controller)
+            #expect(state.board.cells[row][col].state != .hidden, "after key \(key.code)")
+        }
+    }
+}

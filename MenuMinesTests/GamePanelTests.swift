@@ -149,22 +149,6 @@ struct GamePanelTests {
         #expect(state.flagCount == 1)
     }
 
-    @Test("Return reveals like Space")
-    func returnReveals() async throws {
-        let cleanup = setupCleanPersistenceState(continuousPlay: true)
-        defer { cleanup() }
-
-        let state = todaysDaily()
-        let controller = try await openPanel(for: state)
-        defer { controller.close() }
-
-        try selectSafeCell(in: state)
-        let (row, col) = (state.selectedRow, state.selectedCol)
-        try await press(Key.returnKey, in: controller)
-        #expect(state.status == .playing)
-        #expect(state.board.cells[row][col].state != .hidden)
-    }
-
     @Test("Escape closes the panel, and closing pauses the game clock")
     func escapeCloses() async throws {
         let cleanup = setupCleanPersistenceState(continuousPlay: true)
