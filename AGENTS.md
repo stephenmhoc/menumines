@@ -80,6 +80,7 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── GlobalShortcutTests.swift   # Shortcut validation, storage and registration
 ├── GamePanelKeyTests.swift     # Same suite: Return, and the reset confirmation's keys
 ├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel
+├── GamePanelShortcutTests.swift # Same suite: recording the global shortcut in Settings
 ├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
 ├── PastDailyTestHelpers.swift
 ├── GameState*Tests.swift       # Basic, chord, Codable, pause, persistence, selection, share, timer, win/lose
@@ -154,6 +155,9 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   Settings, saved under `Constants.SettingsKeys.globalShortcut`), and launching the app again from
   Finder or Spotlight (`applicationShouldHandleReopen`). The last two leave the app active when one
   of its windows is in front, so they open as `openFromWindow` does and closing gives focus back.
+  Recording a shortcut (`ShortcutRecorder`) turns the shortcut off and takes every key in the app,
+  so it ends when its window closes or resigns key, and a key in any other window ends it and goes
+  on. SwiftUI's `onDisappear` isn't called when an `AppWindows` window closes.
 - **Windows:** Stats, Settings and About can't be minimised, join the active Space over full-screen
   apps, and Stats and Settings reopen where they were left. A closed window's controller is let go.
   `yieldFocusIfNoWindowsRemain` hides the app only when no titled window of any kind (Sparkle,
