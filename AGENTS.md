@@ -182,6 +182,16 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   Copied. On a finished past day, Back to Today shrinks to an icon so the footer fits the board.
   The reset confirmation's default button is Cancel.
 
+### Settings, Statistics and About
+
+- **Settings** is titled "MenuMines Settings" (`AppWindows.settingsTitle`, with the build's own
+  name) and grouped like System Settings: General, Menu Bar, Game, Statistics, Privacy (when crash
+  reporting is compiled in), Updates (direct build only), and Build, which only a pre-release
+  channel shows. Labels are sentence case with a one-line description in plain HIG voice. The
+  window is as tall as the form and scrolls only when the screen is shorter.
+- **Launch at login** is read from `SMAppService`, never stored, and read again whenever the app
+  becomes active. `.requiresApproval` shows as on, with a line and an Open Login Items button.
+
 Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
 opens on that board (`StatusItemController.openFromWindow`). The app is still active at that
 point because Stats activated it, so `AppWindows.yieldFocusIfNoWindowsRemain` leaves it alone while

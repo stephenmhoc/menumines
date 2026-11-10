@@ -53,7 +53,7 @@ extension GamePanelTests {
 
         try await pressCommand(Key.commandComma, in: controller)
 
-        let window = NSApp.windows.first { $0.isVisible && $0.title == String(localized: "settings_window_title") }
+        let window = NSApp.windows.first { $0.isVisible && $0.title == AppWindows.settingsTitle }
         #expect(window != nil)
         #expect(!controller.isOpen)
         window?.close()
@@ -215,7 +215,7 @@ extension GamePanelTests {
         defer { cleanup() }
 
         let opens: [(() -> Void, String)] = [
-            (AppWindows.showSettings, String(localized: "settings_window_title")),
+            (AppWindows.showSettings, AppWindows.settingsTitle),
             (AboutWindow.show, String(localized: "about_menu_item")),
             ({ AppWindows.showStats(gameState: todaysDaily()) }, String(localized: "stats_window_title"))
         ]
@@ -233,7 +233,7 @@ extension GamePanelTests {
     func settingsRemembersPosition() async throws {
         let cleanup = setupCleanPersistenceState(continuousPlay: true)
         defer { cleanup() }
-        let title = String(localized: "settings_window_title")
+        let title = AppWindows.settingsTitle
 
         let first = try await openWindow(AppWindows.showSettings, titled: title)
         let visible = try #require(first.screen?.visibleFrame)
@@ -273,7 +273,7 @@ extension GamePanelTests {
         #expect(NSApp.mainMenu?.performKeyEquivalent(with: event) == true)
         try await settle()
 
-        let settings = NSApp.windows.first { $0.isVisible && $0.title == String(localized: "settings_window_title") }
+        let settings = NSApp.windows.first { $0.isVisible && $0.title == AppWindows.settingsTitle }
         #expect(settings != nil)
         settings?.close()
         stats.close()

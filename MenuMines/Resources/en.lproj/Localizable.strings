@@ -23,10 +23,12 @@
 "status_lost" = "Game over";
 
 /* SettingsView */
-"settings_launch_at_login" = "Launch at Login";
-"settings_launch_at_login_footer" = "Automatically open MenuMines when you log in.";
-"settings_global_shortcut" = "Keyboard Shortcut";
-"settings_global_shortcut_footer" = "Opens and closes MenuMines from any app.";
+"settings_launch_at_login" = "Launch at login";
+"settings_launch_at_login_footer" = "Open MenuMines when you log in.";
+"settings_launch_at_login_needs_approval" = "Allow MenuMines in Login Items to finish turning this on.";
+"settings_launch_at_login_open_settings" = "Open Login Items…";
+"settings_global_shortcut" = "Keyboard shortcut";
+"settings_global_shortcut_footer" = "Open and close MenuMines from any app.";
 "settings_global_shortcut_record" = "Record Shortcut";
 "settings_global_shortcut_recording" = "Type Shortcut…";
 "settings_global_shortcut_none" = "None";
@@ -47,16 +49,16 @@
 "shortcut_key_right_arrow" = "Right Arrow";
 "shortcut_key_up_arrow" = "Up Arrow";
 "shortcut_key_down_arrow" = "Down Arrow";
-"settings_show_menu_bar_indicators" = "Show menu bar status indicators";
-"settings_show_menu_bar_indicators_footer" = "When off, the menu bar icon stays constant.";
+"settings_show_menu_bar_indicators" = "Show game status";
+"settings_show_menu_bar_indicators_footer" = "Show game progress on the menu bar icon.";
 "settings_show_menu_bar_result" = "Show today's result";
 "settings_show_menu_bar_result_footer" = "Mark a finished day with a checkmark or an X.";
 "settings_show_streaks" = "Show streaks";
-"settings_show_streaks_footer" = "Show current and longest streaks in Stats.";
-"settings_confirm_before_reset" = "Confirm before reset";
-"settings_confirm_before_reset_footer" = "Show a confirmation dialog before resetting the game.";
-"settings_continuous_play" = "Continuous Play";
-"settings_continuous_play_footer" = "After completing the daily puzzle, continue with unlimited random puzzles. Only the daily counts toward streaks.";
+"settings_show_streaks_footer" = "Show current and longest streaks in Statistics.";
+"settings_confirm_before_reset" = "Confirm before resetting";
+"settings_confirm_before_reset_footer" = "Ask before resetting a game.";
+"settings_continuous_play" = "Continuous play";
+"settings_continuous_play_footer" = "Play random puzzles after the daily puzzle. Only the daily puzzle counts toward streaks.";
 
 /* Reset confirmation dialog */
 "reset_confirmation_title" = "Reset Game?";
@@ -88,7 +90,7 @@
 /* Stats feature */
 "stats_menu_item" = "Stats…";
 "daily_history_menu_item" = "Daily History…";
-"settings_window_title" = "Settings";
+"settings_window_title" = "%@ Settings";
 "stats_window_title" = "Stats";
 "stats_games_played" = "Games Played";
 "stats_wins" = "Wins";
@@ -219,6 +221,11 @@
 "check_for_updates_menu_item" = "Check for Updates…";
 "check_for_updates_button" = "Check for Updates";
 "settings_updates_section" = "Updates";
+"settings_section_general" = "General";
+"settings_section_menu_bar" = "Menu Bar";
+"settings_section_game" = "Game";
+"settings_section_statistics" = "Statistics";
+"settings_section_privacy" = "Privacy";
 "settings_auto_check_updates" = "Automatically check for updates";
 
 /* Build channel */
@@ -229,7 +236,7 @@
 "build_info_section" = "Build";
 "build_info_version" = "Version %@ (%@)";
 "build_info_channel" = "Channel";
-"build_info_prerelease_note" = "This is a pre-release build and is not the version customers are running.";
+"build_info_prerelease_note" = "This is a pre-release build.";
 
 /* Past dailies and replays */
 "puzzle_type_practice" = "Replay";
@@ -246,8 +253,8 @@
 "next_puzzle_countdown" = "Next in %@";
 
 /* Crash reports */
-"settings_send_crash_reports" = "Send crash reports";
-"settings_send_crash_reports_footer" = "Helps fix problems. Reports describe the failure, and never your games.";
+"settings_send_crash_reports" = "Share crash reports";
+"settings_send_crash_reports_footer" = "Help improve MenuMines by sending anonymous crash reports to the developer.";
 
 /* Game Center */
 "leaderboard_button" = "Leaderboard";

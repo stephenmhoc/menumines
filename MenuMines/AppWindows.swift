@@ -66,8 +66,14 @@ enum AppWindows {
         }
     }
 
+    /// "MenuMines Settings", as the HIG titles a single-pane settings window, with the name
+    /// this build goes by.
+    static var settingsTitle: String {
+        String(format: String(localized: "settings_window_title"), Bundle.main.appName)
+    }
+
     static func showSettings() {
-        show(id: "settings", title: String(localized: "settings_window_title"), remembersPosition: true) {
+        show(id: "settings", title: settingsTitle, remembersPosition: true) {
             SettingsView()
         }
     }
@@ -188,5 +194,14 @@ enum AppWindows {
                 NSApp.hide(nil)
             }
         }
+    }
+}
+
+extension Bundle {
+    /// The name the app goes by on screen, which differs between builds ("MenuMines Dev").
+    var appName: String {
+        object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+            ?? object(forInfoDictionaryKey: "CFBundleName") as? String
+            ?? "MenuMines"
     }
 }
