@@ -18,6 +18,7 @@
 		0F028CE2D0CE702690C2190A /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35754B0EBFF0F9FFFE8AC10A /* Telemetry.swift */; };
 		10F2FE36A6F14E920B043B33 /* Leaderboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97CFAB132FB1C3335D3D5797 /* Leaderboard.swift */; };
 		167AD792370C9A6079CF6390 /* StatsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3675EEBB405EC344C21CFED /* StatsSync.swift */; };
+		17BB73FC87B161ADE94EE7E0 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 5BB90995DB06D60310744327 /* AppIcon.icon */; };
 		17C08DAA326D67CC98D54EB3 /* ShareTextGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B648A394DE0AEEF23F9828 /* ShareTextGenerator.swift */; };
 		1AAB4FA4851A7989916CD057 /* DailyHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C50FCC877DB20521EF24084 /* DailyHistory.swift */; };
 		1CEE9517B8D11B41B5D4DA8C /* AccessibilityAnnouncer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C7B135A92EEE0D01E729E4 /* AccessibilityAnnouncer.swift */; };
@@ -68,6 +69,7 @@
 		6BF2A249296866F834C5A5BC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7188B7AA63E85EB97FFF5C /* SettingsView.swift */; };
 		6E5CAFAEE3F4D41120177106 /* GamePanelKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18503DFF1CFFB1AAB6AB4022 /* GamePanelKeyTests.swift */; };
 		6E88DF96BB3FB5BF08671823 /* ShortcutRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF240F6DE6112EEB6E826E7F /* ShortcutRecorderView.swift */; };
+		6ED9F83ECE0892AA68C0DA63 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 5BB90995DB06D60310744327 /* AppIcon.icon */; };
 		70B362CB5769D3DB4E44F5E8 /* CellTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C472106C2A58E477A16D4FA /* CellTile.swift */; };
 		743198F34B7804689B493A95 /* AppStoreScreenshotExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E832B1B6390C23CF9C532BAE /* AppStoreScreenshotExporter.swift */; };
 		77EDCD81B3566ADA2D0826A0 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F92D798C5BD2A4E2E6B47E2 /* StatsStore.swift */; };
@@ -116,6 +118,7 @@
 		C4C8F11BBE25AAA90D6C2AD1 /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2A987C41C36C974D88974B /* GlobalHotKey.swift */; };
 		C54A432038B0A1EAAB14DF16 /* AuditRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1250B5B1B5005EE50C62F4FE /* AuditRegressionTests.swift */; };
 		C6BAB0A438AA6BF5C4629778 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 81CEE9D9AF11F8C014D5DB43 /* PrivacyInfo.xcprivacy */; };
+		CCCC10A5D2CDBFA9077C5BBA /* AppIcon-Dev.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2145477067DBDBDF102CEEA1 /* AppIcon-Dev.icon */; };
 		D058C61BFA283FBBC37B45FB /* ControlsPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D431003B9D93530847D758 /* ControlsPopoverView.swift */; };
 		D0F4BFD88C1AD54D2EA543E4 /* DailyHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A5795058B264C67E6BA4DE /* DailyHistoryView.swift */; };
 		D49C8B4C3BEB4C96A227332B /* CellTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C472106C2A58E477A16D4FA /* CellTile.swift */; };
@@ -129,6 +132,7 @@
 		DC9EBF293EFEB97A73D688A8 /* GameStateBasicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DCE9598B0809B6DEDAE129 /* GameStateBasicTests.swift */; };
 		DD6C07E5CE92788BA55180F7 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B41D617D5DE64B68D019AC9E /* StatusItemController.swift */; };
 		DD7052A10D4FA01491F9EE3E /* StatusItemController+Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2C48A4CC9144931FD69D05 /* StatusItemController+Menu.swift */; };
+		E1F58BF0CF1450714241CDD4 /* AppIcon-Dev.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2145477067DBDBDF102CEEA1 /* AppIcon-Dev.icon */; };
 		E428DA04EDA026E5B809CA5A /* GamePanelCloseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FE5BDA1604AE0373D2745A3 /* GamePanelCloseTests.swift */; };
 		E7ADF7E923EB5299A3D4EB8E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC2F543118650223B289CEB5 /* Assets.xcassets */; };
 		E849DE565C59426DF74389CA /* AppWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45053DA2FA6A137CADC990B /* AppWindows.swift */; };
@@ -181,6 +185,7 @@
 		1C12ED5500D3B3ACCDC81ED6 /* DailyHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyHistoryTests.swift; sourceTree = "<group>"; };
 		1D21ED796BBA954A737F92C3 /* GlobalShortcutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalShortcutTests.swift; sourceTree = "<group>"; };
 		211C61B027C57AADD9AFC86E /* GameBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameBoardView.swift; sourceTree = "<group>"; };
+		2145477067DBDBDF102CEEA1 /* AppIcon-Dev.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "AppIcon-Dev.icon"; sourceTree = "<group>"; };
 		261DF9BFF0447B4AC12A501C /* AboutWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutWindow.swift; sourceTree = "<group>"; };
 		27421DF6D441A96417F354E7 /* MenuBarIconStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconStateTests.swift; sourceTree = "<group>"; };
 		281F15FCF92D92422E1B0F06 /* DayWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWatcher.swift; sourceTree = "<group>"; };
@@ -203,6 +208,7 @@
 		52A6FF436F3A01C0E75E63EB /* DailyBoardFairnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyBoardFairnessTests.swift; sourceTree = "<group>"; };
 		54DCE9598B0809B6DEDAE129 /* GameStateBasicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateBasicTests.swift; sourceTree = "<group>"; };
 		563E6DCE165D50096F39514C /* StatusItemController+Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatusItemController+Position.swift"; sourceTree = "<group>"; };
+		5BB90995DB06D60310744327 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		5BC1304C92B79352B532ED9A /* PastDailyStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyStatsTests.swift; sourceTree = "<group>"; };
 		5C8B14B521BE50D31D40DF28 /* GamePanelWindowSizeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelWindowSizeTests.swift; sourceTree = "<group>"; };
 		63D677FB8CB65375C89B901A /* ResetActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetActionTests.swift; sourceTree = "<group>"; };
@@ -409,6 +415,8 @@
 		B3000DFCD4C43EF7423120EF /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				2145477067DBDBDF102CEEA1 /* AppIcon-Dev.icon */,
+				5BB90995DB06D60310744327 /* AppIcon.icon */,
 				FC2F543118650223B289CEB5 /* Assets.xcassets */,
 				1833148887623D5ECC18BCB5 /* Localizable.xcstrings */,
 			);
@@ -537,6 +545,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E1F58BF0CF1450714241CDD4 /* AppIcon-Dev.icon in Resources */,
+				6ED9F83ECE0892AA68C0DA63 /* AppIcon.icon in Resources */,
 				E7ADF7E923EB5299A3D4EB8E /* Assets.xcassets in Resources */,
 				C0C9FE4AA51E44558DBD2084 /* Localizable.xcstrings in Resources */,
 				C6BAB0A438AA6BF5C4629778 /* PrivacyInfo.xcprivacy in Resources */,
@@ -547,6 +557,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCCC10A5D2CDBFA9077C5BBA /* AppIcon-Dev.icon in Resources */,
+				17BB73FC87B161ADE94EE7E0 /* AppIcon.icon in Resources */,
 				87ECB81C4023C58C537147D7 /* Assets.xcassets in Resources */,
 				2EB4B0AE666172D44AF4CCF6 /* Localizable.xcstrings in Resources */,
 				442F1B5B717D7B195986D303 /* PrivacyInfo.xcprivacy in Resources */,
