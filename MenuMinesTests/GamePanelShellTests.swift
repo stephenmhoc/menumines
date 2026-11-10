@@ -240,6 +240,8 @@ extension GamePanelTests {
         let title = AppWindows.settingsTitle
 
         let first = try await openWindow(AppWindows.showSettings, titled: title)
+        // Without the name nothing is saved, so say so rather than failing on the position.
+        #expect(first.frameAutosaveName == "MenuMines.settings")
         let visible = try #require(first.screen?.visibleFrame)
         let target = NSPoint(x: visible.minX + 40, y: visible.maxY - 40)
         first.setFrameTopLeftPoint(target)
@@ -249,6 +251,7 @@ extension GamePanelTests {
         let second = try await openWindow(AppWindows.showSettings, titled: title)
         defer { second.close() }
         #expect(second !== first)
+        #expect(second.frameAutosaveName == "MenuMines.settings")
         #expect(abs(second.frame.minX - target.x) < 1)
         #expect(abs(second.frame.maxY - target.y) < 1)
     }

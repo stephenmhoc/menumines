@@ -145,6 +145,15 @@ enum AppWindows {
         if hasToolbar {
             host.sceneBridgingOptions = [.toolbars]
         }
+        // A closed window of the same kind may not have been let go yet (the close notice
+        // is only heard through the app delegate, which tests don't have, and it lets go a
+        // turn later). It still holds the autosave name, and a name can only belong to one
+        // window: the new one's claim would fail and it would open centred.
+        if let stale = controllers[id] {
+            release(stale)
+            controllers[id] = nil
+        }
+
         let window = NSWindow(contentViewController: host)
         window.title = title
         if hasToolbar {
@@ -257,6 +266,7 @@ enum AppWindows {
         openedAt[ObjectIdentifier(window)] = nil
         if let id = controllers.first(where: { $0.value.window === window })?.key {
             let controller = controllers[id]
+            controller.map(release)
             // After the close has run its course, and only if a new window hasn't taken
             // its place in the meantime.
             DispatchQueue.main.async {
@@ -266,6 +276,16 @@ enum AppWindows {
             }
         }
         yieldFocusIfNoWindowsRemain(closing: window)
+    }
+
+    /// Saves where a window built here was left and gives up its autosave name, so the next
+    /// window of its kind can take the name and open in the same place.
+    private static func release(_ controller: NSWindowController) {
+        guard let window = controller.window else { return }
+        let name = window.frameAutosaveName
+        guard !name.isEmpty else { return }
+        window.saveFrame(usingName: name)
+        window.setFrameAutosaveName("")
     }
 
     /// The player asked for this window, so it comes forward whatever they were doing.
