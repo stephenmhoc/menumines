@@ -3,12 +3,15 @@
 "reset_accessibility_combined" = "Reset game. Status: %@";
 "reset_accessibility_hint" = "Click to reset today's puzzle";
 "reset_locked_hint" = "Today's puzzle can't be reset once it's started";
+"reset_accessibility_hint_past_day" = "Click to restart this day's board";
+"reset_locked_hint_past_daily" = "A past daily can't be reset once it's started";
 "about_menu_item" = "About MenuMines";
 "settings_menu_item" = "Settings…";
 "quit_menu_item" = "Quit MenuMines";
 "footer_menu_accessibility_label" = "App menu";
 "puzzle_type_daily" = "Daily";
 "puzzle_type_random" = "Random";
+"puzzle_type_past_daily" = "Past Daily";
 "puzzle_type_accessibility_label" = "%@ puzzle";
 
 /* Game status */
@@ -34,10 +37,11 @@
 /* Reset confirmation dialog */
 "reset_confirmation_title" = "Reset Game?";
 "reset_confirmation_message" = "This will restart today's puzzle.";
+"reset_confirmation_message_past_day" = "This will restart this day's board.";
 "reset_confirmation_cancel" = "Cancel";
 "reset_confirmation_confirm" = "Reset";
 
-/* MenuMinesApp - MenuBarExtra title */
+/* MenuBarIconView - status item accessibility labels */
 "menu_bar_title" = "MenuMines";
 "menu_bar_accessibility_incomplete" = "MenuMines, daily puzzle not completed";
 "menu_bar_accessibility_playing" = "MenuMines, game in progress, elapsed time %@";
@@ -50,6 +54,7 @@
 "copy_result_button" = "Copy";
 "share_preview_title" = "MenuMines result";
 "share_header_replay" = "MenuMines replay - %@";
+"share_header_past_daily" = "MenuMines - %@ (played later)";
 "share_header_random" = "MenuMines - Random board";
 "share_copied" = "Copied!";
 "share_header" = "MenuMines - %@";
@@ -58,6 +63,7 @@
 
 /* Stats feature */
 "stats_menu_item" = "Stats…";
+"daily_history_menu_item" = "Daily History…";
 "settings_window_title" = "Settings";
 "stats_window_title" = "Stats";
 "stats_games_played" = "Games Played";
@@ -79,6 +85,10 @@
 "stats_empty_subtitle" = "Finished puzzles appear here.";
 "stats_section_daily" = "Daily Puzzles";
 "stats_section_all" = "All Games";
+"stats_section_past_dailies" = "Past Dailies";
+"stats_past_dailies_played" = "Played Later";
+"stats_past_dailies_won" = "Won Later";
+"stats_past_dailies_footnote" = "Days played after the day itself. They aren't counted in daily stats, all games or streaks.";
 "stats_tab_summary" = "Summary";
 "stats_tab_history" = "History";
 "stats_tab_recent" = "Recent";
@@ -86,11 +96,23 @@
 "stats_calendar_today" = "Today";
 "stats_calendar_today_accessibility" = "Show today in daily history";
 "stats_calendar_previous_month" = "Previous month";
+"stats_calendar_first_month_help" = "MenuMines launched this month";
 "stats_calendar_next_month" = "Next month";
 "stats_calendar_month_accessibility" = "Daily history for %@";
 "stats_calendar_day_not_played" = "%@, not played";
 "stats_calendar_day_won" = "%@, won";
 "stats_calendar_day_lost" = "%@, lost";
+"stats_calendar_day_won_later" = "%@, won later";
+"stats_calendar_day_lost_later" = "%@, lost later";
+"stats_calendar_day_in_progress" = "%@, in progress";
+"stats_calendar_day_unavailable" = "%@, not available";
+"stats_calendar_hint_play" = "Play this day's puzzle. It's recorded as played later and doesn't count toward your streak.";
+"stats_calendar_hint_continue" = "Continue the game you started. It's recorded as played later.";
+"stats_calendar_hint_replay" = "Replay this board. Replays aren't recorded.";
+"stats_calendar_legend_on_the_day" = "On the day";
+"stats_calendar_legend_later" = "Played later";
+"stats_calendar_legend_in_progress" = "In progress";
+"stats_calendar_legend_not_played" = "Not played";
 "stats_calendar_day_today_prefix" = "Today, %@";
 "stats_recent_title" = "Recent Daily Results";
 "stats_recent_empty" = "No daily results yet.";
@@ -152,7 +174,6 @@
 
 /* About window */
 "about_title" = "MenuMines";
-"about_version" = "Version %@";
 "about_description" = "A new Minesweeper puzzle in your menu bar every day.";
 "about_support_email" = "support@merimerimeri.com";
 "about_copyright" = "© 2026";
@@ -173,13 +194,18 @@
 "build_info_channel" = "Channel";
 "build_info_prerelease_note" = "This is a pre-release build and is not the version customers are running.";
 
-/* Past daily replays */
+/* Past dailies and replays */
 "puzzle_type_practice" = "Replay";
-"stats_calendar_replay_hint" = "Click a past day to replay that board. Replays are not recorded.";
-"stats_calendar_day_replay" = "Replay %@";
-"replay_started_message" = "%@ is ready. Open MenuMines from the menu bar to play. Today's game is saved, and this replay isn't recorded.";
+"stats_calendar_replay_hint" = "Click a day you haven't played to play it now. It's recorded as played later and doesn't count toward streaks. Days you've already played open as a replay, which isn't recorded.";
 "return_to_today_button" = "Back to Today";
 "return_to_today_help" = "Leave this replay and go back to today's puzzle";
+"return_to_today_help_past_daily" = "Go back to today's puzzle. This game is kept for when you come back to it.";
+"past_daily_description" = "Past daily for %@, recorded as played later";
+"replay_description" = "Replay of %@, not recorded";
+"announcement_todays_puzzle" = "Today's puzzle";
+"missed_day_button" = "Play a Missed Day";
+"missed_day_continue_button" = "Continue a Missed Day";
+"missed_day_hint" = "Plays the puzzle for %@. It's recorded as played later and doesn't count toward your streak.";
 "share_play_line" = "⚡️ %d clicks · 🔗 %d chords · 🌊 %d opened at once";
 
 /* Next puzzle */

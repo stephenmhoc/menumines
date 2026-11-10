@@ -17,6 +17,10 @@ extension NSUbiquitousKeyValueStore: CloudKeyValueStoring {
 
 /// Reconciles this Mac's daily results with the copy in a player's iCloud.
 ///
+/// On-the-day results and past-daily results are kept under separate keys, as they are on
+/// the Mac, so that a version from before past dailies reads only what it understands and
+/// can't count a day played later toward a streak.
+///
 /// Results are stored one key per month. A whole-history value would let a Mac that hadn't
 /// finished downloading replace everything with the one day it knew about, and it would pass
 /// the store's 64KB-per-value ceiling in under two years. One key per day would run into the
@@ -31,6 +35,8 @@ struct DailyResultsCloud {
     /// across, and never written, because that's the key an older copy would overwrite.
     static let legacyKey = "dailyResults"
     static let monthKeyPrefix = "results."
+    /// Past-daily results, one key per month of puzzle days, like `monthKeyPrefix`.
+    static let pastMonthKeyPrefix = "past."
     static let resetKey = "statsResetAt"
 
     let cloud: CloudKeyValueStoring
@@ -38,6 +44,10 @@ struct DailyResultsCloud {
 
     static func monthKey(forSeed seed: Int64) -> String {
         "\(monthKeyPrefix)\(seed / 100)"
+    }
+
+    static func pastMonthKey(forSeed seed: Int64) -> String {
+        "\(pastMonthKeyPrefix)\(seed / 100)"
     }
 
     /// Merges the cloud into this Mac, then publishes whatever the cloud is missing.
@@ -64,12 +74,20 @@ struct DailyResultsCloud {
             .compactMap { cloud.data(forKey: $0) }
             .flatMap(decode)
 
-        return stats.merge(dailyResults: remote) || changed
+        if stats.merge(dailyResults: remote) {
+            changed = true
+        }
+
+        let remotePast = cloud.allKeys.filter { $0.hasPrefix(Self.pastMonthKeyPrefix) }
+            .compactMap { cloud.data(forKey: $0) }
+            .flatMap(decode)
+
+        return stats.merge(pastDailyResults: remotePast) || changed
     }
 
     /// Erases the cloud's history, and leaves a marker telling other Macs to do the same.
     func publishReset(at date: Date) {
-        for key in cloud.allKeys where key.hasPrefix(Self.monthKeyPrefix) {
+        for key in cloud.allKeys where key.hasPrefix(Self.monthKeyPrefix) || key.hasPrefix(Self.pastMonthKeyPrefix) {
             cloud.removeObject(forKey: key)
         }
         cloud.removeObject(forKey: Self.legacyKey)
@@ -78,7 +96,12 @@ struct DailyResultsCloud {
     }
 
     private func publish() {
+        // Past dailies are published whole, including any for a day that has an on-the-day
+        // result, so that every Mac writes the same value and none keeps rewriting another's.
         let months = Dictionary(grouping: stats.dailyResults) { Self.monthKey(forSeed: $0.dailySeed) }
+            .merging(
+                Dictionary(grouping: stats.storedPastDailyResults) { Self.pastMonthKey(forSeed: $0.dailySeed) }
+            ) { onTheDay, _ in onTheDay }
         var didWrite = false
 
         for (key, results) in months {

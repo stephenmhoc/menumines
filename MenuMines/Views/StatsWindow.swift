@@ -1,13 +1,24 @@
 import SwiftUI
 
+/// Which tab the Stats window is turned to. Lives outside the view so that the app can turn
+/// a window that's already open to the calendar.
+@Observable
+final class StatsNavigation {
+    var tab: StatsTab = .summary
+}
+
 /// Window for displaying game statistics.
 struct StatsWindow: View {
     let gameState: GameState
+    var navigation = StatsNavigation()
+    /// Takes the player to a past day's board. The window can't do that itself: it has to
+    /// come down and the game panel has to open.
+    var onPlayDay: (Int64) -> Void = { _ in }
 
     @State private var showResetConfirmation = false
-    @State private var replayedSeed: Int64?
-    @State private var selectedTab: StatsTab = .summary
     @AppStorage(Constants.SettingsKeys.showStreaks) private var showStreaks = true
+
+    private var selectedTab: StatsTab { navigation.tab }
 
     private var store: StatsStore {
         StatsStore.shared
@@ -15,7 +26,7 @@ struct StatsWindow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Picker("", selection: $selectedTab) {
+            Picker("", selection: Bindable(navigation).tab) {
                 ForEach(StatsTab.allCases) { tab in
                     Text(tab.title).tag(tab)
                 }
@@ -26,7 +37,9 @@ struct StatsWindow: View {
 
             Divider()
 
-            if store.hasResults {
+            // The calendar is how past days are found, so it's there before any game has
+            // been finished. The other tabs have nothing to show until one has.
+            if selectedTab == .history || store.hasResults || store.pastDailyGamesPlayed > 0 {
                 selectedContent
             } else {
                 emptyStateSection
@@ -69,34 +82,46 @@ struct StatsWindow: View {
                 .padding(.vertical, 4)
 
             allGamesMetricsSection
+
+            if store.pastDailyGamesPlayed > 0 {
+                Divider()
+                    .padding(.vertical, 4)
+
+                pastDailiesMetricsSection
+            }
         }
         .padding()
     }
 
     private var historySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            DailyCompletionCalendarView(
-                resultsBySeed: store.dailyResultsBySeed,
-                onReplay: { seed in
-                    gameState.startPractice(seed: seed)
-                    replayedSeed = seed
-                }
-            )
-
-            // A note rather than an alert, because there's nothing to decide: the board is
-            // already waiting, and the menu bar can't be opened on the player's behalf.
-            if let replayedSeed {
-                Text(String(
-                    format: String(localized: "replay_started_message"),
-                    replayDateDescription(for: replayedSeed)
-                ))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.updatesFrequently)
-            }
-        }
+        DailyCompletionCalendarView(
+            todaySeed: gameState.currentDaySeed,
+            onTheDay: store.dailyResultsBySeed,
+            later: store.pastDailyResultsBySeed,
+            inProgress: gameState.pastDailySeedsInProgress,
+            onPlay: onPlayDay
+        )
         .padding()
+    }
+
+    /// Days played after the fact, as a figure of their own. They're deliberately absent
+    /// from everything above: daily stats and streaks are about playing on the day.
+    private var pastDailiesMetricsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "stats_section_past_dailies"))
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            VStack(spacing: 10) {
+                metricRow(label: String(localized: "stats_past_dailies_played"), value: "\(store.pastDailyGamesPlayed)")
+                metricRow(label: String(localized: "stats_past_dailies_won"), value: "\(store.pastDailyWins)")
+            }
+
+            Text(String(localized: "stats_past_dailies_footnote"))
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     @ViewBuilder
@@ -123,10 +148,13 @@ struct StatsWindow: View {
             VStack(spacing: 10) {
                 metricRow(label: String(localized: "stats_games_played"), value: "\(store.dailyGamesPlayed)")
                 metricRow(label: String(localized: "stats_wins"), value: "\(store.dailyWins)")
-                metricRow(label: String(localized: "stats_win_rate"), value: formattedDailyWinRate)
-                metricRow(label: String(localized: "stats_completion_rate"), value: formattedDailyCompletionRate)
-                metricRow(label: String(localized: "stats_best_time"), value: formattedDailyBestTime)
-                metricRow(label: String(localized: "stats_avg_time"), value: formattedDailyAverageTime)
+                metricRow(label: String(localized: "stats_win_rate"), value: formattedRate(store.dailyWinRate))
+                metricRow(
+                    label: String(localized: "stats_completion_rate"),
+                    value: formattedRate(store.dailyCompletionRate)
+                )
+                metricRow(label: String(localized: "stats_best_time"), value: formattedTime(store.dailyBestTime))
+                metricRow(label: String(localized: "stats_avg_time"), value: formattedTime(store.dailyAverageTime))
                 if showStreaks {
                     streaksRows
                 }
@@ -143,9 +171,9 @@ struct StatsWindow: View {
             VStack(spacing: 10) {
                 metricRow(label: String(localized: "stats_games_played"), value: "\(store.gamesPlayed)")
                 metricRow(label: String(localized: "stats_wins"), value: "\(store.wins)")
-                metricRow(label: String(localized: "stats_win_rate"), value: formattedWinRate)
-                metricRow(label: String(localized: "stats_best_time"), value: formattedBestTime)
-                metricRow(label: String(localized: "stats_avg_time"), value: formattedAverageTime)
+                metricRow(label: String(localized: "stats_win_rate"), value: formattedRate(store.winRate))
+                metricRow(label: String(localized: "stats_best_time"), value: formattedTime(store.bestTime))
+                metricRow(label: String(localized: "stats_avg_time"), value: formattedTime(store.averageTime))
             }
         }
     }
@@ -175,43 +203,8 @@ struct StatsWindow: View {
         return (Double(rate) / 100).formatted(.percent)
     }
 
-    private var formattedDailyWinRate: String {
-        formattedRate(store.dailyWinRate)
-    }
-
-    private var formattedWinRate: String {
-        formattedRate(store.winRate)
-    }
-
-    private var formattedDailyCompletionRate: String {
-        formattedRate(store.dailyCompletionRate)
-    }
-
-    private var formattedDailyBestTime: String {
-        guard let time = store.dailyBestTime else { return String(localized: "stats_no_data") }
-        return formatTime(time)
-    }
-
-    private var formattedDailyAverageTime: String {
-        guard let time = store.dailyAverageTime else { return String(localized: "stats_no_data") }
-        return formatTime(time)
-    }
-
-    private var formattedBestTime: String {
-        guard let time = store.bestTime else { return String(localized: "stats_no_data") }
-        return formatTime(time)
-    }
-
-    private var formattedAverageTime: String {
-        guard let time = store.averageTime else { return String(localized: "stats_no_data") }
-        return formatTime(time)
-    }
-
-    private func formatTime(_ seconds: TimeInterval) -> String {
-        let totalSeconds = Int(seconds)
-        let minutes = totalSeconds / 60
-        let secs = totalSeconds % 60
-        return String(format: "%02d:%02d", minutes, secs)
+    private func formattedTime(_ time: TimeInterval?) -> String {
+        time?.clockString ?? String(localized: "stats_no_data")
     }
 
     // MARK: - Empty State
@@ -270,11 +263,6 @@ struct StatsWindow: View {
         .padding()
     }
 
-    private func replayDateDescription(for seed: Int64) -> String {
-        guard let date = dateFromSeed(seed) else { return "" }
-        return date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
-    }
-
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -283,7 +271,7 @@ struct StatsWindow: View {
     }
 }
 
-private enum StatsTab: String, CaseIterable, Identifiable {
+enum StatsTab: String, CaseIterable, Identifiable {
     case summary
     case history
     case recent
@@ -304,9 +292,17 @@ private enum StatsTab: String, CaseIterable, Identifiable {
 
 // MARK: - Daily Completion Calendar
 
+/// A month of puzzle days. It shows how each one went, and it's where a past day is picked
+/// to play: a day with no result as a recorded past daily, any other as a replay.
 private struct DailyCompletionCalendarView: View {
-    let resultsBySeed: [Int64: GameResult]
-    let onReplay: (Int64) -> Void
+    let todaySeed: Int64
+    /// Results from the day itself.
+    let onTheDay: [Int64: GameResult]
+    /// Results from past dailies, for days with no on-the-day result.
+    let later: [Int64: GameResult]
+    /// Days with a past daily started and not finished.
+    let inProgress: Set<Int64>
+    let onPlay: (Int64) -> Void
 
     @State private var displayedMonth = Self.currentMonthStart()
 
@@ -350,6 +346,10 @@ private struct DailyCompletionCalendarView: View {
                     Image(systemName: "chevron.left")
                 }
                 .buttonStyle(.borderless)
+                .disabled(isShowingLaunchMonthOrEarlier)
+                .help(String(localized: isShowingLaunchMonthOrEarlier
+                    ? "stats_calendar_first_month_help"
+                    : "stats_calendar_previous_month"))
                 .accessibilityLabel(String(localized: "stats_calendar_previous_month"))
 
                 Button {
@@ -380,16 +380,18 @@ private struct DailyCompletionCalendarView: View {
                 ForEach(calendarCells) { cell in
                     CalendarDayCell(
                         cell: cell,
-                        result: result(for: cell),
-                        isToday: isToday(cell),
-                        onReplay: replayAction(for: cell)
+                        day: day(for: cell),
+                        todayResult: onTheDay[todaySeed],
+                        onPlay: playAction(for: cell)
                     )
                 }
             }
 
+            CalendarLegend()
+
             Text(String(localized: "stats_calendar_replay_hint"))
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -415,6 +417,12 @@ private struct DailyCompletionCalendarView: View {
         Self.calendar.compare(displayedMonth, to: Self.currentMonthStart(), toGranularity: .month) != .orderedAscending
     }
 
+    /// There are no puzzles before launch, so there's nothing to page back to.
+    private var isShowingLaunchMonthOrEarlier: Bool {
+        let order = Self.calendar.compare(displayedMonth, to: DailyHistory.launchMonthStart, toGranularity: .month)
+        return order != .orderedDescending
+    }
+
     private var calendarCells: [CalendarCell] {
         let calendar = Self.calendar
         guard let dayRange = calendar.range(of: .day, in: .month, for: displayedMonth) else {
@@ -433,29 +441,30 @@ private struct DailyCompletionCalendarView: View {
         return cells
     }
 
-    private func result(for cell: CalendarCell) -> GameResult? {
+    private func day(for cell: CalendarCell) -> DailyHistory.Day? {
         guard let date = cell.date else { return nil }
-        return resultsBySeed[seedFromDate(date)]
+        return DailyHistory.day(
+            forSeed: seedFromDate(date),
+            todaySeed: todaySeed,
+            onTheDay: onTheDay,
+            later: later,
+            inProgress: inProgress
+        )
     }
 
-    /// Returns an action only for days that are actually replayable. Today is the ranked
-    /// puzzle and must be played as such, and future days have no board yet.
-    private func replayAction(for cell: CalendarCell) -> (() -> Void)? {
-        guard let date = cell.date, !isToday(cell) else { return nil }
-        guard date < Date() else { return nil }
+    /// Returns an action only for days that can be played from here. Today is the ranked
+    /// puzzle and is played as itself, future days have no board yet, and there was no
+    /// puzzle before launch.
+    private func playAction(for cell: CalendarCell) -> (() -> Void)? {
+        guard let date = cell.date, day(for: cell)?.play != nil else { return nil }
 
         let seed = seedFromDate(date)
-        return { onReplay(seed) }
-    }
-
-    private func isToday(_ cell: CalendarCell) -> Bool {
-        guard let date = cell.date else { return false }
-        return seedFromDate(date) == seedFromDate(Date())
+        return { onPlay(seed) }
     }
 
     private func moveMonth(by value: Int) {
         guard let month = Self.calendar.date(byAdding: .month, value: value, to: displayedMonth) else { return }
-        displayedMonth = month
+        displayedMonth = max(month, DailyHistory.launchMonthStart)
     }
 }
 
@@ -465,107 +474,243 @@ private struct CalendarCell: Identifiable {
     let day: Int?
 }
 
-private struct CalendarDayCell: View {
-    let cell: CalendarCell
-    let result: GameResult?
-    let isToday: Bool
-    let onReplay: (() -> Void)?
+/// Says what the tiles' marks mean. The words carry it, so it reads the same to VoiceOver.
+private struct CalendarLegend: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            entry(String(localized: "stats_calendar_legend_on_the_day")) {
+                CalendarTileBackground(style: .onTheDay, tint: .accentColor)
+            }
+            entry(String(localized: "stats_calendar_legend_later")) {
+                CalendarTileBackground(style: .later, tint: .accentColor)
+            }
+            entry(String(localized: "stats_calendar_legend_in_progress")) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 8, weight: .heavy))
+                    .foregroundStyle(Color.orange)
+            }
+            entry(String(localized: "stats_calendar_legend_not_played")) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 6, weight: .bold))
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+
+    private func entry(_ text: String, @ViewBuilder swatch: () -> some View) -> some View {
+        HStack(spacing: 4) {
+            swatch()
+                .frame(width: 12, height: 10)
+                .accessibilityHidden(true)
+            Text(text)
+                .lineLimit(1)
+        }
+    }
+}
+
+/// A tile's fill and outline. A result from the day itself is filled with a solid outline,
+/// and one from later is hollow with a dashed outline, so they differ by more than color.
+private struct CalendarTileBackground: View {
+    enum Style {
+        case plain, onTheDay, later
+    }
+
+    let style: Style
+    var tint: Color = .accentColor
+    var isToday = false
 
     var body: some View {
-        if let onReplay {
-            Button(action: onReplay) { tile }
-                .buttonStyle(.plain)
-                .help(String(localized: "stats_calendar_replay_hint"))
-                .accessibilityLabel(replayAccessibilityLabel)
-                .accessibilityAddTraits(.isButton)
-        } else {
-            tile
-        }
-    }
-
-    private var replayAccessibilityLabel: String {
-        String(format: String(localized: "stats_calendar_day_replay"), accessibilityLabel)
-    }
-
-    private var tile: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 4)
-                .fill(fillColor)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(borderColor, lineWidth: borderLineWidth)
-                )
-
-            if let day = cell.day {
-                Text("\(day)")
-                    .font(.caption2)
-                    .fontWeight(result == nil ? .regular : .semibold)
-                    .monospacedDigit()
-                    .foregroundStyle(textColor)
-            }
-
-            // Win and loss differ by more than color, for anyone who can't see the difference.
-            if let result {
-                Image(systemName: result.won ? "checkmark" : "xmark")
-                    .font(.system(size: 6, weight: .bold))
-                    .foregroundStyle(result.won ? Color.accentColor : Color.red)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(2)
-            }
-        }
-        .frame(height: 26)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(onReplay == nil ? accessibilityLabel : "")
-        .accessibilityHidden(cell.date == nil)
+        RoundedRectangle(cornerRadius: 4)
+            .fill(fillColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(borderColor, style: strokeStyle)
+            )
     }
 
     private var fillColor: Color {
-        guard let result else {
-            return Color(nsColor: .controlBackgroundColor)
-        }
-        return result.won ? Color.accentColor.opacity(0.28) : Color.red.opacity(0.24)
+        style == .onTheDay ? tint.opacity(0.26) : Color(nsColor: .controlBackgroundColor)
     }
 
     private var borderColor: Color {
         if isToday {
             return Color.accentColor
         }
-        guard let result else {
+        switch style {
+        case .plain:
             return Color(nsColor: .separatorColor).opacity(0.7)
+        case .onTheDay:
+            return tint.opacity(0.6)
+        case .later:
+            return tint.opacity(0.85)
         }
-        return result.won ? Color.accentColor.opacity(0.65) : Color.red.opacity(0.55)
     }
 
-    private var borderLineWidth: CGFloat {
-        isToday ? 2 : 1
+    private var strokeStyle: StrokeStyle {
+        if isToday {
+            return StrokeStyle(lineWidth: 2)
+        }
+        return style == .later ? StrokeStyle(lineWidth: 1.5, dash: [3, 2]) : StrokeStyle(lineWidth: 1)
+    }
+}
+
+private struct CalendarDayCell: View {
+    let cell: CalendarCell
+    /// Nil for the blank tiles before the 1st.
+    let day: DailyHistory.Day?
+    /// Today's tile shows how today went, though it can't be played from here.
+    let todayResult: GameResult?
+    let onPlay: (() -> Void)?
+
+    @State private var isHovered = false
+
+    var body: some View {
+        if let onPlay {
+            Button(action: onPlay) { tile }
+                .buttonStyle(.plain)
+                .onHover { isHovered = $0 }
+                .help(playHint)
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityHint(playHint)
+                .accessibilityAddTraits(.isButton)
+        } else {
+            tile
+                .accessibilityLabel(accessibilityLabel)
+        }
+    }
+
+    /// The result to draw, from the day itself or from later.
+    private var result: GameResult? {
+        switch day {
+        case .playedOnTheDay(let result), .playedLater(let result):
+            return result
+        case .today:
+            return todayResult
+        default:
+            return nil
+        }
+    }
+
+    private var isPlayedLater: Bool {
+        if case .playedLater = day { return true }
+        return false
+    }
+
+    /// Before launch and the future: there's no board to play.
+    private var isUnavailable: Bool {
+        day == .beforeLaunch || day == .future
+    }
+
+    private var backgroundStyle: CalendarTileBackground.Style {
+        guard result != nil else { return .plain }
+        return isPlayedLater ? .later : .onTheDay
+    }
+
+    /// The mark in the corner. Each state has a shape of its own, so none depends on color.
+    private var symbol: (name: String, color: Color)? {
+        if let result {
+            return result.won ? ("checkmark", .accentColor) : ("xmark", .red)
+        }
+        switch day {
+        case .inProgress:
+            return ("ellipsis", .orange)
+        case .unplayed:
+            return ("play.fill", .accentColor)
+        default:
+            return nil
+        }
+    }
+
+    private var tile: some View {
+        ZStack {
+            CalendarTileBackground(
+                style: backgroundStyle,
+                tint: result?.won == false ? .red : .accentColor,
+                isToday: day == .today
+            )
+
+            if onPlay != nil, isHovered {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.primary.opacity(0.08))
+            }
+
+            if let number = cell.day {
+                Text("\(number)")
+                    .font(.caption2)
+                    .fontWeight(result == nil && day != .inProgress ? .regular : .semibold)
+                    .monospacedDigit()
+                    .foregroundStyle(textColor)
+            }
+
+            if let symbol {
+                Image(systemName: symbol.name)
+                    .font(.system(size: day == .inProgress ? 8 : 6, weight: day == .inProgress ? .heavy : .bold))
+                    .foregroundStyle(symbol.color)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(2.5)
+            }
+        }
+        .frame(height: 26)
+        .opacity(isUnavailable ? 0.45 : 1)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityHidden(cell.date == nil)
     }
 
     private var textColor: Color {
-        result == nil ? .secondary : .primary
+        if result != nil || day == .inProgress {
+            return .primary
+        }
+        // A day that's waiting to be played reads as something to click.
+        return day == .unplayed ? .accentColor : .secondary
+    }
+
+    /// What clicking the tile does, so the player knows before they click whether the game
+    /// will be recorded.
+    private var playHint: String {
+        switch day?.play {
+        case .recorded:
+            return String(localized: "stats_calendar_hint_play")
+        case .resume:
+            return String(localized: "stats_calendar_hint_continue")
+        case .practice:
+            return String(localized: "stats_calendar_hint_replay")
+        case nil:
+            return ""
+        }
     }
 
     private var accessibilityLabel: String {
-        guard let date = cell.date else { return "" }
+        guard let date = cell.date, let day else { return "" }
         let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
 
-        guard let result else {
-            return todayAdjustedAccessibilityLabel(
-                String(format: String(localized: "stats_calendar_day_not_played"), dateString)
+        let key: String.LocalizationValue
+        switch day {
+        case .beforeLaunch, .future:
+            key = "stats_calendar_day_unavailable"
+        case .today:
+            let state: String.LocalizationValue
+            if let todayResult {
+                state = todayResult.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"
+            } else {
+                state = "stats_calendar_day_not_played"
+            }
+            return String(
+                format: String(localized: "stats_calendar_day_today_prefix"),
+                String(format: String(localized: state), dateString)
             )
+        case .unplayed:
+            key = "stats_calendar_day_not_played"
+        case .inProgress:
+            key = "stats_calendar_day_in_progress"
+        case .playedOnTheDay(let result):
+            key = result.won ? "stats_calendar_day_won" : "stats_calendar_day_lost"
+        case .playedLater(let result):
+            key = result.won ? "stats_calendar_day_won_later" : "stats_calendar_day_lost_later"
         }
-        if result.won {
-            return todayAdjustedAccessibilityLabel(
-                String(format: String(localized: "stats_calendar_day_won"), dateString)
-            )
-        }
-        return todayAdjustedAccessibilityLabel(
-            String(format: String(localized: "stats_calendar_day_lost"), dateString)
-        )
-    }
-
-    private func todayAdjustedAccessibilityLabel(_ label: String) -> String {
-        guard isToday else { return label }
-        return String(format: String(localized: "stats_calendar_day_today_prefix"), label)
+        return String(format: String(localized: key), dateString)
     }
 }
 
@@ -595,7 +740,7 @@ private struct RecentDailyResultsView: View {
                         Text(result.won ? String(localized: "stats_result_won") : String(localized: "stats_result_lost"))
                             .foregroundStyle(.secondary)
 
-                        Text(formatTime(result.elapsedTime))
+                        Text(result.elapsedTime.clockString)
                             .fontWeight(.medium)
                             .monospacedDigit()
                     }
@@ -613,15 +758,8 @@ private struct RecentDailyResultsView: View {
             format: String(localized: "stats_recent_accessibility_label"),
             StatsRecentResults.formattedDate(for: result),
             status,
-            formatTime(result.elapsedTime)
+            result.elapsedTime.clockString
         )
-    }
-
-    private func formatTime(_ seconds: TimeInterval) -> String {
-        let totalSeconds = Int(seconds)
-        let minutes = totalSeconds / 60
-        let secs = totalSeconds % 60
-        return String(format: "%02d:%02d", minutes, secs)
     }
 }
 

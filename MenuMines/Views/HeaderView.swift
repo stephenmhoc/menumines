@@ -6,14 +6,11 @@ struct HeaderView: View {
     let flagCount: Int
     let canReset: Bool
     var isHoldingCell: Bool = false
+    /// What a reset would do, for VoiceOver.
+    var resetHint: String = String(localized: "reset_accessibility_hint")
+    /// Why reset is unavailable, when it is.
+    var resetLockedHint: String = String(localized: "reset_locked_hint")
     let onReset: () -> Void
-
-    private var timeDisplay: String {
-        let totalSeconds = Int(elapsedTime)
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
 
     private var statusEmoji: String {
         switch status {
@@ -92,14 +89,14 @@ struct HeaderView: View {
             }
             .buttonStyle(.plain)
             .disabled(!canReset)
-            .help(canReset ? String(localized: "reset_button") : String(localized: "reset_locked_hint"))
+            .help(canReset ? String(localized: "reset_button") : resetLockedHint)
             .accessibilityLabel(String(format: String(localized: "reset_accessibility_combined"), statusDescription))
-            .accessibilityHint(canReset ? String(localized: "reset_accessibility_hint") : String(localized: "reset_locked_hint"))
+            .accessibilityHint(canReset ? resetHint : resetLockedHint)
 
             Spacer()
 
             // Timer
-            Text(timeDisplay)
+            Text(elapsedTime.clockString)
                 .font(.system(size: 14, weight: .medium, design: .monospaced))
                 .frame(minWidth: 60, alignment: .trailing)
                 .accessibilityLabel(timerAccessibilityLabel)

@@ -295,7 +295,7 @@ struct StatsStoreTests {
         ])
 
         #expect(store.dailyResultsBySeed[20260125]?.won == true)
-        #expect(store.dailyResult(forSeed: 20260126)?.won == false)
+        #expect(store.dailyResultsBySeed[20260126]?.won == false)
         #expect(store.dailyBestTime == 100)
         #expect(store.dailyAverageTime == 100)
         #expect(store.recentDailyResults.map(\.dailySeed) == [20260126, 20260125])

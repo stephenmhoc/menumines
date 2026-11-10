@@ -125,6 +125,52 @@ struct GameSnapshot: Codable {
     static func clear() {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
+
+    // MARK: - Past dailies
+
+    /// Prefix of the namespaces that hold past dailies left in progress, one per day
+    /// (`gameSnapshot.past.<seed>`).
+    ///
+    /// Separate from the active snapshot so that today's game and any number of started past
+    /// days can all wait for the player at once, and so that versions that can't decode a
+    /// past daily never read one.
+    private static let pastDailyNamespacePrefix = "past."
+
+    private static func pastDailyNamespace(forSeed seed: Int64) -> String {
+        "\(pastDailyNamespacePrefix)\(seed)"
+    }
+
+    /// Saves a past daily that's under way, so it's there when the player picks its day again.
+    func saveAsPastDaily() {
+        Self.withStorageKey(Self.pastDailyNamespace(forSeed: dailySeed)) { save() }
+    }
+
+    /// The past daily left in progress for a day, if there is one.
+    static func loadPastDaily(seed: Int64) -> GameSnapshot? {
+        withStorageKey(pastDailyNamespace(forSeed: seed)) {
+            guard let snapshot = loadAnyDay() else { return nil }
+            // Only a game under way is kept. Anything else under this key isn't one of ours.
+            guard snapshot.dailySeed == seed, snapshot.status == .playing else {
+                clear()
+                return nil
+            }
+            return snapshot
+        }
+    }
+
+    /// Forgets a day's saved progress, once it's finished or no longer needed.
+    static func clearPastDaily(seed: Int64) {
+        withStorageKey(pastDailyNamespace(forSeed: seed)) { clear() }
+    }
+
+    /// The days that have a past daily saved in progress.
+    static func pastDailySeedsInProgress() -> Set<Int64> {
+        let prefix = "\(baseStorageKey).\(pastDailyNamespacePrefix)"
+        let seeds = UserDefaults.standard.dictionaryRepresentation().keys.compactMap { key in
+            key.hasPrefix(prefix) ? Int64(key.dropFirst(prefix.count)) : nil
+        }
+        return Set(seeds)
+    }
 }
 
 // MARK: - GamePersistenceCoordinator
@@ -155,6 +201,15 @@ enum GamePersistenceCoordinator {
     /// Used to come back from a replay, or to show a result from another Mac.
     static func restoreToday() -> GameState {
         restoreSavedState(todaySeed: seedFromDate(Date()))
+    }
+
+    /// Restores a past daily the player started and left, exactly as they left it.
+    /// - Returns: Nil if there's nothing saved for that day.
+    static func restorePastDaily(seed: Int64) -> GameState? {
+        guard let snapshot = GameSnapshot.loadPastDaily(seed: seed) else { return nil }
+        let state = restoreFromSnapshot(snapshot)
+        state.puzzleType = .pastDaily
+        return state
     }
 
     // MARK: - Private Decision Logic
@@ -252,7 +307,7 @@ enum GamePersistenceCoordinator {
     /// Attempts to restore game state from stats if today's puzzle was already completed.
     /// - Returns: GameState restored from stats, or nil if stats don't exist or are invalid
     private static func restoreFromStats(seed: Int64, board: Board) -> GameState? {
-        guard let stats = getStats(for: Date()) else { return nil }
+        guard let stats = getStats(forSeed: seed) else { return nil }
 
         guard stats.seed == seed else {
             // Data corruption - stats seed doesn't match expected seed
@@ -288,7 +343,7 @@ enum GamePersistenceCoordinator {
 
     /// Creates a fresh random puzzle.
     private static func createRandomPuzzle() -> GameState {
-        let seed = -Int64.random(in: 1...Int64.max)
+        let seed = GameState.randomPuzzleSeed()
         let board = Board(seed: seed)
         return GameState(board: board, dailySeed: seed, puzzleType: .random)
     }

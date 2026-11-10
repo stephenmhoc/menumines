@@ -15,8 +15,18 @@ final class StatusItemController: NSObject {
     private var clickMonitors: [Any] = []
     private var workspaceObservers: [NSObjectProtocol] = []
 
+    /// When the panel last closed, on the clock that stamps events.
+    private var closedAt: TimeInterval?
+
+    /// Whether the panel was opened from one of the app's windows, which leaves the app
+    /// active behind it. Closing the panel then has to hand focus back.
+    private var wasOpenedFromWindow = false
+
     /// Space between the menu bar and the panel, and between the panel and the screen edge.
     private static let margin: CGFloat = 6
+
+    /// The longest a click can wait to be handled and still count as the one that closed the panel.
+    private static let sameClickWindow: TimeInterval = 1
 
     var isOpen: Bool { panel.isVisible }
 
@@ -26,6 +36,8 @@ final class StatusItemController: NSObject {
 
         panel.onCancel = { [weak self] in self?.close() }
         AppWindows.onWillShowWindow = { [weak self] in self?.close() }
+        AppWindows.onShowGame = { [weak self] in self?.openFromWindow() }
+        AppWindows.isGameShowing = { [weak self] in self?.isOpen ?? false }
         configureButton()
     }
 
@@ -49,14 +61,52 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func buttonPressed() {
-        let event = NSApp.currentEvent
+        handlePress(NSApp.currentEvent)
+    }
+
+    /// A press on the icon toggles the panel, going by how things stood when the mouse went
+    /// down rather than how they stand now.
+    ///
+    /// The system draws the icon in a window of its own, so the click lands in another
+    /// process and is passed on from there. That makes it a click elsewhere as well as a
+    /// press, and if the click elsewhere is heard first the panel is already closed by the
+    /// time the press arrives. Reopening it then would leave it looking as if it never closed.
+    func handlePress(_ event: NSEvent?) {
         if event?.type == .rightMouseDown || event?.modifierFlags.contains(.control) == true {
             showMenu()
-        } else if isOpen {
+            return
+        }
+
+        let wasOpenAtMouseDown: Bool
+        if isOpen {
+            wasOpenAtMouseDown = true
+        } else if let event, event.type == .leftMouseDown, let closedAt {
+            // Only a close this click could have caused counts, so a clock that disagrees
+            // with the events' can't keep the panel shut.
+            wasOpenAtMouseDown = (0...Self.sameClickWindow).contains(closedAt - event.timestamp)
+        } else {
+            wasOpenAtMouseDown = false
+        }
+
+        if wasOpenAtMouseDown {
             close()
+            // This click has had its say. One made before it's handled should open the panel.
+            closedAt = nil
         } else {
             open()
         }
+    }
+
+    /// Where the icon is on the screen.
+    var iconFrame: NSRect? { statusItem.button?.window?.frame }
+
+    /// Whether a click seen from outside the app landed on the icon.
+    func isOnIcon(_ event: NSEvent) -> Bool {
+        guard let iconFrame else { return false }
+
+        // An event with no window gives its place on the screen.
+        let location = event.window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+        return iconFrame.contains(location)
     }
 
     func open() {
@@ -77,13 +127,42 @@ final class StatusItemController: NSObject {
         startWatchingForDismissal()
     }
 
+    /// Opens the panel in place of a window of ours that has just closed.
+    ///
+    /// Showing that window activated the app, and it stays active behind the panel. That's
+    /// what lets the panel take the keyboard straight from the window, but an agent app
+    /// left active with nothing on screen swallows the keys, so `close` gives focus back.
+    func openFromWindow() {
+        open()
+        wasOpenedFromWindow = true
+    }
+
     func close() {
+        close(returningFocus: true)
+    }
+
+    private func close(returningFocus: Bool) {
         guard isOpen else { return }
 
         stopWatchingForDismissal()
         panel.orderOut(nil)
         panel.contentViewController = nil
         statusItem.button?.highlight(false)
+        closedAt = ProcessInfo.processInfo.systemUptime
+
+        if returningFocus {
+            returnFocusIfTaken()
+        }
+    }
+
+    /// Hands focus back to the player's own app, if the panel was holding it for ours.
+    private func returnFocusIfTaken() {
+        guard wasOpenedFromWindow else { return }
+        wasOpenedFromWindow = false
+
+        if NSApp.isActive {
+            AppWindows.yieldFocusIfNoWindowsRemain()
+        }
     }
 
     /// Under the icon, kept on the icon's screen.
@@ -102,8 +181,12 @@ final class StatusItemController: NSObject {
     private func startWatchingForDismissal() {
         let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown]
 
-        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: clicks, handler: { [weak self] _ in
-            MainActor.assumeIsolated { self?.close() }
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: clicks, handler: { [weak self] event in
+            // A click on the icon also arrives as a press, and the press decides.
+            MainActor.assumeIsolated {
+                guard let self, !self.isOnIcon(event) else { return }
+                self.close()
+            }
         }) {
             clickMonitors.append(monitor)
         }
@@ -155,9 +238,12 @@ final class StatusItemController: NSObject {
     // MARK: - Menu
 
     private func showMenu() {
-        close()
+        // Focus goes back once the menu is done with, not while it's tracking.
+        close(returningFocus: false)
+        defer { returnFocusIfTaken() }
 
         let menu = NSMenu()
+        menu.addItem(item("daily_history_menu_item", #selector(showDailyHistory)))
         menu.addItem(item("stats_menu_item", #selector(showStats)))
         menu.addItem(item("settings_menu_item", #selector(showSettings)))
         menu.addItem(.separator())
@@ -178,6 +264,10 @@ final class StatusItemController: NSObject {
 
     @objc private func showStats() {
         AppWindows.showStats(gameState: gameState)
+    }
+
+    @objc private func showDailyHistory() {
+        AppWindows.showDailyHistory(gameState: gameState)
     }
 
     @objc private func showSettings() {

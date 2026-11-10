@@ -49,14 +49,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-deriveddata-
 
-      - name: Build
-        run: |
-          xcodebuild build \
-            -scheme MenuMines \
-            -destination 'platform=macOS' \
-            -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO
-
       - name: Test
         run: |
           xcodebuild test \

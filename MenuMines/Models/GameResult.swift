@@ -1,20 +1,37 @@
 import Foundation
 
-/// Distinguishes today's daily puzzle from the two kinds of unranked play.
+/// Distinguishes today's daily puzzle from the other kinds of play.
 enum PuzzleType: String, Codable {
-    /// Today's puzzle. The only kind that counts toward completion, stats and streaks.
+    /// Today's puzzle, played on its day. The only kind that counts toward on-the-day
+    /// completion, daily stats, streaks and the leaderboard.
     case daily
     /// A generated board for continuous play once the daily is done.
     case random
-    /// A replay of an earlier day's board.
+    /// A replay of an earlier day's board that the player already has a result for.
     ///
-    /// Deliberately unranked: letting a replay record a result would mean a missed day could
-    /// be filled in afterwards, which would make streaks meaningless.
+    /// Records nothing, so a day's result can't be improved by playing it again.
     case practice
+    /// An earlier day's board, played for the first time after its day has passed.
+    ///
+    /// Recorded once per day, but in storage of its own (`StatsStore.pastDailyResults`), which
+    /// nothing that computes streaks, daily stats or the leaderboard reads. That is what keeps
+    /// a streak meaning "played on the day": a missed day can be filled in on the calendar,
+    /// and it shows there as played later, but it can never join or repair a streak.
+    ///
+    /// Versions up to 1.0.22 can't decode this raw value. They never meet it: past dailies
+    /// are saved under keys of their own, on this Mac and in iCloud, that those versions
+    /// don't read.
+    case pastDaily
 
     /// Whether a win here counts on the leaderboard.
     var isRanked: Bool {
         self == .daily
+    }
+
+    /// Whether the board is a day's own board, played by the daily rules: fully determined by
+    /// the seed, with a marked opening cell and no mines moved for the first click.
+    var usesDailyBoard: Bool {
+        self != .random
     }
 }
 
@@ -33,7 +50,7 @@ struct GameResult: Codable, Equatable {
     /// Timestamp when the game was completed.
     let completedAt: Date
 
-    /// Whether this was a daily puzzle or a random continuous play puzzle.
+    /// Which kind of puzzle this was.
     let puzzleType: PuzzleType
 
     /// Creates a game result from the current game state.

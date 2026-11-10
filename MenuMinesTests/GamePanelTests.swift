@@ -7,7 +7,7 @@ import Testing
 @Suite("Game panel", .serialized)
 @MainActor
 struct GamePanelTests {
-    private enum Key {
+    enum Key {
         static let right: (code: UInt16, characters: String) = (124, "\u{F703}")
         static let down: (code: UInt16, characters: String) = (125, "\u{F701}")
         static let space: (code: UInt16, characters: String) = (49, " ")
@@ -15,7 +15,7 @@ struct GamePanelTests {
         static let escape: (code: UInt16, characters: String) = (53, "\u{1B}")
     }
 
-    private func press(_ key: (code: UInt16, characters: String), in controller: StatusItemController) async throws {
+    func press(_ key: (code: UInt16, characters: String), in controller: StatusItemController) async throws {
         try await takeKeyboard(for: controller)
 
         let event = try #require(NSEvent.keyEvent(
@@ -36,7 +36,7 @@ struct GamePanelTests {
 
     /// Another process can take activation from a test run at any moment, more so with the
     /// screen locked. That closes the panel, as it should, but says nothing about the keys.
-    private func takeKeyboard(for controller: StatusItemController) async throws {
+    func takeKeyboard(for controller: StatusItemController) async throws {
         for _ in 0..<20 where !controller.panel.isKeyWindow {
             controller.open()
             controller.panel.makeKey()
@@ -45,24 +45,24 @@ struct GamePanelTests {
         try #require(controller.panel.isKeyWindow)
     }
 
-    private func settle() async throws {
+    func settle() async throws {
         try await Task.sleep(for: .milliseconds(150))
     }
 
-    private func openPanel(for state: GameState) async throws -> StatusItemController {
+    func openPanel(for state: GameState) async throws -> StatusItemController {
         let controller = StatusItemController(gameState: state)
         controller.open()
         try await settle()
         return controller
     }
 
-    private func todaysDaily() -> GameState {
+    func todaysDaily() -> GameState {
         let seed = seedFromDate(Date())
         return GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .daily)
     }
 
     /// Moves the selection to a cell that's safe to reveal and doesn't finish the game.
-    private func selectSafeCell(in state: GameState) throws {
+    func selectSafeCell(in state: GameState) throws {
         for row in 0..<Board.rows {
             for col in 0..<Board.cols {
                 let cell = state.board.cells[row][col]
@@ -147,6 +147,92 @@ struct GamePanelTests {
         try await takeKeyboard(for: controller)
 
         #expect(!state.isPaused)
+    }
+
+    /// A mouse-down with no window, as a click that went to another process is seen from here.
+    private func iconClick(at timestamp: TimeInterval, location: NSPoint = .zero) throws -> NSEvent {
+        try #require(NSEvent.mouseEvent(
+            with: .leftMouseDown,
+            location: location,
+            modifierFlags: [],
+            timestamp: timestamp,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 0,
+            clickCount: 1,
+            pressure: 1
+        ))
+    }
+
+    private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
+
+    @Test("A click on the icon closes the open panel")
+    func iconClickCloses() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let controller = try await openPanel(for: todaysDaily())
+        defer { controller.close() }
+
+        controller.handlePress(try iconClick(at: now))
+
+        #expect(!controller.isOpen)
+    }
+
+    /// The icon lives in a window the system owns, so its click is also a click elsewhere,
+    /// and that can close the panel before the press is delivered.
+    @Test("A click on the icon leaves the panel closed when something else closed it first")
+    func iconClickDoesNotReopen() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let controller = try await openPanel(for: todaysDaily())
+        defer { controller.close() }
+
+        let click = try iconClick(at: now)
+        controller.close()
+        controller.handlePress(click)
+        #expect(!controller.isOpen)
+
+        try await settle()
+        controller.handlePress(try iconClick(at: now))
+        #expect(controller.isOpen)
+    }
+
+    @Test("A click on the icon opens the panel after it was closed some other way")
+    func iconClickOpensAfterClose() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let controller = try await openPanel(for: todaysDaily())
+        defer { controller.close() }
+
+        controller.close()
+        try await settle()
+        controller.handlePress(try iconClick(at: now))
+        #expect(controller.isOpen)
+
+        // Two clicks waiting together: the first closes, the second opens again.
+        let first = try iconClick(at: now)
+        let second = try iconClick(at: now)
+        controller.handlePress(first)
+        #expect(!controller.isOpen)
+        controller.handlePress(second)
+        #expect(controller.isOpen)
+    }
+
+    @Test("Only a click inside the icon's frame counts as one on the icon")
+    func clicksAreMatchedToIcon() async throws {
+        let cleanup = setupCleanPersistenceState(continuousPlay: true)
+        defer { cleanup() }
+
+        let controller = try await openPanel(for: todaysDaily())
+        defer { controller.close() }
+
+        #expect(!controller.isOnIcon(try iconClick(at: now, location: NSPoint(x: -10_000, y: -10_000))))
+
+        let icon = try #require(controller.iconFrame)
+        #expect(controller.isOnIcon(try iconClick(at: now, location: NSPoint(x: icon.midX, y: icon.midY))))
     }
 
     @Test("Every window opens at the size of its content")

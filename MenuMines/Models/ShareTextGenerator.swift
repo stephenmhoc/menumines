@@ -51,7 +51,8 @@ struct ShareTextGenerator {
     ///   - elapsedTime: Total time played.
     ///   - markedMinesCount: Number of correctly marked mines at win (before auto-flagging).
     ///   - play: What the player did.
-    ///   - puzzleType: Which kind of puzzle this was. Only a daily claims to be a day's result.
+    ///   - puzzleType: Which kind of puzzle this was. Only a daily claims to be a day's result,
+    ///     and a past daily says it was played later.
     ///   - date: The puzzle's date, shown in UTC.
     /// - Returns: The formatted share text, or nil if the game is not complete.
     static func generate(
@@ -93,6 +94,8 @@ struct ShareTextGenerator {
         switch puzzleType {
         case .daily:
             return String(format: String(localized: "share_header"), utcDateString(date))
+        case .pastDaily:
+            return String(format: String(localized: "share_header_past_daily"), utcDateString(date))
         case .practice:
             return String(format: String(localized: "share_header_replay"), utcDateString(date))
         case .random:

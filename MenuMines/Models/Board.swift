@@ -123,11 +123,6 @@ struct Board: Equatable, Codable {
         self.cells = decodedCells
     }
 
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(cells, forKey: .cells)
-    }
-
     /// Reveals the cell at the given position with flood-fill cascade for zero-adjacent cells.
     /// - Returns: `.mine` if the cell contains a mine, `.safe(cellsRevealed:)` otherwise.
     mutating func reveal(row: Int, col: Int) -> RevealResult {
@@ -188,12 +183,6 @@ struct Board: Equatable, Codable {
         }
     }
 
-    /// Marks the cell as the one that exploded (the clicked mine).
-    mutating func markExploded(row: Int, col: Int) {
-        guard row >= 0, row < Board.rows, col >= 0, col < Board.cols else { return }
-        cells[row][col].isExploded = true
-    }
-
     /// Reveals all mines on the board (used when game is lost).
     /// Preserves flagged mines so correct flags remain visible.
     /// Does not mark them as exploded - only the clicked mine gets that flag.
@@ -236,29 +225,6 @@ struct Board: Equatable, Codable {
                 }
             }
         }
-    }
-
-    /// Relocates a mine from the given position to a random empty cell.
-    /// Used for first-click safety.
-    mutating func relocateMine(from row: Int, col: Int) {
-        guard row >= 0, row < Board.rows, col >= 0, col < Board.cols else { return }
-        guard cells[row][col].hasMine else { return }
-
-        // Find empty cells
-        var emptyCells: [(Int, Int)] = []
-        for r in 0..<Board.rows {
-            for c in 0..<Board.cols {
-                if !cells[r][c].hasMine && (r != row || c != col) {
-                    emptyCells.append((r, c))
-                }
-            }
-        }
-
-        guard let target = emptyCells.randomElement() else { return }
-
-        // Move the mine
-        cells[row][col] = Cell(state: .hidden, hasMine: false)
-        cells[target.0][target.1] = Cell(state: .hidden, hasMine: true)
     }
 
     /// Clears mines from a 3x3 area around the given position.

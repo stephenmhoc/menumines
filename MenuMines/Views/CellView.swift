@@ -77,33 +77,12 @@ struct CellView: View {
     // MARK: - Accessibility
 
     private var accessibilityLabel: String {
-        let state: String
-
-        if cell.isExploded {
-            state = String(localized: "cell_state_exploded_mine")
-            return String(format: String(localized: "cell_accessibility_label"), row + 1, col + 1, state)
-        }
-
-        switch cell.state {
-        case .hidden where isStartHint:
-            state = String(localized: "cell_state_covered_safe_start")
-        case .hidden:
-            state = String(localized: "cell_state_covered")
-        case .flagged:
-            state = String(localized: "cell_state_flagged")
-        case .revealed(let adjacentMines):
-            if cell.hasMine {
-                state = String(localized: "cell_state_mine")
-            } else if adjacentMines == 0 {
-                state = String(localized: "cell_state_empty")
-            } else if adjacentMines == 1 {
-                state = String(localized: "cell_state_one_mine")
-            } else {
-                state = String(format: String(localized: "cell_state_mines"), adjacentMines)
-            }
-        }
-
-        return String(format: String(localized: "cell_accessibility_label"), row + 1, col + 1, state)
+        String(
+            format: String(localized: "cell_accessibility_label"),
+            row + 1,
+            col + 1,
+            cell.accessibilityStateDescription(isStartHint: isStartHint)
+        )
     }
 
     private var accessibilityHint: String {

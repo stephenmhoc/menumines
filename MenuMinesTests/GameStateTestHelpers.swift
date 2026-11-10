@@ -52,15 +52,6 @@ func winGame(_ gameState: GameState) {
     }
 }
 
-/// Helper to verify all cells are hidden
-func expectAllCellsHidden(in gameState: GameState) {
-    for r in 0..<Board.rows {
-        for c in 0..<Board.cols {
-            #expect(gameState.board.cells[r][c].state == .hidden)
-        }
-    }
-}
-
 /// Helper to find the first hidden cell in a game state
 func findHiddenCell(in gameState: GameState) -> (row: Int, col: Int)? {
     for r in 0..<Board.rows {

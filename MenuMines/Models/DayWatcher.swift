@@ -3,8 +3,7 @@ import Foundation
 
 /// The start of the next puzzle day after a given moment.
 func nextDailyPuzzleDate(after date: Date) -> Date {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = .gmt
+    let calendar = Calendar.utc
     let today = calendar.startOfDay(for: date)
     return calendar.date(byAdding: .day, value: 1, to: today) ?? date.addingTimeInterval(86_400)
 }

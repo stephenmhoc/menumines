@@ -12,12 +12,49 @@ enum AppWindows {
     /// Called before a window opens, so that the game panel can get out of its way.
     static var onWillShowWindow: (() -> Void)?
 
-    private static var controllers: [String: NSWindowController] = [:]
+    /// Opens the game panel. Set by `StatusItemController`, which owns it.
+    static var onShowGame: (() -> Void)?
 
-    static func showStats(gameState: GameState) {
-        show(id: "stats", title: String(localized: "stats_window_title")) {
-            StatsWindow(gameState: gameState)
+    /// Whether the game panel is on screen.
+    static var isGameShowing: () -> Bool = { false }
+
+    private static var controllers: [String: NSWindowController] = [:]
+    private static let statsWindowID = "stats"
+
+    /// Which tab Stats shows. Held here so that asking for Daily History can turn a Stats
+    /// window that's already open to the calendar.
+    static let statsNavigation = StatsNavigation()
+
+    /// Shows Stats.
+    /// - Parameter tab: The tab to turn to. With none, a window that's already open keeps
+    ///   its place and a new one starts on the summary.
+    static func showStats(gameState: GameState, tab: StatsTab? = nil) {
+        let isOpen = controllers[statsWindowID]?.window?.isVisible == true
+        if let tab {
+            statsNavigation.tab = tab
+        } else if !isOpen {
+            statsNavigation.tab = .summary
         }
+
+        show(id: statsWindowID, title: String(localized: "stats_window_title")) {
+            StatsWindow(gameState: gameState, navigation: statsNavigation) { seed in
+                playPastDay(seed: seed, gameState: gameState)
+            }
+        }
+    }
+
+    /// Shows Stats turned to the Daily History calendar, where past days are picked.
+    static func showDailyHistory(gameState: GameState) {
+        showStats(gameState: gameState, tab: .history)
+    }
+
+    /// Takes the player straight to a past day's board: Stats comes down and the game panel
+    /// opens on it, with the keyboard on the board.
+    static func playPastDay(seed: Int64, gameState: GameState) {
+        guard gameState.playPastDay(seed: seed) else { return }
+
+        controllers[statsWindowID]?.window?.close()
+        onShowGame?()
     }
 
     static func showSettings() {
@@ -68,10 +105,13 @@ enum AppWindows {
     /// An agent app stays active with nothing on screen otherwise, so keys go nowhere until
     /// the player clicks another window. The closing window still counts as visible during
     /// this notification, so the check waits a turn.
+    ///
+    /// The game panel counts as something on screen. It's up when a window closes because a
+    /// past day was picked in it, and hiding the app would take the panel away with it.
     static func yieldFocusIfNoWindowsRemain() {
         DispatchQueue.main.async {
             let isShowingWindow = controllers.values.contains { $0.window?.isVisible == true }
-            if !isShowingWindow {
+            if !isShowingWindow && !isGameShowing() {
                 NSApp.hide(nil)
             }
         }

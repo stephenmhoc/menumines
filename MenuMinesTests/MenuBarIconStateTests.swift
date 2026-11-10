@@ -195,44 +195,7 @@ struct MenuBarIconStateTests {
         #expect(state == .complete)
     }
 
-    // MARK: - System Image Name Tests
-
-    @Test("Normal state returns correct system image")
-    func testNormalSystemImage() {
-        #expect(MenuBarIconState.normal.systemImageName == "circle.grid.3x3.fill")
-    }
-
-    @Test("Incomplete state returns correct system image")
-    func testIncompleteSystemImage() {
-        #expect(MenuBarIconState.incomplete.systemImageName == "circle.grid.3x3.fill.badge.ellipsis")
-    }
-
-    @Test("Playing state returns correct system image")
-    func testPlayingSystemImage() {
-        #expect(MenuBarIconState.playing.systemImageName == "timer")
-    }
-
-    @Test("Paused state returns correct system image")
-    func testPausedSystemImage() {
-        #expect(MenuBarIconState.paused.systemImageName == "pause.circle.fill")
-    }
-
-    @Test("Complete state returns correct system image")
-    func testCompleteSystemImage() {
-        #expect(MenuBarIconState.complete.systemImageName == "checkmark.circle.fill")
-    }
-
-    @Test("Lost state returns correct system image")
-    func testLostSystemImage() {
-        #expect(MenuBarIconState.lost.systemImageName == "xmark.circle.fill")
-    }
-
     // MARK: - Overlay Symbol Tests
-
-    @Test("Base icon is grid symbol")
-    func testBaseIconIsGrid() {
-        #expect(menuBarBaseIcon == "circle.grid.3x3.fill")
-    }
 
     @Test("Normal state has no overlay")
     func testNormalStateNoOverlay() {

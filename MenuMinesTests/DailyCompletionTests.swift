@@ -27,7 +27,7 @@ struct DailyCompletionTests {
 
         let date = makeUTCDate(year: 2026, month: 1, day: 15)
 
-        #expect(!isDailyPuzzleComplete(for: date))
+        #expect(!isDailyPuzzleComplete(forSeed: seedFromDate(date)))
     }
 
     @Test("Mark daily puzzle complete sets correct seed")
@@ -37,9 +37,9 @@ struct DailyCompletionTests {
 
         let date = makeUTCDate(year: 2026, month: 1, day: 15)
 
-        markDailyPuzzleComplete(for: date)
+        markDailyPuzzleComplete(forSeed: seedFromDate(date))
 
-        #expect(isDailyPuzzleComplete(for: date))
+        #expect(isDailyPuzzleComplete(forSeed: seedFromDate(date)))
     }
 
     @Test("Daily puzzle completion is date-specific")
@@ -50,13 +50,13 @@ struct DailyCompletionTests {
         // Mark yesterday as complete
         let today = makeUTCDate(year: 2026, month: 1, day: 15)
         let yesterday = utcCalendar.date(byAdding: .day, value: -1, to: today) ?? Date.distantPast
-        markDailyPuzzleComplete(for: yesterday)
+        markDailyPuzzleComplete(forSeed: seedFromDate(yesterday))
 
         // Today should still be incomplete
-        #expect(!isDailyPuzzleComplete(for: today))
+        #expect(!isDailyPuzzleComplete(forSeed: seedFromDate(today)))
 
         // Yesterday should be complete
-        #expect(isDailyPuzzleComplete(for: yesterday))
+        #expect(isDailyPuzzleComplete(forSeed: seedFromDate(yesterday)))
     }
 
     @Test("Different days have different completion states")
@@ -67,9 +67,9 @@ struct DailyCompletionTests {
         let today = makeUTCDate(year: 2026, month: 1, day: 15)
         let tomorrow = utcCalendar.date(byAdding: .day, value: 1, to: today) ?? Date.distantPast
 
-        markDailyPuzzleComplete(for: today)
+        markDailyPuzzleComplete(forSeed: seedFromDate(today))
 
-        #expect(isDailyPuzzleComplete(for: today))
-        #expect(!isDailyPuzzleComplete(for: tomorrow))
+        #expect(isDailyPuzzleComplete(forSeed: seedFromDate(today)))
+        #expect(!isDailyPuzzleComplete(forSeed: seedFromDate(tomorrow)))
     }
 }

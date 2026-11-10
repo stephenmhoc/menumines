@@ -53,8 +53,8 @@ final class DailyBoardTests: XCTestCase {
 
     func testBoardForDateIsDeterministic() {
         let date = Date(timeIntervalSince1970: 1_710_460_800) // 2024-03-15 00:00:00 UTC
-        let board1 = boardForDate(date)
-        let board2 = boardForDate(date)
+        let board1 = Board(dailySeed: seedFromDate(date))
+        let board2 = Board(dailySeed: seedFromDate(date))
 
         XCTAssertEqual(board1.cells, board2.cells)
     }
@@ -65,8 +65,8 @@ final class DailyBoardTests: XCTestCase {
         // 2024-03-16 00:00:00 UTC (24 hours later)
         let date2 = Date(timeIntervalSince1970: 1_710_460_800 + 86400)
 
-        let board1 = boardForDate(date1)
-        let board2 = boardForDate(date2)
+        let board1 = Board(dailySeed: seedFromDate(date1))
+        let board2 = Board(dailySeed: seedFromDate(date2))
 
         XCTAssertNotEqual(board1.cells, board2.cells)
         XCTAssertEqual(seedFromDate(date1), 20240315)
@@ -82,8 +82,8 @@ final class DailyBoardTests: XCTestCase {
         XCTAssertEqual(seedFromDate(startOfDay), seedFromDate(lateNight))
         XCTAssertEqual(seedFromDate(lateNight), 20240315)
 
-        let board1 = boardForDate(startOfDay)
-        let board2 = boardForDate(lateNight)
+        let board1 = Board(dailySeed: seedFromDate(startOfDay))
+        let board2 = Board(dailySeed: seedFromDate(lateNight))
         XCTAssertEqual(board1.cells, board2.cells)
     }
 
@@ -105,20 +105,20 @@ final class DailyBoardTests: XCTestCase {
 
     func testHasStatsBeenRecordedDefaultsFalse() {
         clearStats()
-        XCTAssertFalse(hasStatsBeenRecorded())
+        XCTAssertFalse(hasStatsBeenRecorded(forSeed: seedFromDate(Date())))
     }
 
     func testRecordStatsSucceedsFirstTime() {
         clearStats()
-        let result = recordStats(won: true, elapsedTime: 100.0, flagCount: 5)
+        let result = recordStats(forSeed: seedFromDate(Date()), won: true, elapsedTime: 100.0, flagCount: 5)
         XCTAssertTrue(result)
-        XCTAssertTrue(hasStatsBeenRecorded())
+        XCTAssertTrue(hasStatsBeenRecorded(forSeed: seedFromDate(Date())))
     }
 
     func testRecordStatsFailsSecondTime() {
         clearStats()
-        _ = recordStats(won: true, elapsedTime: 100.0, flagCount: 5)
-        let result = recordStats(won: false, elapsedTime: 200.0, flagCount: 10)
+        _ = recordStats(forSeed: seedFromDate(Date()), won: true, elapsedTime: 100.0, flagCount: 5)
+        let result = recordStats(forSeed: seedFromDate(Date()), won: false, elapsedTime: 200.0, flagCount: 10)
         XCTAssertFalse(result, "Second recording should fail")
     }
 
@@ -139,9 +139,9 @@ final class DailyBoardTests: XCTestCase {
 
     func testGetStatsReturnsRecordedData() {
         clearStats()
-        _ = recordStats(won: true, elapsedTime: 123.5, flagCount: 7)
+        _ = recordStats(forSeed: seedFromDate(Date()), won: true, elapsedTime: 123.5, flagCount: 7)
 
-        let stats = getStats(for: Date())
+        let stats = getStats(forSeed: seedFromDate(Date()))
         XCTAssertNotNil(stats)
         XCTAssertEqual(stats?.won, true)
         XCTAssertEqual(stats?.elapsedTime, 123.5)
@@ -168,12 +168,12 @@ final class DailyBoardTests: XCTestCase {
         _ = markCompleteAndRecordStats(forSeed: seed, won: false, elapsedTime: 45, flagCount: 2)
 
         XCTAssertFalse(isDailyPuzzleComplete())
-        XCTAssertNil(getStats(for: Date()))
+        XCTAssertNil(getStats(forSeed: seedFromDate(Date())))
     }
 
     func testGetStatsReturnsNilWhenNotRecorded() {
         clearStats()
-        let stats = getStats(for: Date())
+        let stats = getStats(forSeed: seedFromDate(Date()))
         XCTAssertNil(stats)
     }
 

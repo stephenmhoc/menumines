@@ -82,13 +82,6 @@ extension Board {
         board.toggleFlag(row: 3, col: 3)
         return board
     }
-
-    static func mockWithMines() -> Board {
-        let board = Board(seed: 12345)
-        // Manually set some mines for preview
-        // Note: This is a test helper, real mine placement comes from Story 3A
-        return board
-    }
 }
 
 // MARK: - Previews

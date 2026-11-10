@@ -7,9 +7,9 @@ import GameKit
 
 /// Submits daily times to Game Center.
 ///
-/// Only today's puzzle is ever submitted. Replays and random boards are unranked, and a
-/// recurring daily leaderboard would be meaningless if yesterday's board could be posted to
-/// today's list.
+/// Only today's puzzle is ever submitted. Replays, past dailies and random boards are
+/// unranked, and a recurring daily leaderboard would be meaningless if yesterday's board
+/// could be posted to today's list.
 ///
 /// Connected in the App Store build only: the entitlement lives in that target's entitlements
 /// file, and the direct build has no provisioning profile to carry it.

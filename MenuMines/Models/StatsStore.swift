@@ -6,9 +6,18 @@ import Foundation
 final class StatsStore {
     private static let resultsKey = "gameResults"
     private static let resetAtKey = "statsResetAt"
+    private static let pastDailyResultsKey = "pastDailyResults"
 
     /// All recorded game results, sorted by completion date (newest first).
+    /// Daily results here are from the day itself. Past dailies are never in this list.
     private(set) var results: [GameResult] = []
+
+    /// Every past-daily result this Mac holds, including any for a day that has since gained
+    /// an on-the-day result from another Mac. Kept whole so that every Mac stores and syncs
+    /// the same set. Use `pastDailyResults` for anything shown or counted.
+    ///
+    /// Written only by this class and its past-dailies extension, through `setPastDailyResults`.
+    private(set) var storedPastDailyResults: [GameResult] = []
 
     /// When statistics were last erased. Results from before this never come back.
     private(set) var resetAt: Date?
@@ -28,32 +37,20 @@ final class StatsStore {
     }
 
     /// Number of games won.
-    var wins: Int {
-        results.filter(\.won).count
-    }
+    var wins: Int { results.wins }
 
     /// Win rate as a percentage (0-100), or nil if no games played.
-    var winRate: Int? {
-        guard gamesPlayed > 0 else { return nil }
-        return Int(round(Double(wins) / Double(gamesPlayed) * 100))
-    }
+    var winRate: Int? { results.winRate }
 
     /// Best time among wins in seconds, or nil if no wins.
-    var bestTime: TimeInterval? {
-        let winTimes = results.filter(\.won).map(\.elapsedTime)
-        return winTimes.min()
-    }
+    var bestTime: TimeInterval? { results.bestTime }
 
     /// Average time among wins in seconds, or nil if no wins.
-    var averageTime: TimeInterval? {
-        let winTimes = results.filter(\.won).map(\.elapsedTime)
-        guard !winTimes.isEmpty else { return nil }
-        return winTimes.reduce(0, +) / Double(winTimes.count)
-    }
+    var averageTime: TimeInterval? { results.averageTime }
 
     /// Date when tracking started (earliest recorded result), or nil if no games.
     var trackedSince: Date? {
-        results.map(\.completedAt).min()
+        (results + pastDailyResults).map(\.completedAt).min()
     }
 
     /// Whether there are any recorded games.
@@ -81,39 +78,22 @@ final class StatsStore {
             .map { $0 }
     }
 
-    /// Returns the daily result for a seed, if one exists.
-    func dailyResult(forSeed seed: Int64) -> GameResult? {
-        dailyResultsBySeed[seed]
-    }
-
     /// Total number of daily puzzles played.
     var dailyGamesPlayed: Int {
         dailyResults.count
     }
 
     /// Number of daily puzzles won.
-    var dailyWins: Int {
-        dailyResults.filter(\.won).count
-    }
+    var dailyWins: Int { dailyResults.wins }
 
     /// Daily puzzle win rate as a percentage (0-100), or nil if no daily games played.
-    var dailyWinRate: Int? {
-        guard dailyGamesPlayed > 0 else { return nil }
-        return Int(round(Double(dailyWins) / Double(dailyGamesPlayed) * 100))
-    }
+    var dailyWinRate: Int? { dailyResults.winRate }
 
     /// Best time among daily wins in seconds, or nil if no daily wins.
-    var dailyBestTime: TimeInterval? {
-        let winTimes = dailyResults.filter(\.won).map(\.elapsedTime)
-        return winTimes.min()
-    }
+    var dailyBestTime: TimeInterval? { dailyResults.bestTime }
 
     /// Average time among daily wins in seconds, or nil if no daily wins.
-    var dailyAverageTime: TimeInterval? {
-        let winTimes = dailyResults.filter(\.won).map(\.elapsedTime)
-        guard !winTimes.isEmpty else { return nil }
-        return winTimes.reduce(0, +) / Double(winTimes.count)
-    }
+    var dailyAverageTime: TimeInterval? { dailyResults.averageTime }
 
     /// Daily completion rate over the local tracking span, as a percentage.
     var dailyCompletionRate: Int? {
@@ -125,7 +105,7 @@ final class StatsStore {
         let dates = completionDates
         guard let first = dates.first else { return nil }
 
-        let calendar = Self.utcCalendar
+        let calendar = Calendar.utc
         let today = calendar.startOfDay(for: date)
         let firstDay = calendar.startOfDay(for: first)
         guard let dayCount = calendar.dateComponents([.day], from: firstDay, to: today).day else {
@@ -148,7 +128,7 @@ final class StatsStore {
         let dates = completionDates
         guard let latest = dates.last else { return 0 }
 
-        let calendar = Self.utcCalendar
+        let calendar = Calendar.utc
         let today = calendar.startOfDay(for: date)
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)
         guard calendar.isDate(latest, inSameDayAs: today)
@@ -176,7 +156,7 @@ final class StatsStore {
         let dates = completionDates
         guard !dates.isEmpty else { return 0 }
 
-        let calendar = Self.utcCalendar
+        let calendar = Calendar.utc
         var longest = 1
         var current = 1
         var previous = dates[0]
@@ -200,15 +180,23 @@ final class StatsStore {
     /// Records a game result and persists to storage.
     /// Daily puzzles are deduplicated by seed (only one result per day).
     /// Random puzzles are always recorded (no deduplication).
+    /// Past dailies go to their own storage, once per day, and replays are never recorded.
     /// - Returns: Whether the result was recorded.
     @MainActor
     @discardableResult
     func record(_ result: GameResult) -> Bool {
-        // Only deduplicate daily puzzles - random puzzles are always recorded
-        if result.puzzleType == .daily {
+        switch result.puzzleType {
+        case .practice:
+            return false
+        case .pastDaily:
+            return recordPastDaily(result)
+        case .daily:
             if results.contains(where: { $0.puzzleType == .daily && $0.dailySeed == result.dailySeed }) {
                 return false
             }
+        case .random:
+            // Random puzzles are always recorded
+            break
         }
         results.insert(result, at: 0)
         saveResults()
@@ -226,8 +214,10 @@ final class StatsStore {
     func reset() {
         let date = Date()
         results = []
+        storedPastDailyResults = []
         resetAt = date
         UserDefaults.standard.removeObject(forKey: Self.resultsKey)
+        UserDefaults.standard.removeObject(forKey: Self.pastDailyResultsKey)
         UserDefaults.standard.set(date, forKey: Self.resetAtKey)
         StatsSync.publishReset(at: date)
     }
@@ -242,22 +232,57 @@ final class StatsStore {
         resetAt = date
         UserDefaults.standard.set(date, forKey: Self.resetAtKey)
 
+        var changed = false
+
         let remaining = results.filter { $0.completedAt > date }
-        guard remaining.count != results.count else { return false }
-        results = remaining
-        saveResults()
-        return true
+        if remaining.count != results.count {
+            results = remaining
+            saveResults()
+            changed = true
+        }
+
+        let remainingPast = storedPastDailyResults.filter { $0.completedAt > date }
+        if remainingPast.count != storedPastDailyResults.count {
+            setPastDailyResults(remainingPast)
+            changed = true
+        }
+        return changed
     }
 
     // MARK: - Persistence
 
     private func loadResults() {
         resetAt = UserDefaults.standard.object(forKey: Self.resetAtKey) as? Date
-        guard let data = UserDefaults.standard.data(forKey: Self.resultsKey) else { return }
+        if let data = UserDefaults.standard.data(forKey: Self.resultsKey) {
+            do {
+                results = try JSONDecoder().decode([GameResult].self, from: data)
+            } catch {
+                Telemetry.report(error, area: "persistence", step: "stats_load")
+            }
+        }
+        if let data = UserDefaults.standard.data(forKey: Self.pastDailyResultsKey) {
+            do {
+                storedPastDailyResults = try JSONDecoder().decode([GameResult].self, from: data)
+            } catch {
+                Telemetry.report(error, area: "persistence", step: "past_daily_stats_load")
+            }
+        }
+    }
+
+    /// Replaces the stored past dailies and saves them.
+    func setPastDailyResults(_ results: [GameResult]) {
+        storedPastDailyResults = results
+        savePastDailyResults()
+    }
+
+    /// Past dailies have a key of their own. A version that doesn't know about them leaves it
+    /// alone, and can still read everything under the key it does know.
+    private func savePastDailyResults() {
         do {
-            results = try JSONDecoder().decode([GameResult].self, from: data)
+            let data = try JSONEncoder().encode(storedPastDailyResults)
+            UserDefaults.standard.set(data, forKey: Self.pastDailyResultsKey)
         } catch {
-            Telemetry.report(error, area: "persistence", step: "stats_load")
+            Telemetry.report(error, area: "persistence", step: "past_daily_stats_save")
         }
     }
 
@@ -271,12 +296,6 @@ final class StatsStore {
     }
 
     // MARK: - Streak Helpers
-
-    private static var utcCalendar: Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .gmt
-        return calendar
-    }
 
     private var completionDates: [Date] {
         // Only count daily puzzles for streak calculations
@@ -332,7 +351,7 @@ final class StatsStore {
     }
 
     /// Picks between two results for one day, the same way on every Mac.
-    private static func isFirst(_ result: GameResult, before other: GameResult) -> Bool {
+    static func isFirst(_ result: GameResult, before other: GameResult) -> Bool {
         if result.completedAt != other.completedAt {
             return result.completedAt < other.completedAt
         }
@@ -343,10 +362,35 @@ final class StatsStore {
     // MARK: - Testing Support
 
     /// Creates a StatsStore with the given results for testing purposes.
-    /// - Parameter results: The initial results to populate.
-    static func forTesting(with results: [GameResult] = []) -> StatsStore {
+    /// - Parameters:
+    ///   - results: The initial results to populate.
+    ///   - pastDailyResults: The initial past-daily results to populate.
+    static func forTesting(with results: [GameResult] = [], pastDailyResults: [GameResult] = []) -> StatsStore {
         let store = StatsStore()
         store.results = results
+        store.storedPastDailyResults = pastDailyResults
         return store
+    }
+}
+
+/// The same sums for all games and for daily games alone.
+private extension [GameResult] {
+    var wins: Int {
+        filter(\.won).count
+    }
+
+    var winRate: Int? {
+        guard !isEmpty else { return nil }
+        return Int(round(Double(wins) / Double(count) * 100))
+    }
+
+    var bestTime: TimeInterval? {
+        filter(\.won).map(\.elapsedTime).min()
+    }
+
+    var averageTime: TimeInterval? {
+        let winTimes = filter(\.won).map(\.elapsedTime)
+        guard !winTimes.isEmpty else { return nil }
+        return winTimes.reduce(0, +) / Double(winTimes.count)
     }
 }

@@ -31,6 +31,33 @@ struct MenuContentView: View {
     }
 
     private let contentHeight: CGFloat = 372
+    /// The missed-day row and the space above it.
+    private let missedDayRowHeight: CGFloat = 22
+    private let rowSpacing: CGFloat = 12
+
+    /// The earlier day to offer, once today's puzzle is done and the game on the board is
+    /// over. Today always comes first, and nothing is offered over a game in progress.
+    ///
+    /// This sits beside continuous play rather than replacing it: reset still deals a random
+    /// board, and this is the other thing to do next.
+    private var missedDay: MissedDay? {
+        guard isGameComplete, isDailyPuzzleComplete(forSeed: gameState.currentDaySeed),
+              let seed = gameState.nextMissedDaySeed else { return nil }
+        return MissedDay(seed: seed, isInProgress: gameState.pastDailySeedsInProgress.contains(seed))
+    }
+
+    private func playMissedDay() {
+        guard let missedDay, gameState.playPastDay(seed: missedDay.seed) else { return }
+        gameState.resumeTimer()
+        isBoardFocused = true
+    }
+
+    /// Tells VoiceOver which board has just arrived, since nothing else about a covered
+    /// board says which day it is or whether it counts.
+    private func announceBoard() {
+        guard let message = gameState.boardAnnouncement else { return }
+        AccessibilityNotification.Announcement(message).post()
+    }
 
     private func copyShareTextToClipboard() {
         guard let text = gameState.shareText() else { return }
@@ -98,12 +125,8 @@ struct MenuContentView: View {
         if confirmBeforeReset {
             showResetConfirmation = true
         } else {
-            performReset()
+            gameState.reset()
         }
-    }
-
-    private func performReset() {
-        gameState.reset()
     }
 
     private func announceGameResult(won: Bool) {
@@ -122,14 +145,18 @@ struct MenuContentView: View {
     }
 
     var body: some View {
+        let missedDay = self.missedDay
+
         ZStack(alignment: .top) {
-            VStack(spacing: 12) {
+            VStack(spacing: rowSpacing) {
                 HeaderView(
                     status: gameState.status,
                     elapsedTime: gameState.elapsedTime,
                     flagCount: gameState.flagCount,
                     canReset: gameState.canReset,
                     isHoldingCell: isHoldingCell,
+                    resetHint: gameState.puzzleType.resetHint,
+                    resetLockedHint: gameState.puzzleType.resetLockedHint,
                     onReset: handleResetRequest
                 )
 
@@ -161,6 +188,12 @@ struct MenuContentView: View {
                 .focused($isBoardFocused)
                 .onKeyPress(phases: [.down, .repeat], action: handleKey)
 
+                if let missedDay {
+                    MissedDayButton(missedDay: missedDay, action: playMissedDay)
+                        .frame(height: missedDayRowHeight)
+                        .disabled(showResetConfirmation)
+                }
+
                 FooterView(
                     isGameComplete: isGameComplete,
                     puzzleType: gameState.puzzleType,
@@ -168,6 +201,8 @@ struct MenuContentView: View {
                     isFlagMode: isFlagMode,
                     shareText: isGameComplete ? gameState.shareText() : nil,
                     nextPuzzleDate: nextPuzzleDate,
+                    pastDay: gameState.pastDay,
+                    missedDayTitle: missedDay?.title,
                     onReset: handleResetRequest,
                     onToggleFlagMode: {
                         isFlagMode.toggle()
@@ -176,6 +211,11 @@ struct MenuContentView: View {
                     onReturnToToday: {
                         gameState.returnToToday()
                         gameState.resumeTimer()
+                        isBoardFocused = true
+                    },
+                    onPlayMissedDay: playMissedDay,
+                    onDailyHistory: {
+                        AppWindows.showDailyHistory(gameState: gameState)
                     },
                     onStats: {
                         AppWindows.showStats(gameState: gameState)
@@ -191,17 +231,22 @@ struct MenuContentView: View {
             // Inline reset confirmation overlay
             if showResetConfirmation {
                 ResetConfirmationOverlay(
+                    message: gameState.puzzleType.resetConfirmationMessage,
                     onCancel: {
                         showResetConfirmation = false
                     },
                     onConfirm: {
                         showResetConfirmation = false
-                        performReset()
+                        gameState.reset()
                     }
                 )
             }
         }
-        .frame(width: 300, height: contentHeight, alignment: .top)
+        .frame(
+            width: 300,
+            height: contentHeight + (missedDay == nil ? 0 : missedDayRowHeight + rowSpacing),
+            alignment: .top
+        )
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             gameState.dayMayHaveChanged()
@@ -209,6 +254,14 @@ struct MenuContentView: View {
             gameState.resumeTimer()
             Leaderboard.retryPendingScore()
             isBoardFocused = true
+            if gameState.puzzleType.isPastDay {
+                announceBoard()
+            }
+        }
+        .onChange(of: gameState.boardIdentity) {
+            // A new board has nothing to celebrate and no cell being held.
+            showCelebration = false
+            announceBoard()
         }
         .onDisappear {
             isHoldingCell = false
@@ -230,12 +283,7 @@ struct MenuContentView: View {
             switch newStatus {
             case .won, .lost:
                 isFlagMode = false
-            case .playing:
-                // Clear celebration when resetting from won state
-                if oldStatus == .won {
-                    showCelebration = false
-                }
-            case .notStarted:
+            case .playing, .notStarted:
                 // Clear celebration when resetting from won state
                 if oldStatus == .won {
                     showCelebration = false
@@ -245,9 +293,64 @@ struct MenuContentView: View {
     }
 }
 
+private extension GameState {
+    /// The day on the board, when it's an earlier one.
+    var pastDay: Date? {
+        puzzleType.isPastDay ? dateFromSeed(dailySeed) : nil
+    }
+
+    /// Changes whenever a different board is put in the panel.
+    var boardIdentity: String {
+        "\(puzzleType.rawValue)-\(dailySeed)"
+    }
+
+    /// What to tell VoiceOver about the board, if it's worth saying.
+    var boardAnnouncement: String? {
+        if let pastDay {
+            return puzzleType.pastDayDescription(for: pastDay)
+        }
+        return puzzleType == .daily ? String(localized: "announcement_todays_puzzle") : nil
+    }
+}
+
+/// An earlier day the player has no result for, offered once today's puzzle is done.
+private struct MissedDay {
+    let seed: Int64
+    /// Whether a past daily for the day was started and left.
+    let isInProgress: Bool
+
+    var title: String {
+        String(localized: isInProgress ? "missed_day_continue_button" : "missed_day_button")
+    }
+
+    /// Names the day, and says how its result will count.
+    var hint: String {
+        let day = dateFromSeed(seed)?
+            .formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt)) ?? ""
+        return String(format: String(localized: "missed_day_hint"), day)
+    }
+}
+
+/// The offer under the board. Small, so the board stays the main thing in the panel.
+private struct MissedDayButton: View {
+    let missedDay: MissedDay
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(missedDay.title, systemImage: PuzzleType.pastDaily.iconName)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .help(missedDay.hint)
+        .accessibilityHint(missedDay.hint)
+    }
+}
+
 /// Inline confirmation overlay for reset action.
 /// Uses an overlay instead of system alert so that the game panel stays open.
 private struct ResetConfirmationOverlay: View {
+    let message: String
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
@@ -263,7 +366,7 @@ private struct ResetConfirmationOverlay: View {
                 VStack(spacing: 8) {
                     Text(String(localized: "reset_confirmation_title"))
                         .font(.headline)
-                    Text(String(localized: "reset_confirmation_message"))
+                    Text(message)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

@@ -93,7 +93,8 @@ extension Bundle {
 }
 
 /// Manages application updates for direct distribution builds.
-/// On App Store builds, all methods are no-ops since updates go through the App Store.
+/// Other builds update through the App Store, so there `start()` does nothing and the rest
+/// isn't compiled: every other caller is inside `#if SPARKLE_ENABLED`.
 enum UpdateManager {
     #if SPARKLE_ENABLED
     private static let updaterController = SPUStandardUpdaterController(
@@ -123,8 +124,7 @@ enum UpdateManager {
         availability.observe(updater)
     }
 
-    /// The underlying Sparkle updater instance.
-    static var updater: SPUUpdater {
+    private static var updater: SPUUpdater {
         updaterController.updater
     }
 
@@ -143,30 +143,8 @@ enum UpdateManager {
         get { updater.automaticallyChecksForUpdates }
         set { updater.automaticallyChecksForUpdates = newValue }
     }
-
-    /// Whether to automatically download updates when found.
-    static var automaticallyDownloadsUpdates: Bool {
-        get { updater.automaticallyDownloadsUpdates }
-        set { updater.automaticallyDownloadsUpdates = newValue }
-    }
-
-    /// The date of the last update check, if any.
-    static var lastUpdateCheckDate: Date? {
-        updater.lastUpdateCheckDate
-    }
     #else
     static func start() {}
-    static var canCheckForUpdates: Bool { false }
-    static func checkForUpdates() {}
-    static var automaticallyChecksForUpdates: Bool {
-        get { false }
-        set { }
-    }
-    static var automaticallyDownloadsUpdates: Bool {
-        get { false }
-        set { }
-    }
-    static var lastUpdateCheckDate: Date? { nil }
     #endif
 
     /// Returns true if this build supports updates (direct distribution only).

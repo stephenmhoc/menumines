@@ -26,10 +26,6 @@ private func encoded(_ results: [GameResult]) throws -> Data {
 /// Serialized because these share UserDefaults with each other.
 @Suite("Daily game lifecycle", .serialized)
 struct DailyLifecycleTests {
-    private func expectNoSnapshots() {
-        #expect(GameSnapshot.loadAnyDay() == nil)
-    }
-
     /// Plays one safe move on a fresh daily, leaving the game in progress.
     private func startedDaily(seed: Int64) throws -> GameState {
         let state = GameState(board: Board(dailySeed: seed), dailySeed: seed, puzzleType: .daily)

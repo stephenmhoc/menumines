@@ -19,47 +19,62 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 
 ```
 MenuMines/
-├── MenuMinesApp.swift              # App entry point and lifecycle
+├── MenuMinesApp.swift          # App entry point, lifecycle and the menu bar icon view
 ├── AppWindows.swift            # Stats, Settings and About windows
 ├── StatusItemController.swift  # Menu bar icon and game panel
-├── Constants.swift             # App-wide constants and UserDefaults keys
-├── UpdateManager.swift         # Sparkle, direct build only
+├── Constants.swift             # UserDefaults keys for settings
+├── UpdateManager.swift         # Build channel detection; Sparkle, direct build only
+├── AppStoreScreenshotExporter.swift # Debug-only mock-up that renders AppStoreScreenshots/
+├── Info.plist, Info-Direct.plist
+├── MenuMines.entitlements, MenuMines-Direct.entitlements, MenuMines-Dev.entitlements
+├── PrivacyInfo.xcprivacy
 ├── Models/
+│   ├── AccessibilityAnnouncer.swift # Debounced VoiceOver announcements, cell descriptions
 │   ├── Board.swift             # 9x9 grid, mine placement, reveal logic
 │   ├── Cell.swift              # Cell state enum
-│   ├── DailyBoard.swift        # Date-based board generation
+│   ├── DailyBoard.swift        # UTC seed/date conversion, daily completion and per-day stats
+│   ├── DailyHistory.swift      # Launch date, which past days can be played and how
 │   ├── DayWatcher.swift        # Rolls the game over at UTC midnight, wake and clock change
-│   ├── GameResult.swift        # Win/loss result with timing
+│   ├── GameResult.swift        # Win/loss result with timing, and PuzzleType
 │   ├── GameState.swift         # @Observable game state
 │   ├── MenuBarIconState.swift  # Menu bar icon state machine
 │   ├── GamePersistence.swift   # Snapshots and restore rules
-│   ├── GameTimer.swift         # Monotonic game clock
+│   ├── GameTimer.swift         # Monotonic game clock, MM:SS formatting
 │   ├── Leaderboard.swift       # Game Center, App Store build only
 │   ├── ShareTextGenerator.swift # Spoiler-free share text and play strip
 │   ├── StatsStore.swift        # Persistent stats storage
+│   ├── StatsStore+PastDailies.swift # Past-daily results: metrics, recording, merging
 │   ├── StatsSync.swift         # iCloud key-value sync, App Store build only
 │   └── Telemetry.swift         # The only file that talks to Sentry
 ├── Views/
 │   ├── AboutWindow.swift       # About window
-│   ├── CellView.swift          # Individual cell rendering
+│   ├── CellView.swift          # Individual cell rendering and click handling
 │   ├── ConfettiView.swift      # Win celebration animation
-│   ├── FooterView.swift        # Menu and quit button
+│   ├── FooterView.swift        # Share, flag mode, controls help and the gear menu
 │   ├── GameBoardView.swift     # 9x9 grid of cells
 │   ├── HeaderView.swift        # Timer, flag count, reset
-│   ├── MenuContentView.swift   # Main popover content
+│   ├── MenuContentView.swift   # Game panel content and keyboard handling
 │   ├── SettingsView.swift      # App settings
-│   └── StatsWindow.swift       # Statistics display
+│   └── StatsWindow.swift       # Statistics, and the Daily History calendar where past days are picked
 ├── Resources/
-│   ├── Assets.xcassets         # App icon
+│   ├── Assets.xcassets         # App icons (AppIcon, AppIcon-Dev), accent color
 │   └── en.lproj/Localizable.strings
-MenuMinesTests/
-├── BoardTests.swift
-├── DailyBoardTests.swift
-├── DailyCompletionTests.swift
-├── GameStateTests.swift
-├── MenuBarIconStateTests.swift
-├── SettingsTests.swift
+MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the Debug app
+├── AuditRegressionTests.swift  # Daily lifecycle, timer, leaderboard, iCloud sync, sharing, puzzle day
+├── BoardTests.swift, DailyBoardTests.swift, DailyBoardFairnessTests.swift
+├── DailyCompletionTests.swift, DailyRolloverTests.swift
+├── DailyHistoryTests.swift     # Launch bound, and which days are playable, practice or unavailable
+├── GamePanelTests.swift        # Real key events sent to a real panel
+├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel, and the missed-day offer
+├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
+├── PastDailyTestHelpers.swift
+├── GameState*Tests.swift       # Basic, chord, Codable, pause, persistence, selection, share, timer, win/lose
+├── GameStateTestHelpers.swift
+├── MenuBarIconStateTests.swift, SettingsTests.swift, SettingsViewLayoutTests.swift
 └── StatsStoreTests.swift
+scripts/                        # test.sh, set-version.sh, release-direct.sh
+Tools/app_store_connect_signing.rb # Signing assets for the App Store release workflow
+docs/APPSTORE_SETUP.md          # App Store Connect setup and screenshots
 ```
 
 ## Project File and Build Identities
@@ -100,6 +115,12 @@ non-activating game panel, and `AppWindows` builds Stats, Settings and About. Ea
 a new hosting controller, because `MenuContentView`'s `onAppear`/`onDisappear` start and stop the
 game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app must declare a scene.
 `GamePanelTests` sends real key events to a real panel, so run them after changing focus handling.
+
+Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
+opens on that board (`StatusItemController.openFromWindow`). The app is still active at that
+point because Stats activated it, so `AppWindows.yieldFocusIfNoWindowsRemain` leaves it alone while
+the panel is up, and closing the panel is what hands focus back. The panel's height follows its
+content: the missed-day row under a finished board makes it 34pt taller, growing downwards.
 
 ### Agent App Configuration
 Set `LSUIElement = YES` in Info.plist to hide from Dock. The UI must provide a Quit button since there's no Dock icon to right-click. `LSApplicationCategoryType` is set to `public.app-category.utilities` (not `puzzle-games`) to prevent macOS Game Mode from activating.
@@ -213,7 +234,8 @@ Use these tools to verify accessibility:
 
 ## Code Style
 
-- SwiftLint with default rules
+- SwiftLint with default rules (`swiftlint lint MenuMines MenuMinesTests`). Nothing runs it automatically and the tree
+  doesn't lint clean yet, mostly short `r`/`c` loop names, so the rule for now is not to add violations
 - No force unwraps (`!`) - use `guard let` or `if let`
 - Prefer `struct` over `class` where possible
 - Use `@Observable` (Swift 5.9) over `@ObservableObject`
@@ -227,6 +249,8 @@ Use these tools to verify accessibility:
   and that cell is marked with a dot (`GameState.startHint`) until the first reveal, so every
   player can start from the identical position. Opening a mine loses — nothing is relocated
   to protect the player. Flags can be placed before the first reveal; they don't start the clock.
+- **Past dailies and replays**: an earlier day's board, by the daily rules above. Nothing is
+  relocated (`PuzzleType.usesDailyBoard`).
 - **Random puzzles**: first click is always safe; mines are relocated out of a 3x3 around the
   click via `clearAreaForOpening`, so the board depends on where the player clicked.
 
@@ -258,9 +282,41 @@ User stories are tracked in Linear under the MenuMines project.
 - Issue prefix: `MER` (e.g., `MER-23`)
 - Workflow: Todo → In Progress → Done
 
+### Subagent Models
+- Use Fable only for planning: designing an approach, auditing, investigating a root cause.
+- Use Opus or Sonnet for execution: editing code, running tests, making the changes.
+
 ## State Management Rules
 
 The app maintains consistent behavior across resume, pause, completion, and recovery scenarios.
+
+### Puzzle Types
+
+| `PuzzleType` | What it is | Recorded | Streaks, daily stats, leaderboard | Reset |
+| --- | --- | --- | --- | --- |
+| `.daily` | Today's board, played on its day | `StatsStore.results`, once per day | Yes | Locked once started |
+| `.random` | Continuous play after the daily | `StatsStore.results`, every game | All-games stats only | Free |
+| `.pastDaily` | An earlier day with no result, played for the first time | `StatsStore.pastDailyResults`, once per day | Never | Locked once started |
+| `.practice` | An earlier day that already has a result | Never | Never | Free |
+
+**Streaks mean "played on the day", and that is kept by storage, not by filtering.** Past-daily
+results live in their own array, UserDefaults key and iCloud keys. Nothing that computes streaks,
+daily stats, all-games stats or the leaderboard reads them, so a missed day can be filled in on
+the calendar without ever joining or repairing a streak. Do not move them into `results`.
+
+- Past days run from `DailyHistory.launchSeed` (2026-01-31, the day v1.0.0 was published) through
+  yesterday, UTC. Earlier days, today and future days can't be picked.
+- `GameState.playPastDay(seed:)` is the one way in. A day with no result starts or resumes a
+  `.pastDaily`, and a day with a result of either kind is a `.practice` replay.
+- If a day has both an on-the-day result and a past-daily result (two Macs, before syncing), the
+  on-the-day one is shown and counted. `pastDailyResults` leaves that day out, so no day counts twice.
+- A past daily never touches `dailyCompletionSeed`, `dailyStats_<seed>` or the menu bar icon's
+  "today" state, and is never submitted to Game Center.
+- The panel offers the most recent missed day once today's puzzle is done and the game on the
+  board is over. Continuous play is unchanged: reset still deals a random board.
+- Versions up to 1.0.22 can't decode `"pastDaily"`. Past dailies are only ever written under keys
+  those versions don't read, so keep them out of `gameSnapshot`, `gameSnapshot.daily`,
+  `gameResults` and the `results.*` iCloud keys.
 
 ### Completion
 - **Completion = win or loss**: A daily puzzle is complete when the game status becomes `.won` or `.lost`
@@ -277,6 +333,9 @@ The app maintains consistent behavior across resume, pause, completion, and reco
 - Once today's puzzle is complete (win or loss), reset is disabled for the rest of the day
 - Today's daily also can't be reset once started, because a reset would be a free retry at a ranked board
 - `canReset` checks `isDailyPuzzleComplete()` using UTC date, and a playing daily's seed against today's
+- A past daily can't be reset once its first cell is revealed, for the same reason. Before that a reset
+  only clears flags, and once it's finished a reset replays the board as unrecorded practice
+- A replay (`.practice`) can always be reset
 - Enforced in: HeaderView emoji, FooterView menu, keyboard shortcut (⌘R)
 
 ### Persistence
@@ -287,6 +346,15 @@ The app maintains consistent behavior across resume, pause, completion, and reco
 - `dailyCompletionSeed`: Tracks if today's puzzle was completed
 - `dailyStatsRecordedSeed`: Prevents duplicate stats recording
 - `dailyStats_<seed>`: Stores DailyStats struct for each completed day
+- `gameSnapshot.past.<seed>`: A past daily left in progress, one per day. Written at the first reveal
+  and whenever the game is left, cleared when it's finished. This is what stops a restart being a retry
+- `gameResults`: On-the-day daily results and random results (`StatsStore.results`)
+- `pastDailyResults`: Past-daily results (`StatsStore.storedPastDailyResults`), one per day
+- `statsResetAt`: When statistics were last erased. Covers both kinds of result
+
+**iCloud keys (App Store build):** `results.<yyyymm>` for on-the-day results, `past.<yyyymm>` for
+past dailies, `statsResetAt`, and the read-only legacy `dailyResults`. Both kinds merge the same
+way: one result per day, the first finished.
 
 **IMPORTANT: The daily namespace (`gameSnapshot.daily`) is absolutely necessary.**
 
@@ -296,7 +364,9 @@ Do NOT attempt to simplify by removing the daily namespace in favor of stats-onl
 
 ### Error Recovery
 When app launches:
-0. Today's in-progress daily always comes back, whichever way continuous play is set
+0. Today's in-progress daily always comes back, whichever way continuous play is set. A launch
+   always starts on today: a past daily in progress waits under its own key until its day is
+   picked again, from Daily History or the missed-day offer
 1. Try to load snapshot → restore full state if valid and today's seed
 2. If snapshot missing/corrupted but daily complete → restore from stats (won/lost, time, flags)
 3. Otherwise → fresh game with today's board
@@ -304,7 +374,8 @@ When app launches:
 ### Share Text
 Boards are identical for everyone, so a grid would hand out the solution. Share text carries a
 strip of `PlayStep`s (opens, cascades, chords, flags) describing how the player got there, and
-says nothing about where.
+says nothing about where. The header says what kind of game it was: a past daily names its day and
+adds "(played later)", and a replay says it's a replay.
 
 ### Share Availability
 - Share button visible when `status == .won || status == .lost`

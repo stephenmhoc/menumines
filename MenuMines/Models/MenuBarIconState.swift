@@ -1,8 +1,5 @@
 import Foundation
 
-/// The base SF Symbol for the menu bar icon.
-let menuBarBaseIcon = "circle.grid.3x3.fill"
-
 /// Represents the visual state of the menu bar icon.
 enum MenuBarIconState: Equatable {
     /// Default icon with no indicator (daily complete, no active game or won).
@@ -66,23 +63,6 @@ enum MenuBarIconState: Equatable {
         }
     }
 
-    /// Returns the SF Symbol name for this icon state (legacy, for tests).
-    var systemImageName: String {
-        switch self {
-        case .normal:
-            return "circle.grid.3x3.fill"
-        case .incomplete:
-            return "circle.grid.3x3.fill.badge.ellipsis"
-        case .playing:
-            return "timer"
-        case .paused:
-            return "pause.circle.fill"
-        case .complete:
-            return "checkmark.circle.fill"
-        case .lost:
-            return "xmark.circle.fill"
-        }
-    }
 }
 
 /// Derives the menu bar icon state from game state and daily completion status.
@@ -92,8 +72,8 @@ func menuBarIconState(
     isDailyComplete: Bool,
     puzzleType: PuzzleType = .daily
 ) -> MenuBarIconState {
-    // The icon is the prompt to play today's puzzle, so a finished random game or replay
-    // mustn't look like today is done.
+    // The icon is the prompt to play today's puzzle, so a finished random game, replay or
+    // past daily mustn't look like today is done, and an unfinished one mustn't hide that it is.
     if puzzleType != .daily, gameStatus != .playing {
         return isDailyComplete ? .complete : .incomplete
     }

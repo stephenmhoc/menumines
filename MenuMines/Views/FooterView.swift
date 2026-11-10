@@ -9,10 +9,16 @@ struct FooterView: View {
     var shareText: String?
     /// When the next daily arrives, once today's is finished.
     var nextPuzzleDate: Date?
+    /// The day on the board, when it's an earlier one.
+    var pastDay: Date?
+    /// The title for the missed-day item, when there's a missed day to offer.
+    var missedDayTitle: String?
     let onReset: () -> Void
     let onToggleFlagMode: () -> Void
     let onCopy: () -> Void
     var onReturnToToday: () -> Void = {}
+    var onPlayMissedDay: () -> Void = {}
+    var onDailyHistory: () -> Void = {}
     let onStats: () -> Void
     let onSettings: () -> Void
     let onAbout: () -> Void
@@ -20,36 +26,16 @@ struct FooterView: View {
     @State private var showCopiedFeedback = false
     @State private var showControls = false
 
-    private var puzzleTypeLabel: String {
-        switch puzzleType {
-        case .daily:
-            String(localized: "puzzle_type_daily")
-        case .random:
-            String(localized: "puzzle_type_random")
-        case .practice:
-            String(localized: "puzzle_type_practice")
-        }
-    }
-
-    private var puzzleTypeIconName: String {
-        switch puzzleType {
-        case .daily:
-            "calendar"
-        case .random:
-            "shuffle"
-        case .practice:
-            "clock.arrow.circlepath"
-        }
-    }
+    private var isPastDay: Bool { puzzleType.isPastDay }
 
     var body: some View {
         HStack {
             // Left side: where the player is, or what they can do with a finished game.
-            if puzzleType == .practice {
+            if isPastDay {
                 Button(String(localized: "return_to_today_button"), action: onReturnToToday)
                     .buttonStyle(.bordered)
                     .fixedSize()
-                    .help(String(localized: "return_to_today_help"))
+                    .help(puzzleType.returnToTodayHelp)
             }
 
             if isGameComplete {
@@ -69,18 +55,38 @@ struct FooterView: View {
                 if let shareText {
                     ResultShareButton(text: shareText)
                 }
-            } else if puzzleType != .practice {
+            } else if isPastDay {
+                // Which day this is, and whether it counts. The button beside it already
+                // says it isn't today.
+                if let pastDay {
+                    let description = puzzleType.pastDayDescription(for: pastDay)
+                    HStack(spacing: 4) {
+                        Image(systemName: puzzleType.iconName)
+                            .font(.caption)
+                        Text(pastDay.formatted(Date.FormatStyle(timeZone: .gmt).month(.abbreviated).day()))
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .help(description)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(description)
+                }
+            } else {
                 HStack(spacing: 4) {
-                    Image(systemName: puzzleTypeIconName)
+                    Image(systemName: puzzleType.iconName)
                         .font(.caption)
-                    Text(puzzleTypeLabel)
+                    Text(puzzleType.label)
                         .font(.caption)
                         .fontWeight(.medium)
                 }
                 .foregroundStyle(.secondary)
                 .fixedSize()
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(String(format: String(localized: "puzzle_type_accessibility_label"), puzzleTypeLabel))
+                .accessibilityLabel(
+                    String(format: String(localized: "puzzle_type_accessibility_label"), puzzleType.label)
+                )
             }
 
             if let nextPuzzleDate {
@@ -116,8 +122,17 @@ struct FooterView: View {
             .accessibilityLabel(String(localized: "controls_button_accessibility"))
 
             Menu {
-                if puzzleType == .practice {
+                if isPastDay {
                     Button(String(localized: "return_to_today_button"), action: onReturnToToday)
+                }
+
+                // The same offer as the button under the board, here so that it has a key.
+                if let missedDayTitle {
+                    Button(missedDayTitle) {
+                        showCopiedFeedback = false
+                        onPlayMissedDay()
+                    }
+                    .keyboardShortcut("m", modifiers: .command)
                 }
 
                 Button(String(localized: "reset_button")) {
@@ -126,9 +141,11 @@ struct FooterView: View {
                 }
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(!canReset)
-                .accessibilityHint(canReset ? String(localized: "reset_accessibility_hint") : String(localized: "reset_locked_hint"))
+                .accessibilityHint(canReset ? puzzleType.resetHint : puzzleType.resetLockedHint)
 
                 Divider()
+
+                Button(String(localized: "daily_history_menu_item"), action: onDailyHistory)
 
                 Button(String(localized: "stats_menu_item"), action: onStats)
 
@@ -164,6 +181,65 @@ struct FooterView: View {
             .accessibilityLabel(String(localized: "footer_menu_accessibility_label"))
         }
         .frame(width: 260)
+    }
+}
+
+extension PuzzleType {
+    /// The short name shown beside the board.
+    var label: String {
+        switch self {
+        case .daily:
+            String(localized: "puzzle_type_daily")
+        case .random:
+            String(localized: "puzzle_type_random")
+        case .practice:
+            String(localized: "puzzle_type_practice")
+        case .pastDaily:
+            String(localized: "puzzle_type_past_daily")
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .daily:
+            "calendar"
+        case .random:
+            "shuffle"
+        case .practice:
+            "clock.arrow.circlepath"
+        case .pastDaily:
+            "calendar.badge.clock"
+        }
+    }
+
+    /// Whether the board is an earlier day's, as a past daily or a replay.
+    var isPastDay: Bool {
+        self == .practice || self == .pastDaily
+    }
+
+    /// What a reset would do, for VoiceOver.
+    var resetHint: String {
+        String(localized: isPastDay ? "reset_accessibility_hint_past_day" : "reset_accessibility_hint")
+    }
+
+    /// Why reset is unavailable, when it is.
+    var resetLockedHint: String {
+        String(localized: self == .pastDaily ? "reset_locked_hint_past_daily" : "reset_locked_hint")
+    }
+
+    var resetConfirmationMessage: String {
+        String(localized: isPastDay ? "reset_confirmation_message_past_day" : "reset_confirmation_message")
+    }
+
+    var returnToTodayHelp: String {
+        String(localized: self == .pastDaily ? "return_to_today_help_past_daily" : "return_to_today_help")
+    }
+
+    /// Says which earlier day is on the board and whether its result counts, in full.
+    func pastDayDescription(for date: Date) -> String {
+        let day = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
+        let key: String.LocalizationValue = self == .pastDaily ? "past_daily_description" : "replay_description"
+        return String(format: String(localized: key), day)
     }
 }
 

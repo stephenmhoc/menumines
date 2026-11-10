@@ -261,141 +261,6 @@ final class BoardTests: XCTestCase {
         }
     }
 
-    // MARK: - Story 5A: Win/Lose Detection and First-Click Safety
-
-    func testRelocateMineRemovesMineFromOriginalCell() {
-        var board = Board(seed: 12345)
-
-        // Find a cell with a mine
-        var mineRow = -1, mineCol = -1
-        outer: for r in 0..<9 {
-            for c in 0..<9 {
-                if board.cells[r][c].hasMine {
-                    mineRow = r
-                    mineCol = c
-                    break outer
-                }
-            }
-        }
-
-        guard mineRow >= 0 else {
-            XCTFail("No mine found")
-            return
-        }
-
-        XCTAssertTrue(board.cells[mineRow][mineCol].hasMine)
-
-        board.relocateMine(from: mineRow, col: mineCol)
-
-        XCTAssertFalse(board.cells[mineRow][mineCol].hasMine, "Mine should be removed from original cell")
-    }
-
-    func testRelocateMinePreservesTotalMineCount() {
-        var board = Board(seed: 12345)
-
-        // Find a cell with a mine
-        var mineRow = -1, mineCol = -1
-        outer: for r in 0..<9 {
-            for c in 0..<9 {
-                if board.cells[r][c].hasMine {
-                    mineRow = r
-                    mineCol = c
-                    break outer
-                }
-            }
-        }
-
-        guard mineRow >= 0 else {
-            XCTFail("No mine found")
-            return
-        }
-
-        let mineCountBefore = board.cells.flatMap { $0 }.filter(\.hasMine).count
-        XCTAssertEqual(mineCountBefore, Board.mineCount)
-
-        board.relocateMine(from: mineRow, col: mineCol)
-
-        let mineCountAfter = board.cells.flatMap { $0 }.filter(\.hasMine).count
-        XCTAssertEqual(mineCountAfter, Board.mineCount, "Mine count should stay at \(Board.mineCount) after relocation")
-    }
-
-    func testRelocateMineMovesToDifferentCell() {
-        var board = Board(seed: 12345)
-
-        // Find a cell with a mine
-        var mineRow = -1, mineCol = -1
-        outer: for r in 0..<9 {
-            for c in 0..<9 {
-                if board.cells[r][c].hasMine {
-                    mineRow = r
-                    mineCol = c
-                    break outer
-                }
-            }
-        }
-
-        guard mineRow >= 0 else {
-            XCTFail("No mine found")
-            return
-        }
-
-        // Get positions of mines before relocation
-        var minePositionsBefore = Set<Int>()
-        for r in 0..<9 {
-            for c in 0..<9 {
-                if board.cells[r][c].hasMine {
-                    minePositionsBefore.insert(r * 9 + c)
-                }
-            }
-        }
-
-        board.relocateMine(from: mineRow, col: mineCol)
-
-        // Get positions of mines after relocation
-        var minePositionsAfter = Set<Int>()
-        for r in 0..<9 {
-            for c in 0..<9 {
-                if board.cells[r][c].hasMine {
-                    minePositionsAfter.insert(r * 9 + c)
-                }
-            }
-        }
-
-        // The original position should no longer have a mine
-        XCTAssertFalse(minePositionsAfter.contains(mineRow * 9 + mineCol))
-
-        // A new position should have a mine
-        let newMines = minePositionsAfter.subtracting(minePositionsBefore)
-        XCTAssertEqual(newMines.count, 1, "Exactly one new mine position should exist")
-    }
-
-    func testRelocateMineDoesNothingIfCellHasNoMine() {
-        var board = Board(seed: 12345)
-
-        // Find a cell without a mine
-        var emptyRow = -1, emptyCol = -1
-        outer: for r in 0..<9 {
-            for c in 0..<9 {
-                if !board.cells[r][c].hasMine {
-                    emptyRow = r
-                    emptyCol = c
-                    break outer
-                }
-            }
-        }
-
-        guard emptyRow >= 0 else {
-            XCTFail("No empty cell found")
-            return
-        }
-
-        let mineCountBefore = board.cells.flatMap { $0 }.filter(\.hasMine).count
-        board.relocateMine(from: emptyRow, col: emptyCol)
-        let mineCountAfter = board.cells.flatMap { $0 }.filter(\.hasMine).count
-
-        XCTAssertEqual(mineCountBefore, mineCountAfter, "Mine count should not change when relocating from non-mine cell")
-    }
-
     // MARK: - First-Click Opening Guarantee
 
     func testClearAreaForOpeningRemovesMinesFromClickedCell() {
@@ -540,46 +405,19 @@ final class BoardTests: XCTestCase {
                           "Different click positions should produce different boards")
     }
 
-    func testMarkExplodedSetsIsExplodedTrue() {
+    func testRevealingMineMarksOnlyThatCellExploded() {
         var board = Board(seed: 12345)
 
-        // Find a cell with a mine
-        var mineRow = -1, mineCol = -1
-        outer: for r in 0..<9 {
-            for c in 0..<9 {
-                if board.cells[r][c].hasMine {
-                    mineRow = r
-                    mineCol = c
-                    break outer
-                }
-            }
-        }
-
-        guard mineRow >= 0 else {
+        guard let mine = findMineCell(in: board) else {
             XCTFail("No mine found")
             return
         }
 
-        XCTAssertFalse(board.cells[mineRow][mineCol].isExploded)
+        XCTAssertEqual(board.reveal(row: mine.row, col: mine.col), .mine)
 
-        board.markExploded(row: mineRow, col: mineCol)
-
-        XCTAssertTrue(board.cells[mineRow][mineCol].isExploded, "Cell should be marked as exploded")
-    }
-
-    func testMarkExplodedOutOfBoundsDoesNothing() {
-        var board = Board(seed: 12345)
-
-        // These should not crash
-        board.markExploded(row: -1, col: 0)
-        board.markExploded(row: 0, col: -1)
-        board.markExploded(row: 9, col: 0)
-        board.markExploded(row: 0, col: 9)
-
-        // Verify no cells are exploded
-        for r in 0..<9 {
-            for c in 0..<9 {
-                XCTAssertFalse(board.cells[r][c].isExploded)
+        for r in 0..<Board.rows {
+            for c in 0..<Board.cols {
+                XCTAssertEqual(board.cells[r][c].isExploded, r == mine.row && c == mine.col)
             }
         }
     }

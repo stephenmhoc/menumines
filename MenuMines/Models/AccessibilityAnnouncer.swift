@@ -6,12 +6,8 @@ final class AccessibilityAnnouncer {
     /// Task for debouncing selection change announcements.
     private var announcementTask: Task<Void, Never>?
 
-    /// Debounce delay in milliseconds before announcing.
-    private let debounceDelay: UInt64
-
-    init(debounceDelay: UInt64 = 150) {
-        self.debounceDelay = debounceDelay
-    }
+    /// How long the selection has to rest on a cell before it's announced.
+    private let debounceDelay: Duration = .milliseconds(150)
 
     /// Announces a cell selection change for VoiceOver users.
     /// Debounced to prevent overlapping announcements during rapid navigation.
@@ -23,33 +19,43 @@ final class AccessibilityAnnouncer {
         announcementTask?.cancel()
 
         announcementTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(debounceDelay))
+            try? await Task.sleep(for: debounceDelay)
             guard !Task.isCancelled else { return }
 
-            let stateDescription = cellStateDescription(cell)
             let message = String(
                 format: String(localized: "announcement_selection_changed"),
                 row + 1,
                 col + 1,
-                stateDescription
+                cell.accessibilityStateDescription()
             )
             AccessibilityNotification.Announcement(message).post()
         }
     }
 
-    /// Returns a description of the cell state for accessibility announcements.
-    func cellStateDescription(_ cell: Cell) -> String {
-        if cell.isExploded {
+    /// Cancels any pending announcement.
+    func cancelPendingAnnouncement() {
+        announcementTask?.cancel()
+        announcementTask = nil
+    }
+}
+
+extension Cell {
+    /// What VoiceOver says about this cell, for its label and for selection announcements.
+    /// - Parameter isStartHint: Whether this is the day's marked safe opening cell.
+    func accessibilityStateDescription(isStartHint: Bool = false) -> String {
+        if isExploded {
             return String(localized: "cell_state_exploded_mine")
         }
 
-        switch cell.state {
+        switch state {
+        case .hidden where isStartHint:
+            return String(localized: "cell_state_covered_safe_start")
         case .hidden:
             return String(localized: "cell_state_covered")
         case .flagged:
             return String(localized: "cell_state_flagged")
         case .revealed(let adjacentMines):
-            if cell.hasMine {
+            if hasMine {
                 return String(localized: "cell_state_mine")
             } else if adjacentMines == 0 {
                 return String(localized: "cell_state_empty")
@@ -59,11 +65,5 @@ final class AccessibilityAnnouncer {
                 return String(format: String(localized: "cell_state_mines"), adjacentMines)
             }
         }
-    }
-
-    /// Cancels any pending announcement.
-    func cancelPendingAnnouncement() {
-        announcementTask?.cancel()
-        announcementTask = nil
     }
 }

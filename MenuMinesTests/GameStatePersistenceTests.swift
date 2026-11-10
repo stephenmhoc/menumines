@@ -515,9 +515,9 @@ struct GameStatePersistenceTests {
 
         winGame(gameState)
 
-        #expect(hasStatsBeenRecorded(), "Stats should be recorded after winning")
+        #expect(hasStatsBeenRecorded(forSeed: seedFromDate(Date())), "Stats should be recorded after winning")
 
-        let stats = getStats(for: Date())
+        let stats = getStats(forSeed: seedFromDate(Date()))
         #expect(stats != nil, "Stats should be retrievable")
         #expect(stats?.won == true, "Stats should indicate win")
     }
@@ -549,7 +549,10 @@ struct GameStatePersistenceTests {
 
         winGame(gameState)
 
-        #expect(isDailyPuzzleComplete(for: previousDay), "Previous puzzle seed should be marked complete")
+        #expect(
+            isDailyPuzzleComplete(forSeed: seedFromDate(previousDay)),
+            "Previous puzzle seed should be marked complete"
+        )
         #expect(!isDailyPuzzleComplete(), "Today's puzzle should not be marked complete")
         #expect(hasStatsBeenRecorded(forSeed: previousSeed), "Stats should be recorded for previous seed")
         #expect(getStats(forSeed: previousSeed)?.won == true, "Previous seed stats should reflect the win")
@@ -585,9 +588,9 @@ struct GameStatePersistenceTests {
         }
         gameState.reveal(row: mine.row, col: mine.col)
 
-        #expect(hasStatsBeenRecorded(), "Stats should be recorded after losing")
+        #expect(hasStatsBeenRecorded(forSeed: seedFromDate(Date())), "Stats should be recorded after losing")
 
-        let stats = getStats(for: Date())
+        let stats = getStats(forSeed: seedFromDate(Date()))
         #expect(stats != nil, "Stats should be retrievable")
         #expect(stats?.won == false, "Stats should indicate loss")
     }
@@ -603,15 +606,15 @@ struct GameStatePersistenceTests {
         }
 
         // First recording
-        let recorded1 = recordStats(won: true, elapsedTime: 100.0, flagCount: 5)
+        let recorded1 = recordStats(forSeed: seedFromDate(Date()), won: true, elapsedTime: 100.0, flagCount: 5)
         #expect(recorded1 == true, "First recording should succeed")
 
         // Second recording should be ignored
-        let recorded2 = recordStats(won: false, elapsedTime: 200.0, flagCount: 10)
+        let recorded2 = recordStats(forSeed: seedFromDate(Date()), won: false, elapsedTime: 200.0, flagCount: 10)
         #expect(recorded2 == false, "Second recording should be rejected")
 
         // Stats should reflect first recording
-        let stats = getStats(for: Date())
+        let stats = getStats(forSeed: seedFromDate(Date()))
         #expect(stats?.won == true, "Stats should reflect first recording")
         #expect(stats?.elapsedTime == 100.0, "Elapsed time should be from first recording")
         #expect(stats?.flagCount == 5, "Flag count should be from first recording")
@@ -625,8 +628,8 @@ struct GameStatePersistenceTests {
         defer { cleanup() }
 
         // Mark daily complete and record stats, but don't save snapshot (nor daily namespace)
-        markDailyPuzzleComplete()
-        _ = recordStats(won: true, elapsedTime: 123.0, flagCount: 7)
+        markDailyPuzzleComplete(forSeed: seedFromDate(Date()))
+        _ = recordStats(forSeed: seedFromDate(Date()), won: true, elapsedTime: 123.0, flagCount: 7)
 
         // Restore should recover from stats (fallback when no snapshots exist)
         let restoredState = GameState.restored()

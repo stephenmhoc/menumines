@@ -163,8 +163,8 @@ struct GameStateChordRevealTests {
         // Count hidden cells before
         let hiddenBefore = countHiddenAdjacentCells(to: target.row, col: target.col, in: gameState)
 
-        // Perform chord reveal via keyboard
-        gameState.chordRevealSelected()
+        // Space on a revealed number chords it
+        gameState.revealSelected()
 
         // Count hidden cells after
         let hiddenAfter = countHiddenAdjacentCells(to: target.row, col: target.col, in: gameState)

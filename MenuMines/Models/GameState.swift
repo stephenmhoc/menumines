@@ -16,16 +16,16 @@ enum Direction {
 /// Observable game state that owns the board and manages game logic.
 @Observable
 final class GameState {
-    // Note: internal(set) allows GamePersistenceCoordinator and checkContinuousPlaySetting to set these
-    internal(set) var board: Board
-    internal(set) var status: GameStatus = .notStarted
-    internal(set) var elapsedTime: TimeInterval = 0
-    internal(set) var flagCount: Int = 0
-    internal(set) var selectedRow: Int = 0
-    internal(set) var selectedCol: Int = 0
-    internal(set) var dailySeed: Int64
-    internal(set) var puzzleType: PuzzleType = .daily
-    internal(set) var isPaused: Bool = false
+    // Settable so that GamePersistenceCoordinator can rebuild a saved game. Views only read these.
+    var board: Board
+    var status: GameStatus = .notStarted
+    var elapsedTime: TimeInterval = 0
+    var flagCount: Int = 0
+    var selectedRow: Int = 0
+    var selectedCol: Int = 0
+    var dailySeed: Int64
+    var puzzleType: PuzzleType = .daily
+    var isPaused: Bool = false
     /// The current puzzle day, so that anything showing it updates when the day changes.
     private(set) var currentDaySeed: Int64 = seedFromDate(Date())
     /// Goes up when a game ends in play. A status can't say this: it also changes when the
@@ -36,22 +36,23 @@ final class GameState {
     /// Used for share text to show player's actual skill.
     /// Persisted, because winning auto-flags every mine — recomputing it from a restored
     /// board would always report a perfect 12/12 regardless of how the player actually did.
-    internal(set) var markedMinesAtWin: Int = 0
+    var markedMinesAtWin: Int = 0
     /// Cells the player opened themselves, excluding everything a cascade opened for free.
-    internal(set) var clickCount: Int = 0
+    var clickCount: Int = 0
     /// Chord reveals the player performed.
-    internal(set) var chordCount: Int = 0
+    var chordCount: Int = 0
     /// Most cells opened by a single action, cascade included.
-    internal(set) var largestOpening: Int = 0
+    var largestOpening: Int = 0
     /// What the player did, in order, for sharing.
-    internal(set) var playLog: [PlayStep] = []
+    var playLog: [PlayStep] = []
+    /// Goes up when a past daily's saved progress changes. That lives in UserDefaults, which
+    /// views can't observe, so they read it through this.
+    private var pastDailyProgressRevision = 0
 
     /// Timer for tracking elapsed game time.
     private let gameTimer = GameTimer()
     /// Handles VoiceOver announcements with debouncing.
     private let announcer = AccessibilityAnnouncer()
-    /// Cache the last UTC daily seed we checked for rollover to avoid redundant calculations.
-    private var lastRolloverCheckSeed: Int64?
 
     /// Whether continuous play mode is enabled.
     private var isContinuousPlayEnabled: Bool {
@@ -65,6 +66,10 @@ final class GameState {
         // The lock exists to stop today's result being rerolled. A replay has no result to
         // protect, so it stays restartable even once today's puzzle is settled.
         if puzzleType == .practice { return true }
+        // A past daily is recorded, so once it's started it has to be played out: restarting
+        // would be a free retry at a board the player has now seen. Before the first reveal
+        // there's nothing to protect, and afterwards a reset replays it unrecorded.
+        if puzzleType == .pastDaily { return status != .playing }
         // The board never changes, so restarting the clock on it would let anyone learn the
         // mines and then post a fast time. A game carried over from yesterday isn't ranked.
         if puzzleType == .daily, status == .playing, dailySeed == seedFromDate(Date()) {
@@ -87,11 +92,11 @@ final class GameState {
 
     /// The day's safe opening cell, marked for the player until they make their first reveal.
     ///
-    /// Daily and replay boards start fully covered, so this is how a player knows where to
-    /// begin without the board being moved for them. Random puzzles have no marked cell:
-    /// their first click is made safe instead.
+    /// Daily, past daily and replay boards start fully covered, so this is how a player knows
+    /// where to begin without the board being moved for them. Random puzzles have no marked
+    /// cell: their first click is made safe instead.
     var startHint: (row: Int, col: Int)? {
-        guard puzzleType != .random, status == .notStarted else { return nil }
+        guard puzzleType.usesDailyBoard, status == .notStarted else { return nil }
         let opening = Board.openingCell(forSeed: dailySeed)
         guard case .hidden = board.cells[opening.row][opening.col].state else { return nil }
         return opening
@@ -149,35 +154,28 @@ final class GameState {
             // touched: clearing an area around the player's click is what made two people
             // playing the same day play different boards. Random puzzles are not compared
             // to anyone, so they keep the forgiving first-click-is-always-safe behaviour.
-            if puzzleType == .random {
+            if !puzzleType.usesDailyBoard {
                 board.clearAreaForOpening(centerRow: row, centerCol: col, seed: dailySeed)
             }
             startTimer()
             status = .playing
         }
 
-        let result = board.reveal(row: row, col: col)
         clickCount += 1
-        if case .safe(let revealed) = result {
+        switch board.reveal(row: row, col: col) {
+        case .mine:
+            logStep(.open)
+            finishAsLost()
+        case .safe(let revealed):
             largestOpening = max(largestOpening, revealed)
             logStep(revealed > 1 ? .cascade : .open)
-        } else {
-            logStep(.open)
+            finishIfWon()
         }
 
-        switch result {
-        case .mine:
-            status = .lost
-            board.revealAllMines()
-            handleGameComplete(won: false)
-        case .safe:
-            if checkWinCondition() {
-                markedMinesAtWin = countFlaggedMines()
-                status = .won
-                board.flagAllMines()
-                flagCount = Board.mineCount
-                handleGameComplete(won: true)
-            }
+        // From here a past daily can't be started over, so it's saved straight away rather
+        // than when the panel closes. Otherwise a crash or a force quit would be a retry.
+        if isFirstClick, puzzleType == .pastDaily, status == .playing {
+            save()
         }
     }
 
@@ -219,36 +217,101 @@ final class GameState {
         }
     }
 
-    /// Starts a replay of an earlier day's board.
+    /// Starts an unrecorded replay of an earlier day's board.
     ///
-    /// Unranked by construction: nothing about the result is recorded, so a missed day cannot
-    /// be filled in after the fact and streaks keep meaning what they say.
+    /// Nothing about the result is recorded, so a day's result can't be improved by playing
+    /// it again. `playPastDay` is what the app calls: it only gets here for a day that
+    /// already has a result.
     /// - Parameter seed: The daily seed to replay, in `YYYYMMDD` form.
     func startPractice(seed: Int64) {
-        stopTimer()
-        announcer.cancelPendingAnnouncement()
-
-        // The player is only visiting this board, so today's game has to be there when
-        // they come back, with its time.
-        save()
-
-        board = Board(dailySeed: seed)
-        dailySeed = seed
-        puzzleType = .practice
-        status = .notStarted
-        elapsedTime = 0
-        flagCount = 0
-        selectedRow = 0
-        selectedCol = 0
-        resetPlayTally()
+        leaveCurrentGame()
+        startFresh(Board(dailySeed: seed), seed: seed, type: .practice)
     }
 
-    /// Leaves a replay and goes back to today's puzzle, exactly as it was left.
+    /// Puts an earlier day's board in the panel, from launch day through yesterday.
+    ///
+    /// A day with no result is played as a past daily: recorded once, apart from streaks and
+    /// on-the-day stats, and picked up where it was left if it was started before. A day that
+    /// already has a result, from its own day or from later, is an unrecorded replay.
+    ///
+    /// Whatever was on the board is saved first, so today's game is there to come back to.
+    /// - Parameter seed: The day to play, in `YYYYMMDD` form.
+    /// - Returns: Whether that day's board is now in place. False for today, the future and
+    ///   anything before launch.
+    @discardableResult
+    func playPastDay(seed: Int64) -> Bool {
+        guard DailyHistory.isPastPuzzleDay(seed, todaySeed: seedFromDate(Date())) else { return false }
+
+        let isFinished = status == .won || status == .lost
+        if dailySeed == seed {
+            // That day's game is already here to be played: a past daily, or a daily carried
+            // over from its own day. Starting it again would be a way around the reset lock.
+            let isRecordedGame = puzzleType == .pastDaily || puzzleType == .daily
+            if isRecordedGame, !isFinished, puzzleType == .pastDaily || status == .playing {
+                return true
+            }
+        }
+        // Results are recorded a moment after a game ends, so a game finished on this board
+        // is counted here too rather than left to the store.
+        let justFinishedThatDay = dailySeed == seed && isFinished && puzzleType != .practice && puzzleType != .random
+
+        leaveCurrentGame()
+
+        if justFinishedThatDay || StatsStore.shared.hasDailyResult(forSeed: seed) {
+            // Progress saved here is from before another Mac finished the day.
+            clearPastDailyProgress(seed: seed)
+            startFresh(Board(dailySeed: seed), seed: seed, type: .practice)
+        } else if let saved = GamePersistenceCoordinator.restorePastDaily(seed: seed) {
+            apply(saved)
+        } else {
+            startFresh(Board(dailySeed: seed), seed: seed, type: .pastDaily)
+        }
+        return true
+    }
+
+    /// Leaves a past day and goes back to today's puzzle, exactly as it was left. A past
+    /// daily that's under way is kept for the next time its day is picked.
     func returnToToday() {
-        guard puzzleType == .practice else { return }
+        guard puzzleType == .practice || puzzleType == .pastDaily else { return }
+        leaveCurrentGame()
+        apply(GamePersistenceCoordinator.restoreToday())
+    }
+
+    /// Stops the clock and saves the game on the board, before another takes its place. The
+    /// player is only visiting the next board, so this one has to be there when they come
+    /// back, with its time.
+    private func leaveCurrentGame() {
         stopTimer()
         announcer.cancelPendingAnnouncement()
-        apply(GamePersistenceCoordinator.restoreToday())
+        save()
+    }
+
+    /// The days that have a past daily started and not yet finished.
+    var pastDailySeedsInProgress: Set<Int64> {
+        _ = pastDailyProgressRevision
+        var seeds = GameSnapshot.pastDailySeedsInProgress()
+        if puzzleType == .pastDaily, status == .playing {
+            seeds.insert(dailySeed)
+        }
+        return seeds
+    }
+
+    /// The most recent earlier day the player has no result for, if there is one. This is
+    /// the day offered once today's puzzle is done.
+    var nextMissedDaySeed: Int64? {
+        // A game that has just ended on this board may not have reached the store yet.
+        let isFinished = status == .won || status == .lost
+        let justFinished = isFinished && (puzzleType == .pastDaily || puzzleType == .daily) ? dailySeed : nil
+        return DailyHistory.mostRecentMissedSeed(
+            todaySeed: currentDaySeed,
+            played: StatsStore.shared.playedDailySeeds,
+            excluding: justFinished
+        )
+    }
+
+    private func clearPastDailyProgress(seed: Int64) {
+        GameSnapshot.clearPastDaily(seed: seed)
+        pastDailyProgressRevision += 1
     }
 
     /// Resets the game to a fresh state.
@@ -266,67 +329,72 @@ final class GameState {
             return
         }
 
-        // If continuous play is enabled and daily is complete, start a random puzzle
-        if isContinuousPlayEnabled && isDailyPuzzleComplete() {
-            resetToRandomPuzzle()
-        } else {
-            // Reset to today's daily puzzle
-            let seed = seedFromDate(Date())
-            board = Board(dailySeed: seed)
-            dailySeed = seed
-            puzzleType = .daily
-            status = .notStarted
-            elapsedTime = 0
-            flagCount = 0
-            selectedRow = 0
-            selectedCol = 0
-            resetPlayTally()
-            GameSnapshot.clear()
+        if puzzleType == .pastDaily {
+            if status == .notStarted {
+                // Nothing has been revealed, so this only takes the flags off.
+                startFresh(Board(dailySeed: dailySeed), seed: dailySeed, type: .pastDaily)
+            } else {
+                // The day has its result. Playing its board again is a replay.
+                startPractice(seed: dailySeed)
+            }
+            return
         }
+
+        if isContinuousPlayEnabled && isDailyPuzzleComplete() {
+            let seed = Self.randomPuzzleSeed()
+            startFresh(Board(seed: seed), seed: seed, type: .random)
+        } else {
+            let seed = seedFromDate(Date())
+            startFresh(Board(dailySeed: seed), seed: seed, type: .daily)
+        }
+        // A fresh board has nothing to restore, and random puzzles are never persisted.
+        GameSnapshot.clear()
     }
 
-    /// Resets to a new random puzzle for continuous play mode.
-    private func resetToRandomPuzzle() {
-        let randomSeed = generateRandomSeed()
-        board = Board(seed: randomSeed)
-        dailySeed = randomSeed
-        puzzleType = .random
+    /// A seed for a random puzzle. Negative, so it can never be mistaken for a daily seed
+    /// (`YYYYMMDD`).
+    static func randomPuzzleSeed() -> Int64 {
+        -Int64.random(in: 1...Int64.max)
+    }
+
+    /// Puts a new, untouched board in place.
+    private func startFresh(_ board: Board, seed: Int64, type: PuzzleType) {
+        self.board = board
+        dailySeed = seed
+        puzzleType = type
         status = .notStarted
         elapsedTime = 0
         flagCount = 0
         selectedRow = 0
         selectedCol = 0
-        resetPlayTally()
-        // Don't persist random puzzles
-        GameSnapshot.clear()
-    }
-
-    /// Generates a random seed that won't collide with daily seeds (YYYYMMDD format).
-    /// Uses negative values to ensure no collision.
-    private func generateRandomSeed() -> Int64 {
-        -Int64.random(in: 1...Int64.max)
-    }
-
-    // MARK: - Persistence
-
-    /// Saves the current game state to persistent storage.
-    /// Saves in-progress and completed daily games so state persists across app restarts.
-    /// Does not save if game hasn't started yet or if it's a random puzzle.
-    func save() {
-        guard status != .notStarted else { return }
-        // Don't persist random puzzles - they're discarded on app close
-        guard puzzleType == .daily else { return }
-
-        makeSnapshot().save()
-    }
-
-    /// Clears the record of what the player did, so a new board starts from nothing.
-    private func resetPlayTally() {
         markedMinesAtWin = 0
         clickCount = 0
         chordCount = 0
         largestOpening = 0
         playLog = []
+    }
+
+    // MARK: - Persistence
+
+    /// Saves the current game state to persistent storage.
+    /// Saves in-progress and completed daily games so state persists across app restarts,
+    /// and a past daily that's under way under its own day's key.
+    /// Does not save if game hasn't started yet, or if it's a random puzzle or a replay.
+    func save() {
+        guard status != .notStarted else { return }
+
+        switch puzzleType {
+        case .daily:
+            makeSnapshot().save()
+        case .pastDaily:
+            // Kept only while it's under way. A finished one lives on as its result.
+            guard status == .playing else { return }
+            makeSnapshot().saveAsPastDaily()
+            pastDailyProgressRevision += 1
+        case .random, .practice:
+            // Random puzzles and replays are discarded when the player moves on.
+            return
+        }
     }
 
     private func logStep(_ step: PlayStep) {
@@ -423,35 +491,23 @@ final class GameState {
     /// If game is in progress, it continues until completion.
     /// Random puzzles are not date-bound, but should yield to a new daily puzzle
     /// once today's daily is available and incomplete.
-    /// A replay stays until the player leaves it, which is what `returnToToday` is for.
+    /// A replay or past daily stays until the player leaves it, which is what
+    /// `returnToToday` is for.
     func checkForDailyRollover() {
         let todaySeed = seedFromDate(Date())
 
-        if puzzleType == .practice { return }
-
-        if puzzleType != .daily {
+        switch puzzleType {
+        case .practice, .pastDaily:
+            return
+        case .random:
             guard !isDailyPuzzleComplete(forSeed: todaySeed) else { return }
-            guard status != .playing else { return }
-
-            rolloverToNewDay(seed: todaySeed)
-            return
+        case .daily:
+            guard dailySeed != todaySeed else { return }
         }
 
-        // Check if we've already confirmed this UTC daily seed is current.
-        if lastRolloverCheckSeed == todaySeed, dailySeed == todaySeed {
-            return
-        }
-
-        // Already on today's puzzle
-        guard dailySeed != todaySeed else {
-            lastRolloverCheckSeed = todaySeed
-            return
-        }
-
-        // Game is in progress - delay rollover
+        // A game in progress is left to finish.
         guard status != .playing else { return }
 
-        // Roll over to today's puzzle
         rolloverToNewDay(seed: todaySeed)
     }
 
@@ -459,16 +515,7 @@ final class GameState {
     private func rolloverToNewDay(seed: Int64) {
         stopTimer()
         announcer.cancelPendingAnnouncement()
-        board = Board(dailySeed: seed)
-        dailySeed = seed
-        puzzleType = .daily
-        status = .notStarted
-        elapsedTime = 0
-        flagCount = 0
-        // Reset to top-left cell selection
-        selectedRow = 0
-        selectedCol = 0
-        resetPlayTally()
+        startFresh(Board(dailySeed: seed), seed: seed, type: .daily)
         GameSnapshot.clear()
         // Clear daily namespace too since we're starting a new day
         GameSnapshot.withStorageKey(GameSnapshot.dailyNamespace) { GameSnapshot.clear() }
@@ -544,34 +591,19 @@ final class GameState {
         guard status == .playing else { return }
         guard row >= 0, row < Board.rows, col >= 0, col < Board.cols else { return }
 
-        let chordResult = board.chordReveal(row: row, col: col)
-        if case .safe(let revealed) = chordResult, revealed > 0 {
-            chordCount += 1
-            largestOpening = max(largestOpening, revealed)
-            logStep(.chord)
-        }
-
-        switch chordResult {
+        switch board.chordReveal(row: row, col: col) {
         case .mine:
             chordCount += 1
             logStep(.chord)
-            status = .lost
-            board.revealAllMines()
-            handleGameComplete(won: false)
-        case .safe:
-            if checkWinCondition() {
-                markedMinesAtWin = countFlaggedMines()
-                status = .won
-                board.flagAllMines()
-                flagCount = Board.mineCount
-                handleGameComplete(won: true)
+            finishAsLost()
+        case .safe(let revealed):
+            if revealed > 0 {
+                chordCount += 1
+                largestOpening = max(largestOpening, revealed)
+                logStep(.chord)
             }
+            finishIfWon()
         }
-    }
-
-    /// Performs a chord reveal on the currently selected cell.
-    func chordRevealSelected() {
-        chordReveal(row: selectedRow, col: selectedCol)
     }
 
     // MARK: - Private
@@ -595,6 +627,7 @@ final class GameState {
 
     /// Records the result, and submits a daily time if this is the day's first result. If
     /// another Mac already finished today, this game doesn't count and has nothing to submit.
+    /// A past daily is recorded apart from on-the-day results, and never submitted.
     private func recordGameResult(won: Bool) {
         let result = GameResult(
             won: won,
@@ -603,7 +636,7 @@ final class GameState {
             puzzleType: puzzleType
         )
         Task { @MainActor in
-            guard StatsStore.shared.record(result) else { return }
+            guard StatsStore.shared.record(result), result.puzzleType.isRanked else { return }
             Leaderboard.submitDailyTime(
                 elapsedTime: result.elapsedTime,
                 puzzleType: result.puzzleType,
@@ -611,6 +644,22 @@ final class GameState {
                 seed: result.dailySeed
             )
         }
+    }
+
+    private func finishAsLost() {
+        status = .lost
+        board.revealAllMines()
+        handleGameComplete(won: false)
+    }
+
+    /// Ends the game as a win once every safe cell is open.
+    private func finishIfWon() {
+        guard checkWinCondition() else { return }
+        markedMinesAtWin = countFlaggedMines()
+        status = .won
+        board.flagAllMines()
+        flagCount = Board.mineCount
+        handleGameComplete(won: true)
     }
 
     private func checkWinCondition() -> Bool {
@@ -627,10 +676,16 @@ final class GameState {
     /// Handles game completion (win or loss).
     /// For daily puzzles: marks complete, records stats, saves state, and saves to daily namespace.
     /// For random puzzles: records stats only (no daily tracking).
+    /// For past dailies: records the day's past-daily result and drops its saved progress.
+    /// Today's completion and daily stats are left alone.
     /// Replays record nothing.
     private func handleGameComplete(won: Bool) {
         stopTimer()
         finishedGameCount += 1
+
+        if puzzleType == .pastDaily {
+            clearPastDailyProgress(seed: dailySeed)
+        }
 
         if puzzleType == .daily {
             // Only mark daily completion and record daily stats for daily puzzles

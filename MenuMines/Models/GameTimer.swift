@@ -1,5 +1,13 @@
 import Foundation
 
+extension TimeInterval {
+    /// `MM:SS`, the way a stopwatch shows it. Not localized on purpose.
+    var clockString: String {
+        let totalSeconds = Int(self)
+        return String(format: "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
+    }
+}
+
 /// Measures how long a game has been actively played.
 ///
 /// Time comes from a monotonic clock, and the repeating timer only prompts a redraw. Counting
