@@ -83,21 +83,19 @@ struct ShareTextGenerator {
     private static func formatPlayLine(_ play: PlaySummary) -> String? {
         guard play.clickCount > 0 else { return nil }
         return String(
-            format: String(localized: "share_play_line"),
-            play.clickCount,
-            play.chordCount,
-            play.largestOpening
+            localized: "share_play_line \(play.clickCount) \(play.chordCount) \(play.largestOpening)"
         )
     }
 
     private static func formatHeader(puzzleType: PuzzleType, date: Date) -> String {
+        let day = utcDateString(date)
         switch puzzleType {
         case .daily:
-            return String(format: String(localized: "share_header"), utcDateString(date))
+            return String(localized: "share_header \(day)")
         case .pastDaily:
-            return String(format: String(localized: "share_header_past_daily"), utcDateString(date))
+            return String(localized: "share_header_past_daily \(day)")
         case .practice:
-            return String(format: String(localized: "share_header_replay"), utcDateString(date))
+            return String(localized: "share_header_replay \(day)")
         case .random:
             return String(localized: "share_header_random")
         }
@@ -107,16 +105,15 @@ struct ShareTextGenerator {
         date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
     }
 
-    /// Formats the result line showing time and flag count.
+    /// Formats the result line showing time and flag count. The time reads as the game's
+    /// clock showed it.
     private static func formatResultLine(status: GameStatus, elapsedTime: TimeInterval, markedMinesCount: Int) -> String {
-        let minutes = Int(elapsedTime) / 60
-        let seconds = Int(elapsedTime) % 60
-        let timeString = String(format: "%d:%02d", minutes, seconds)
-
+        let time = elapsedTime.clockString
+        let mines = Board.mineCount
         if status == .won {
-            return String(format: String(localized: "share_solved"), timeString, markedMinesCount, Board.mineCount)
+            return String(localized: "share_solved \(time) \(markedMinesCount) \(mines)")
         } else {
-            return String(format: String(localized: "share_failed"), timeString, markedMinesCount, Board.mineCount)
+            return String(localized: "share_failed \(time) \(markedMinesCount) \(mines)")
         }
     }
 

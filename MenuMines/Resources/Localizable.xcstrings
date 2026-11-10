@@ -1485,35 +1485,35 @@
         }
       }
     },
-    "share_failed" : {
+    "share_failed %@ %lld %lld" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Failed in %@ 🚩 %d/%d"
+            "value" : "Failed in %1$@ 🚩 %2$lld/%3$lld"
           }
         }
       }
     },
-    "share_header" : {
+    "share_header %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines - %@"
+            "value" : "MenuMines · %@"
           }
         }
       }
     },
-    "share_header_past_daily" : {
+    "share_header_past_daily %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines - %@ (played later)"
+            "value" : "MenuMines · %@ (played later)"
           }
         }
       }
@@ -1524,29 +1524,71 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines - Random board"
+            "value" : "MenuMines · Random board"
           }
         }
       }
     },
-    "share_header_replay" : {
+    "share_header_replay %@" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MenuMines replay - %@"
+            "value" : "MenuMines replay · %@"
           }
         }
       }
     },
-    "share_play_line" : {
+    "share_play_line %lld %lld %lld" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "⚡️ %d clicks · 🔗 %d chords · 🌊 %d opened at once"
+            "value" : "⚡️ %#@clicks@ · 🔗 %#@chords@ · 🌊 %3$lld opened at once"
+          },
+          "substitutions" : {
+            "clicks" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg click"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg clicks"
+                    }
+                  }
+                }
+              }
+            },
+            "chords" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg chord"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg chords"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1562,13 +1604,13 @@
         }
       }
     },
-    "share_solved" : {
+    "share_solved %@ %lld %lld" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Solved in %@ 🚩 %d/%d"
+            "value" : "Solved in %1$@ 🚩 %2$lld/%3$lld"
           }
         }
       }

@@ -90,7 +90,7 @@ struct PastDailyShareTests {
         let header = try #require(text.components(separatedBy: "\n").first)
 
         let date = try utcDate(2026_03_15)
-        #expect(header == "MenuMines - \(date) (played later)")
+        #expect(header == "MenuMines · \(date) (played later)")
         #expect(date.contains("2026"))
     }
 
@@ -133,7 +133,7 @@ struct PastDailyShareTests {
         let shareText = try #require(state.shareText())
         let header = try #require(shareText.components(separatedBy: "\n").first)
         let launchDay = try utcDate(2026_01_31)
-        #expect(header == "MenuMines - \(launchDay) (played later)")
+        #expect(header == "MenuMines · \(launchDay) (played later)")
     }
 }
 

@@ -80,7 +80,7 @@ struct GameStateShareTests {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         let expectedDate = formatter.string(from: testDate)
-        let expectedHeader = String(format: String(localized: "share_header"), expectedDate)
+        let expectedHeader = "MenuMines · \(expectedDate)"
         #expect(shareText.contains(expectedHeader), "Share text should include UTC date in header")
     }
 
@@ -99,7 +99,8 @@ struct GameStateShareTests {
         // Verify the actual formatted time appears in share text
         let minutes = Int(gameState.elapsedTime) / 60
         let seconds = Int(gameState.elapsedTime) % 60
-        let expectedTime = String(format: "%d:%02d", minutes, seconds)
+        // Two-digit minutes, as the game's clock shows it.
+        let expectedTime = String(format: "%02d:%02d", minutes, seconds)
         #expect(shareText.contains(expectedTime), "Share text should include formatted time")
     }
 
@@ -128,7 +129,8 @@ struct GameStateShareTests {
         // Verify the actual formatted time appears in share text
         let minutes = Int(gameState.elapsedTime) / 60
         let seconds = Int(gameState.elapsedTime) % 60
-        let expectedTime = String(format: "%d:%02d", minutes, seconds)
+        // Two-digit minutes, as the game's clock shows it.
+        let expectedTime = String(format: "%02d:%02d", minutes, seconds)
         #expect(shareText.contains(expectedTime), "Share text should include formatted time")
     }
 
