@@ -135,7 +135,7 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   observation and the settings through user defaults. The button stays highlighted while the panel
   is up. Only a right-click or a Control-*click* opens the icon's menu: VoiceOver presses with
   Control held and must open the game. The menu carries the gear menu's app-wide items (keep the
-  two in step); Reset and Back to Today stay in the gear menu.
+  two in step); New Game/Restart and Back to Today stay in the gear menu.
 - **Panel:** opens instantly and fades out over 0.15s (no fade under Reduce Motion). `isOpen` turns
   false and the clock pauses the moment it starts closing; input is dropped during the fade, and
   opening again during the fade brings the same content straight back (a new host there would have
@@ -327,7 +327,7 @@ MenuMines must be fully playable with VoiceOver. Accessibility is a core require
 3. **Keyboard Navigation** - Already implemented via arrow keys + Space/Return/F (see Controls)
 
 4. **Control Labels** - All buttons need accessibility labels:
-   - Reset button: "Reset game"
+   - Face button: "New Game" or "Restart" (`ResetAction.title`), value the game status
    - Timer display: label "Elapsed time", value `spokenDuration` ("1 minute, 5 seconds")
    - Mine counter: "3 flags placed, 9 mines remaining"
 
@@ -488,6 +488,10 @@ depending on the setting.
   only clears flags, and once it's finished a reset replays the board as unrecorded practice
 - A replay (`.practice`) can always be reset
 - Enforced in: HeaderView emoji, FooterView menu, keyboard shortcut (⌘R)
+- The command is named for what it does (`GameState.resetAction`, which mirrors `reset()`): **New
+  Game** when it deals a random board or moves on to today's puzzle, **Restart** when the same board
+  starts again. Its hint, the confirmation and the face's tooltip and VoiceOver label all follow it.
+  ⌘R in every case: one key for the one command, whatever it's called on this board
 
 ### Persistence
 

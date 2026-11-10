@@ -165,4 +165,29 @@ struct GameStateShareTests {
         #expect(shareText.contains(expectedCount), "Share text should include marked count")
     }
 
+    private func lines(_ status: GameStatus, play: PlaySummary) throws -> [String] {
+        try #require(ShareTextGenerator.generate(
+            status: status,
+            elapsedTime: 75,
+            markedMinesCount: 3,
+            play: play,
+            date: dateFromSeed(20260315) ?? Date()
+        )).components(separatedBy: "\n")
+    }
+
+    @Test("The time reads as the clock showed it")
+    func testResultLine() throws {
+        let play = PlaySummary(clickCount: 2, steps: [.open])
+        #expect(try lines(.won, play: play)[1] == "Solved in 01:15 🚩 3/12")
+        #expect(try lines(.lost, play: play)[1] == "Failed in 01:15 🚩 3/12")
+    }
+
+    @Test("The play line counts in words that agree with the numbers")
+    func testPlayLinePlurals() throws {
+        let many = PlaySummary(clickCount: 2, steps: [.open])
+        #expect(try lines(.won, play: many)[2] == "⚡️ 2 clicks · 🔗 0 chords · 🌊 0 opened at once")
+
+        let one = PlaySummary(clickCount: 1, chordCount: 1, largestOpening: 7, steps: [.open])
+        #expect(try lines(.won, play: one)[2] == "⚡️ 1 click · 🔗 1 chord · 🌊 7 opened at once")
+    }
 }

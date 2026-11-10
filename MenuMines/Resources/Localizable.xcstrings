@@ -514,7 +514,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset game"
+            "value" : "New game or restart"
           }
         }
       }
@@ -580,7 +580,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Daily History…"
+            "value" : "Daily History"
           }
         }
       }
@@ -880,50 +880,6 @@
         }
       }
     },
-    "reset_accessibility_combined" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset game. Status: %@"
-          }
-        }
-      }
-    },
-    "reset_accessibility_hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click to reset today's puzzle"
-          }
-        }
-      }
-    },
-    "reset_accessibility_hint_past_day" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Click to restart this day's board"
-          }
-        }
-      }
-    },
-    "reset_button" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset"
-          }
-        }
-      }
-    },
     "reset_confirmation_cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -935,46 +891,90 @@
         }
       }
     },
-    "reset_confirmation_confirm" : {
+    "reset_confirmation_title_new_game" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset"
+            "value" : "Start a New Game?"
           }
         }
       }
     },
-    "reset_confirmation_message" : {
+    "reset_confirmation_title_restart" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This will restart today's puzzle."
+            "value" : "Restart This Game?"
           }
         }
       }
     },
-    "reset_confirmation_message_past_day" : {
+    "reset_hint_new_game" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This will restart this day's board."
+            "value" : "Deals a new random board."
           }
         }
       }
     },
-    "reset_confirmation_title" : {
+    "reset_hint_replay_past_daily" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset Game?"
+            "value" : "Plays this day's board again as a replay. Replays aren't recorded."
+          }
+        }
+      }
+    },
+    "reset_hint_restart_past_daily" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clears your flags and starts this day's puzzle again."
+          }
+        }
+      }
+    },
+    "reset_hint_restart_replay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plays this board again from the start. Replays aren't recorded."
+          }
+        }
+      }
+    },
+    "reset_hint_restart_today" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clears your flags and starts today's puzzle again."
+          }
+        }
+      }
+    },
+    "reset_hint_start_today" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starts today's puzzle."
           }
         }
       }
@@ -985,7 +985,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Today's puzzle can't be reset once it's started"
+            "value" : "Today's puzzle can't be restarted once you've started it."
           }
         }
       }
@@ -996,7 +996,18 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This daily was started on its day and can't be reset. Finish it to move on to today's puzzle"
+            "value" : "This puzzle was started on its day and can't be restarted. Finish it to move on to today's puzzle."
+          }
+        }
+      }
+    },
+    "reset_locked_hint_daily_done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've played today's puzzle. Turn on continuous play in Settings to keep playing."
           }
         }
       }
@@ -1007,7 +1018,29 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A past daily can't be reset once it's started"
+            "value" : "This day's puzzle can't be restarted once you've started it."
+          }
+        }
+      }
+    },
+    "reset_new_game" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Game"
+          }
+        }
+      }
+    },
+    "reset_restart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart"
           }
         }
       }
@@ -1073,7 +1106,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Confirm before resetting"
+            "value" : "Confirm new games and restarts"
           }
         }
       }
@@ -1084,7 +1117,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ask before resetting a game."
+            "value" : "Ask before the board is replaced or started again."
           }
         }
       }
@@ -2303,7 +2336,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stats…"
+            "value" : "Statistics"
           }
         }
       }

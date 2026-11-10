@@ -183,7 +183,7 @@ Clear the 9x9 board without hitting any of the 12 hidden mines.
 
 | Shortcut | Action |
 |----------|--------|
-| ⌘R | Reset game |
+| ⌘R | New Game, or Restart on a board that starts over |
 | ⌘, | Settings |
 | ⌘Q | Quit |
 

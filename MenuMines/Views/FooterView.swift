@@ -11,6 +11,8 @@ struct FooterView: View {
     var nextPuzzleDate: Date?
     /// The day on the board, when it's an earlier one.
     var pastDay: Date?
+    /// What the reset command does with this board.
+    var resetAction: ResetAction = .restartToday
     /// Why reset is unavailable, when the puzzle type alone doesn't say.
     var resetLockedHint: String?
     let onReset: () -> Void
@@ -155,13 +157,13 @@ struct FooterView: View {
                 Button(String(localized: "return_to_today_button"), action: onReturnToToday)
             }
 
-            Button(String(localized: "reset_button")) {
+            Button(resetAction.title) {
                 showCopiedFeedback = false
                 onReset()
             }
             .keyboardShortcut("r", modifiers: .command)
             .disabled(!canReset)
-            .accessibilityHint(canReset ? puzzleType.resetHint : (resetLockedHint ?? puzzleType.resetLockedHint))
+            .accessibilityHint(canReset ? resetAction.hint : (resetLockedHint ?? puzzleType.resetLockedHint))
 
             Divider()
 
@@ -208,9 +210,16 @@ struct FooterView: View {
 }
 
 extension GameState {
-    /// Why reset is unavailable. A daily carried over from its day isn't today's puzzle.
+    /// Why reset is unavailable. A daily carried over from its day isn't today's puzzle, and
+    /// once today's is played, only continuous play deals another board.
     var resetLockedHint: String {
-        isCarriedOverDaily ? String(localized: "reset_locked_hint_carried_over") : puzzleType.resetLockedHint
+        if isCarriedOverDaily {
+            return String(localized: "reset_locked_hint_carried_over")
+        }
+        if !puzzleType.isPastDay, status != .playing, isDailyPuzzleComplete() {
+            return String(localized: "reset_locked_hint_daily_done")
+        }
+        return puzzleType.resetLockedHint
     }
 }
 
@@ -261,18 +270,9 @@ extension PuzzleType {
         self == .practice || self == .pastDaily
     }
 
-    /// What a reset would do, for VoiceOver.
-    var resetHint: String {
-        String(localized: isPastDay ? "reset_accessibility_hint_past_day" : "reset_accessibility_hint")
-    }
-
     /// Why reset is unavailable, when it is.
     var resetLockedHint: String {
         String(localized: self == .pastDaily ? "reset_locked_hint_past_daily" : "reset_locked_hint")
-    }
-
-    var resetConfirmationMessage: String {
-        String(localized: isPastDay ? "reset_confirmation_message_past_day" : "reset_confirmation_message")
     }
 
     var returnToTodayHelp: String {

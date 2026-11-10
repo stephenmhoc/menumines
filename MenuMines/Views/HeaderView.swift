@@ -7,8 +7,8 @@ struct HeaderView: View {
     let flagCount: Int
     let canReset: Bool
     var isHoldingCell: Bool = false
-    /// What a reset would do, for VoiceOver.
-    var resetHint: String = String(localized: "reset_accessibility_hint")
+    /// What the reset command does with this board.
+    var resetAction: ResetAction = .restartToday
     /// Why reset is unavailable, when it is.
     var resetLockedHint: String = String(localized: "reset_locked_hint")
     let onReset: () -> Void
@@ -58,7 +58,7 @@ struct HeaderView: View {
 
             Spacer()
 
-            // Status emoji - clickable to reset game
+            // The face: how the game is going, and pressed for a new game or a restart.
             Button(action: onReset) {
                 Text(statusEmoji)
                     .font(.system(size: 22))
@@ -67,9 +67,11 @@ struct HeaderView: View {
             // The gear menu shows ⌘R too, but a menu that isn't open answers no shortcuts.
             .keyboardShortcut("r", modifiers: .command)
             .disabled(!canReset)
-            .help(canReset ? String(localized: "reset_button") : resetLockedHint)
-            .accessibilityLabel(String(format: String(localized: "reset_accessibility_combined"), statusDescription))
-            .accessibilityHint(canReset ? resetHint : resetLockedHint)
+            .help(canReset ? resetAction.title : resetLockedHint)
+            // Named for what pressing it does. The face itself is how the game is going.
+            .accessibilityLabel(resetAction.title)
+            .accessibilityValue(statusDescription)
+            .accessibilityHint(canReset ? resetAction.hint : resetLockedHint)
 
             Spacer()
 

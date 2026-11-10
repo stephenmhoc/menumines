@@ -57,7 +57,9 @@
 		541C202E8ACCB02B95B3E9DB /* StatsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B815FC9DC0C2AB7EA762DF /* StatsWindow.swift */; };
 		59558B6F0601E7C801B18BDF /* GameStatePauseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0EDA25CCE729B3454CA45D /* GameStatePauseTests.swift */; };
 		5B44CD6838B701BE2D251E1D /* SettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04A358E19D4E2CA8C1BF33B7 /* SettingsTests.swift */; };
+		5EFF51B78C2A6934C8A67CD8 /* ResetAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C467D42B67615FA0696775 /* ResetAction.swift */; };
 		5FD8F9C76F46D9C3F91F3D18 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F92D798C5BD2A4E2E6B47E2 /* StatsStore.swift */; };
+		632AC27C372D5BE82B6EA02C /* ResetAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C467D42B67615FA0696775 /* ResetAction.swift */; };
 		64873F8507A1A78BD2007591 /* PastDailyTestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B2243EB54C0CF88762FA1B /* PastDailyTestHelpers.swift */; };
 		64A247DDD180A8367546512F /* FooterIconButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79067E497CACAE3CBCBC8177 /* FooterIconButtons.swift */; };
 		674F7F5F5E87170A8D975E58 /* DailyRolloverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D2EEFC4A1818B208768146 /* DailyRolloverTests.swift */; };
@@ -93,6 +95,7 @@
 		A2A6C2D9A16AD00CA1B54B1A /* MenuBarIconStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27421DF6D441A96417F354E7 /* MenuBarIconStateTests.swift */; };
 		A5C0D7E6CF25F8936A136FE2 /* MenuMinesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BF97F7F956D585A6B65F9F9 /* MenuMinesApp.swift */; };
 		A943AD2E7322FDC583557C82 /* GamePersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4632585BC265407DD04189A5 /* GamePersistence.swift */; };
+		AB044E368C1BFCCE2EFB6F42 /* ResetActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D677FB8CB65375C89B901A /* ResetActionTests.swift */; };
 		AB137CB59A214F88A3E32739 /* PastDailyProgressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F98AB6D2296084B50C394B30 /* PastDailyProgressTests.swift */; };
 		AC9A56478119510C11FC6F3B /* CellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D19CB6DD51B0160F6A05D8B3 /* CellView.swift */; };
 		B11B27B6D56153AF1AFDB923 /* GamePanelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AD6A432E24308D1116E3EBF /* GamePanelTests.swift */; };
@@ -159,6 +162,7 @@
 		04A358E19D4E2CA8C1BF33B7 /* SettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTests.swift; sourceTree = "<group>"; };
 		05D22B8D1E2CFE95B6E3BE6D /* DailyCompletionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyCompletionTests.swift; sourceTree = "<group>"; };
 		07B2243EB54C0CF88762FA1B /* PastDailyTestHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyTestHelpers.swift; sourceTree = "<group>"; };
+		07C467D42B67615FA0696775 /* ResetAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetAction.swift; sourceTree = "<group>"; };
 		0AD6A432E24308D1116E3EBF /* GamePanelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelTests.swift; sourceTree = "<group>"; };
 		0E7C9889924D288876FF3C4A /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
 		0F964EE4E173DE341B8B968B /* PastDailyRulesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyRulesTests.swift; sourceTree = "<group>"; };
@@ -195,6 +199,7 @@
 		563E6DCE165D50096F39514C /* StatusItemController+Position.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatusItemController+Position.swift"; sourceTree = "<group>"; };
 		5BC1304C92B79352B532ED9A /* PastDailyStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PastDailyStatsTests.swift; sourceTree = "<group>"; };
 		5C8B14B521BE50D31D40DF28 /* GamePanelWindowSizeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelWindowSizeTests.swift; sourceTree = "<group>"; };
+		63D677FB8CB65375C89B901A /* ResetActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResetActionTests.swift; sourceTree = "<group>"; };
 		6D29523755347B719639DF47 /* GamePanelPastDayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GamePanelPastDayTests.swift; sourceTree = "<group>"; };
 		6D356662C9FA64C19D3B64D5 /* MenuMinesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MenuMinesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EE8476158113B5CD8067E29 /* GameStateTimerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateTimerTests.swift; sourceTree = "<group>"; };
@@ -290,6 +295,7 @@
 				0475F5E6B022FD3F4257E80B /* GameTimer.swift */,
 				97CFAB132FB1C3335D3D5797 /* Leaderboard.swift */,
 				F24A066240BAF20DDCAD6357 /* MenuBarIconState.swift */,
+				07C467D42B67615FA0696775 /* ResetAction.swift */,
 				01B648A394DE0AEEF23F9828 /* ShareTextGenerator.swift */,
 				3F92D798C5BD2A4E2E6B47E2 /* StatsStore.swift */,
 				7809FDC4798C95DC2A1CEBAD /* StatsStore+PastDailies.swift */,
@@ -360,6 +366,7 @@
 				0F964EE4E173DE341B8B968B /* PastDailyRulesTests.swift */,
 				5BC1304C92B79352B532ED9A /* PastDailyStatsTests.swift */,
 				07B2243EB54C0CF88762FA1B /* PastDailyTestHelpers.swift */,
+				63D677FB8CB65375C89B901A /* ResetActionTests.swift */,
 				04A358E19D4E2CA8C1BF33B7 /* SettingsTests.swift */,
 				9AB4EFD332F1CCAB5C85EBF9 /* SettingsViewLayoutTests.swift */,
 				7D531CC5AB910D1E5601C607 /* StatsStoreTests.swift */,
@@ -573,6 +580,7 @@
 				3F413099E192C2CC393CB194 /* MenuBarIconState.swift in Sources */,
 				418D9BEB550EC6CA553C47FF /* MenuContentView.swift in Sources */,
 				37524A91053F9AC327742BF7 /* MenuMinesApp.swift in Sources */,
+				5EFF51B78C2A6934C8A67CD8 /* ResetAction.swift in Sources */,
 				6BF2A249296866F834C5A5BC /* SettingsView.swift in Sources */,
 				A003B2D37302C338089C9119 /* ShareTextGenerator.swift in Sources */,
 				6E88DF96BB3FB5BF08671823 /* ShortcutRecorderView.swift in Sources */,
@@ -623,6 +631,7 @@
 				3527522E30F870CFA1FFC91A /* MenuBarIconState.swift in Sources */,
 				79B54EA133D9E8136726C408 /* MenuContentView.swift in Sources */,
 				A5C0D7E6CF25F8936A136FE2 /* MenuMinesApp.swift in Sources */,
+				632AC27C372D5BE82B6EA02C /* ResetAction.swift in Sources */,
 				0EFDF9A8E3C5ABE7473ABCB9 /* SettingsView.swift in Sources */,
 				17C08DAA326D67CC98D54EB3 /* ShareTextGenerator.swift in Sources */,
 				DC9265B110C215D14F78E898 /* ShortcutRecorderView.swift in Sources */,
@@ -679,6 +688,7 @@
 				B8E07A6FCA230651EAC324E7 /* PastDailyRulesTests.swift in Sources */,
 				483D07130C5FE47B9C1D111A /* PastDailyStatsTests.swift in Sources */,
 				64873F8507A1A78BD2007591 /* PastDailyTestHelpers.swift in Sources */,
+				AB044E368C1BFCCE2EFB6F42 /* ResetActionTests.swift in Sources */,
 				5B44CD6838B701BE2D251E1D /* SettingsTests.swift in Sources */,
 				B45BCA464DA9E4AD1B24FB71 /* SettingsViewLayoutTests.swift in Sources */,
 				48DC5C6FE388A3F6C267D43F /* StatsStoreTests.swift in Sources */,

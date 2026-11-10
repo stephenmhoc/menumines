@@ -86,6 +86,21 @@ final class GameState {
         return true
     }
 
+    /// What `reset()` would do, whether or not it's allowed right now. Mirrors `reset()`.
+    var resetAction: ResetAction {
+        switch puzzleType {
+        case .practice:
+            return .restartReplay
+        case .pastDaily:
+            return status == .notStarted ? .restartPastDaily : .replayPastDaily
+        case .daily, .random:
+            if isContinuousPlayEnabled && isDailyPuzzleComplete() {
+                return .newGame
+            }
+            return puzzleType == .random ? .startToday : .restartToday
+        }
+    }
+
     /// Whether the board holds a daily started on an earlier day and still under way.
     var isCarriedOverDaily: Bool {
         puzzleType == .daily && status == .playing && dailySeed < currentDaySeed

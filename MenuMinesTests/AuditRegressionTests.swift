@@ -572,30 +572,6 @@ struct SharingTests {
         #expect(daily.contains("2026"))
     }
 
-    @Test("The time reads as the clock showed it")
-    func testResultLine() throws {
-        let won = try #require(share([.open])).components(separatedBy: "\n")
-        #expect(won[1] == "Solved in 01:15 🚩 3/12")
-
-        let lost = try #require(share([.open], status: .lost)).components(separatedBy: "\n")
-        #expect(lost[1] == "Failed in 01:15 🚩 3/12")
-    }
-
-    @Test("The play line counts in words that agree with the numbers")
-    func testPlayLinePlurals() throws {
-        let many = try #require(share([.open])).components(separatedBy: "\n")
-        #expect(many[2] == "⚡️ 2 clicks · 🔗 0 chords · 🌊 0 opened at once")
-
-        let one = try #require(ShareTextGenerator.generate(
-            status: .won,
-            elapsedTime: 5,
-            markedMinesCount: 0,
-            play: PlaySummary(clickCount: 1, chordCount: 1, largestOpening: 7, steps: [.open]),
-            date: dateFromSeed(20260315) ?? Date()
-        )).components(separatedBy: "\n")
-        #expect(one[2] == "⚡️ 1 click · 🔗 1 chord · 🌊 7 opened at once")
-    }
-
     @Test("Finishing a replay shares that day's date, not today's")
     func testReplayShareUsesItsOwnDate() throws {
         let state = GameState(board: Board(dailySeed: 20200315), dailySeed: 20200315, puzzleType: .practice)

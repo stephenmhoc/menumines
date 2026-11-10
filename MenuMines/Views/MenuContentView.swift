@@ -137,7 +137,7 @@ struct MenuContentView: View {
                     flagCount: gameState.flagCount,
                     canReset: gameState.canReset,
                     isHoldingCell: isHoldingCell,
-                    resetHint: gameState.puzzleType.resetHint,
+                    resetAction: gameState.resetAction,
                     resetLockedHint: gameState.resetLockedHint,
                     onReset: handleResetRequest
                 )
@@ -187,6 +187,7 @@ struct MenuContentView: View {
                     shareText: isGameComplete ? gameState.shareText() : nil,
                     nextPuzzleDate: nextPuzzleDate,
                     pastDay: gameState.pastDay,
+                    resetAction: gameState.resetAction,
                     resetLockedHint: gameState.resetLockedHint,
                     onReset: handleResetRequest,
                     onToggleFlagMode: {
@@ -217,7 +218,7 @@ struct MenuContentView: View {
             ZStack {
                 if showResetConfirmation {
                     ResetConfirmationOverlay(
-                        message: gameState.puzzleType.resetConfirmationMessage,
+                        action: gameState.resetAction,
                         onCancel: {
                             showResetConfirmation = false
                         },
@@ -302,10 +303,10 @@ private extension GameState {
     }
 }
 
-/// Inline confirmation overlay for reset action.
+/// Inline confirmation overlay for a new game or restart.
 /// Uses an overlay instead of system alert so that the game panel stays open.
 private struct ResetConfirmationOverlay: View {
-    let message: String
+    let action: ResetAction
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
@@ -322,9 +323,9 @@ private struct ResetConfirmationOverlay: View {
             // Confirmation card
             VStack(spacing: 16) {
                 VStack(spacing: 8) {
-                    Text(String(localized: "reset_confirmation_title"))
+                    Text(action.confirmationTitle)
                         .font(.headline)
-                    Text(message)
+                    Text(action.hint)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -336,7 +337,7 @@ private struct ResetConfirmationOverlay: View {
                     Button(role: .destructive) {
                         onConfirm()
                     } label: {
-                        Text(String(localized: "reset_confirmation_confirm"))
+                        Text(action.title)
                             .foregroundStyle(Color(nsColor: .systemRed))
                     }
 
