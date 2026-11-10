@@ -46,6 +46,8 @@ struct GameBoardView: View {
             }
         }
         .background(Color(nsColor: .separatorColor))
+        // A solid plate, so the board reads the same whatever shows through the panel.
+        .background(Color(nsColor: .windowBackgroundColor))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(localized: "board_accessibility_label"))
     }

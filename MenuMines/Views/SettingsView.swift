@@ -56,6 +56,14 @@ struct SettingsView: View {
                     Text(String(localized: "settings_launch_at_login_footer"))
                         .foregroundStyle(.secondary)
                 }
+
+                LabeledContent {
+                    ShortcutRecorderView()
+                } label: {
+                    Text(String(localized: "settings_global_shortcut"))
+                    Text(String(localized: "settings_global_shortcut_footer"))
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section {

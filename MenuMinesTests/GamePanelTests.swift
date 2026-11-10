@@ -13,6 +13,30 @@ struct GamePanelTests {
         static let space: (code: UInt16, characters: String) = (49, " ")
         static let flag: (code: UInt16, characters: String) = (3, "f")
         static let escape: (code: UInt16, characters: String) = (53, "\u{1B}")
+        static let commandW: (code: UInt16, characters: String) = (13, "w")
+        static let commandR: (code: UInt16, characters: String) = (15, "r")
+        static let commandComma: (code: UInt16, characters: String) = (43, ",")
+    }
+
+    /// Sends a key with Command held through the application, which is where key equivalents
+    /// are dispatched from.
+    func pressCommand(_ key: (code: UInt16, characters: String), in controller: StatusItemController) async throws {
+        try await takeKeyboard(for: controller)
+
+        let event = try #require(NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: .command,
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: controller.panel.windowNumber,
+            context: nil,
+            characters: key.characters,
+            charactersIgnoringModifiers: key.characters,
+            isARepeat: false,
+            keyCode: key.code
+        ))
+        NSApp.sendEvent(event)
+        try await settle()
     }
 
     func press(_ key: (code: UInt16, characters: String), in controller: StatusItemController) async throws {
@@ -37,12 +61,13 @@ struct GamePanelTests {
     /// Another process can take activation from a test run at any moment, more so with the
     /// screen locked. That closes the panel, as it should, but says nothing about the keys.
     func takeKeyboard(for controller: StatusItemController) async throws {
-        for _ in 0..<20 where !controller.panel.isKeyWindow {
+        // A panel fading out is still key for a moment, but it's closed.
+        for _ in 0..<20 where !(controller.panel.isKeyWindow && controller.isOpen) {
             controller.open()
             controller.panel.makeKey()
             try await settle()
         }
-        try #require(controller.panel.isKeyWindow)
+        try #require(controller.panel.isKeyWindow && controller.isOpen)
     }
 
     func settle() async throws {
@@ -150,7 +175,7 @@ struct GamePanelTests {
     }
 
     /// A mouse-down with no window, as a click that went to another process is seen from here.
-    private func iconClick(at timestamp: TimeInterval, location: NSPoint = .zero) throws -> NSEvent {
+    func iconClick(at timestamp: TimeInterval, location: NSPoint = .zero) throws -> NSEvent {
         try #require(NSEvent.mouseEvent(
             with: .leftMouseDown,
             location: location,
@@ -164,7 +189,7 @@ struct GamePanelTests {
         ))
     }
 
-    private var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
+    var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
 
     @Test("A click on the icon closes the open panel")
     func iconClickCloses() async throws {
@@ -231,6 +256,10 @@ struct GamePanelTests {
 
         #expect(!controller.isOnIcon(try iconClick(at: now, location: NSPoint(x: -10_000, y: -10_000))))
 
+        // The menu bar animates a new item in, and its window has no height until it lands.
+        for _ in 0..<20 where (controller.iconFrame?.height ?? 0) == 0 {
+            try await settle()
+        }
         let icon = try #require(controller.iconFrame)
         #expect(controller.isOnIcon(try iconClick(at: now, location: NSPoint(x: icon.midX, y: icon.midY))))
     }

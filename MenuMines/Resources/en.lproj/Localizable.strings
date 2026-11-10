@@ -9,6 +9,7 @@
 "about_menu_item" = "About MenuMines";
 "settings_menu_item" = "Settings…";
 "quit_menu_item" = "Quit MenuMines";
+"close_window_menu_item" = "Close";
 "footer_menu_accessibility_label" = "App menu";
 "puzzle_type_daily" = "Daily";
 "puzzle_type_random" = "Random";
@@ -24,6 +25,28 @@
 /* SettingsView */
 "settings_launch_at_login" = "Launch at Login";
 "settings_launch_at_login_footer" = "Automatically open MenuMines when you log in.";
+"settings_global_shortcut" = "Keyboard Shortcut";
+"settings_global_shortcut_footer" = "Opens and closes MenuMines from any app.";
+"settings_global_shortcut_record" = "Record Shortcut";
+"settings_global_shortcut_recording" = "Type Shortcut…";
+"settings_global_shortcut_none" = "None";
+"settings_global_shortcut_hint" = "Press to record a new shortcut. Escape cancels, Delete clears it.";
+"settings_global_shortcut_clear" = "Clear Shortcut";
+"settings_global_shortcut_needs_modifier" = "Include Command, Option or Control.";
+"settings_global_shortcut_unavailable" = "That shortcut is already in use.";
+"shortcut_modifier_command" = "Command";
+"shortcut_modifier_option" = "Option";
+"shortcut_modifier_control" = "Control";
+"shortcut_modifier_shift" = "Shift";
+"shortcut_key_space" = "Space";
+"shortcut_key_return" = "Return";
+"shortcut_key_tab" = "Tab";
+"shortcut_key_delete" = "Delete";
+"shortcut_key_forward_delete" = "Forward Delete";
+"shortcut_key_left_arrow" = "Left Arrow";
+"shortcut_key_right_arrow" = "Right Arrow";
+"shortcut_key_up_arrow" = "Up Arrow";
+"shortcut_key_down_arrow" = "Down Arrow";
 "settings_show_menu_bar_indicators" = "Show menu bar status indicators";
 "settings_show_menu_bar_indicators_footer" = "When off, the menu bar icon stays constant.";
 "settings_show_menu_bar_result" = "Show today's result";

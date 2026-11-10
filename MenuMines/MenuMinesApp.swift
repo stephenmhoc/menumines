@@ -1,5 +1,4 @@
 import AppKit
-import Combine
 import SwiftUI
 
 @main
@@ -58,14 +57,31 @@ struct MenuMinesApp: App {
     }
 
     // Every window is built by AppWindows and StatusItemController. An app has to declare a
-    // scene, so this is one that never opens, with its menu command removed so that ⌘, can't
-    // open it from the app menu.
+    // scene, so this is one that never opens. Its menu commands are pointed at the app's own
+    // windows instead, so that ⌘, opens Settings and About shows ours while a window is in
+    // front, and ⌘W closes it.
     var body: some Scene {
         Settings {
             EmptyView()
         }
         .commands {
-            CommandGroup(replacing: .appSettings) {}
+            CommandGroup(replacing: .appInfo) {
+                Button(String(localized: "about_menu_item")) {
+                    AboutWindow.show()
+                }
+            }
+            CommandGroup(replacing: .appSettings) {
+                Button(String(localized: "settings_menu_item")) {
+                    AppWindows.showSettings()
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+            CommandGroup(replacing: .saveItem) {
+                Button(String(localized: "close_window_menu_item")) {
+                    NSApp.keyWindow?.performClose(nil)
+                }
+                .keyboardShortcut("w", modifiers: .command)
+            }
         }
     }
 }
@@ -92,98 +108,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dayWatcher.start()
         self.dayWatcher = dayWatcher
 
-        statusItemController = StatusItemController(gameState: gameState)
+        let statusItemController = StatusItemController(gameState: gameState)
+        self.statusItemController = statusItemController
+
+        GlobalHotKey.onPress = { [weak statusItemController] in statusItemController?.toggle() }
+        GlobalHotKey.start()
 
         windowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: nil,
             queue: .main
-        ) { _ in
-            MainActor.assumeIsolated { AppWindows.yieldFocusIfNoWindowsRemain() }
+        ) { notification in
+            let window = notification.object as? NSWindow
+            MainActor.assumeIsolated {
+                if let window {
+                    AppWindows.windowWillClose(window)
+                }
+            }
         }
+    }
+
+    /// Launching the app again, from Finder or Spotlight, opens the game. With no Dock icon,
+    /// that's the only answer it could be looking for, and it's the way back to the game
+    /// for a player whose menu bar has no room for the icon.
+    @MainActor
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        statusItemController?.openForReopen()
+        return false
     }
 
     @MainActor
     func applicationWillTerminate(_ notification: Notification) {
         Self.gameState?.pauseTimer()
         Self.gameState?.save()
-    }
-}
-
-/// Menu bar icon view showing state-specific icon with subtle indicators.
-struct MenuBarIconView: View {
-    let gameState: GameState
-    /// Passes the description on to the status item's button, which is what VoiceOver reads.
-    var onAccessibilityLabelChange: (String) -> Void = { _ in }
-
-    @AppStorage(Constants.SettingsKeys.showMenuBarIndicators) private var showMenuBarIndicators = true
-    @AppStorage(Constants.SettingsKeys.showMenuBarResult) private var showMenuBarResult = true
-    @State private var isVoiceOverRunning = NSWorkspace.shared.isVoiceOverEnabled
-
-    private var state: MenuBarIconState {
-        guard showMenuBarIndicators else {
-            return .normal
-        }
-        return menuBarIconState(
-            gameStatus: gameState.status,
-            isPaused: gameState.isPaused,
-            isDailyComplete: isDailyPuzzleComplete(forSeed: gameState.currentDaySeed),
-            puzzleType: gameState.puzzleType
-        )
-    }
-
-    /// The elapsed time is only read while VoiceOver is running. Reading it unconditionally
-    /// would rebuild the status item every second for a label nothing is listening to, and
-    /// re-laying out the status item makes the attached popover jump.
-    private var announcedElapsedTime: TimeInterval {
-        isVoiceOverRunning ? gameState.elapsedTime : 0
-    }
-
-    private var baseIconName: String {
-        state.baseSymbol(showingResult: showMenuBarResult)
-    }
-
-    private var overlayName: String? {
-        state.overlaySymbol(showingResult: showMenuBarResult)
-    }
-
-    private var accessibilityLabel: String {
-        switch state {
-        case .normal:
-            return String(localized: "menu_bar_title")
-        case .incomplete:
-            return String(localized: "menu_bar_accessibility_incomplete")
-        case .playing:
-            return String(format: String(localized: "menu_bar_accessibility_playing"), announcedElapsedTime.clockString)
-        case .paused:
-            return String(format: String(localized: "menu_bar_accessibility_paused"), announcedElapsedTime.clockString)
-        case .complete:
-            return String(format: String(localized: "menu_bar_accessibility_complete"), StatsStore.shared.currentStreak)
-        case .lost:
-            return String(localized: "menu_bar_accessibility_lost")
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ZStack(alignment: .bottomTrailing) {
-                Image(systemName: baseIconName)
-
-                if let overlayName {
-                    Image(systemName: overlayName)
-                        .font(.system(size: 7, weight: .bold))
-                        .symbolRenderingMode(.hierarchical)
-                        .offset(x: 5, y: 4)
-                }
-            }
-        }
-        .accessibilityHidden(true)
-        .frame(width: 22, alignment: .center)
-        .onChange(of: accessibilityLabel, initial: true) {
-            onAccessibilityLabelChange(accessibilityLabel)
-        }
-        .onReceive(NSWorkspace.shared.publisher(for: \.isVoiceOverEnabled)) { isEnabled in
-            isVoiceOverRunning = isEnabled
-        }
     }
 }

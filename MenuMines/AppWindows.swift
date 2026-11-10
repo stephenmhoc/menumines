@@ -36,7 +36,7 @@ enum AppWindows {
             statsNavigation.tab = .summary
         }
 
-        show(id: statsWindowID, title: String(localized: "stats_window_title")) {
+        show(id: statsWindowID, title: String(localized: "stats_window_title"), remembersPosition: true) {
             StatsWindow(gameState: gameState, navigation: statsNavigation) { seed in
                 playPastDay(seed: seed, gameState: gameState)
             }
@@ -67,14 +67,21 @@ enum AppWindows {
     }
 
     static func showSettings() {
-        show(id: "settings", title: String(localized: "settings_window_title")) {
+        show(id: "settings", title: String(localized: "settings_window_title"), remembersPosition: true) {
             SettingsView()
         }
     }
 
     /// Brings a window forward, building it if it isn't open. A closed window is built again
     /// rather than reused, so it never shows what was on screen last time.
-    static func show<Content: View>(id: String, title: String, @ViewBuilder content: () -> Content) {
+    /// - Parameter remembersPosition: Whether the window goes back where the player last left
+    ///   it. Otherwise, and the first time, it opens in the middle of the screen.
+    static func show<Content: View>(
+        id: String,
+        title: String,
+        remembersPosition: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
         onWillShowWindow?()
 
         if let window = controllers[id]?.window, window.isVisible {
@@ -84,13 +91,21 @@ enum AppWindows {
 
         let window = NSWindow(contentViewController: NSHostingController(rootView: content()))
         window.title = title
-        window.styleMask = [.titled, .closable, .miniaturizable]
+        // Not miniaturizable: an agent app has no Dock icon to bring a minimised window
+        // back from, and these are small utility windows that close instead.
+        window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
+        // Opened from the menu bar, a window joins whatever the player is looking at, even a
+        // full-screen app, rather than switching them to another Space.
+        window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+        // Activation can be refused, and the window is still raised over the other app's.
+        window.allowsToolTipsWhenApplicationIsInactive = true
         // Sized first, because centering uses the height the window has at the time.
-        if let contentView = window.contentView {
-            window.setContentSize(contentView.fittingSize)
+        let contentSize = window.contentView?.fittingSize
+        if let contentSize {
+            window.setContentSize(contentSize)
         }
-        window.center()
+        place(window, autosaveName: remembersPosition ? "MenuMines.\(id)" : nil, contentSize: contentSize)
 
         let controller = NSWindowController(window: window)
         controllers[id] = controller
@@ -98,11 +113,53 @@ enum AppWindows {
         raise(window)
     }
 
+    /// Puts a window where it was last left, keeping the size its content asks for now, or
+    /// in the middle of the screen if it has never been moved.
+    private static func place(_ window: NSWindow, autosaveName: String?, contentSize: NSSize?) {
+        guard let autosaveName else {
+            window.center()
+            return
+        }
+
+        if window.setFrameUsingName(autosaveName) {
+            // The saved frame's size is from whatever the content was then.
+            let top = window.frame.maxY
+            if let contentSize {
+                window.setContentSize(contentSize)
+            }
+            window.setFrameTopLeftPoint(NSPoint(x: window.frame.minX, y: top))
+            if let visible = (window.screen ?? NSScreen.main)?.visibleFrame, !visible.contains(window.frame) {
+                window.setFrame(window.constrainFrameRect(window.frame, to: window.screen), display: false)
+            }
+        } else {
+            window.center()
+        }
+        window.setFrameAutosaveName(autosaveName)
+    }
+
+    /// Called as any of the app's windows closes. Lets go of the controller of one built
+    /// here, so a closed window doesn't stay in memory until it's next opened, then gives
+    /// focus back if nothing else is left on screen.
+    static func windowWillClose(_ window: NSWindow) {
+        if let id = controllers.first(where: { $0.value.window === window })?.key {
+            let controller = controllers[id]
+            // After the close has run its course, and only if a new window hasn't taken
+            // its place in the meantime.
+            DispatchQueue.main.async {
+                if let controller, controllers[id] === controller {
+                    controllers[id] = nil
+                }
+            }
+        }
+        yieldFocusIfNoWindowsRemain(closing: window)
+    }
+
     /// The player asked for this window, so it comes forward whatever they were doing.
     ///
-    /// `NSApp.activate()` isn't used because it's only a request, and the frontmost app hasn't
-    /// offered to give way to us, so it's often declined. `orderFrontRegardless` covers the
-    /// case where activation doesn't lift the window over another app's.
+    /// `NSApp.activate()`, the macOS 14 replacement, isn't used because it's only a request,
+    /// and the frontmost app hasn't offered to give way to us, so it's often declined.
+    /// `orderFrontRegardless` covers the case where activation doesn't lift the window over
+    /// another app's.
     private static func raise(_ window: NSWindow) {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
@@ -113,13 +170,20 @@ enum AppWindows {
     ///
     /// An agent app stays active with nothing on screen otherwise, so keys go nowhere until
     /// the player clicks another window. The closing window still counts as visible during
-    /// this notification, so the check waits a turn.
+    /// this notification, so the check waits a turn, and leaves it out in case it doesn't.
     ///
-    /// The game panel counts as something on screen. It's up when a window closes because a
-    /// past day was picked in it, and hiding the app would take the panel away with it.
-    static func yieldFocusIfNoWindowsRemain() {
+    /// Every titled window counts, not only the ones built here: hiding the app would also
+    /// take away an update window, a Game Center sign-in or an alert. So does the game panel.
+    /// It's up when a window closes because a past day was picked in it, and hiding the app
+    /// would take the panel away with it.
+    static func yieldFocusIfNoWindowsRemain(closing: NSWindow? = nil) {
         DispatchQueue.main.async {
-            let isShowingWindow = controllers.values.contains { $0.window?.isVisible == true }
+            let isShowingWindow = NSApp.windows.contains { window in
+                window !== closing
+                    && window.isVisible
+                    && !(window is GamePanel)
+                    && (window.styleMask.contains(.titled) || window.isSheet || window.level == .modalPanel)
+            }
             if !isShowingWindow && !isGameShowing() {
                 NSApp.hide(nil)
             }

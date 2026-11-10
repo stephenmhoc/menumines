@@ -88,6 +88,8 @@ struct HeaderView: View {
                     .font(.system(size: 24))
             }
             .buttonStyle(.plain)
+            // The gear menu shows ⌘R too, but a menu that isn't open answers no shortcuts.
+            .keyboardShortcut("r", modifiers: .command)
             .disabled(!canReset)
             .help(canReset ? String(localized: "reset_button") : resetLockedHint)
             .accessibilityLabel(String(format: String(localized: "reset_accessibility_combined"), statusDescription))

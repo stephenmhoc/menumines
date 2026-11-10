@@ -21,7 +21,12 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 MenuMines/
 ├── MenuMinesApp.swift          # App entry point, lifecycle and the menu bar icon view
 ├── AppWindows.swift            # Stats, Settings and About windows
-├── StatusItemController.swift  # Menu bar icon and game panel
+├── StatusItemController.swift  # Menu bar icon and game panel: opening, closing, dismissal
+├── StatusItemController+Position.swift # Where the panel goes: always under the icon
+├── StatusItemController+Menu.swift # The icon's right-click menu
+├── GamePanel.swift             # The non-activating panel and its material backdrop
+├── StatusIcon.swift            # Template image for the menu bar icon, kept in step with the game
+├── GlobalHotKey.swift          # Optional global shortcut that opens the panel (Carbon hot key)
 ├── Constants.swift             # UserDefaults keys for settings
 ├── UpdateManager.swift         # Build channel detection; Sparkle, direct build only
 ├── AppStoreScreenshotExporter.swift # Debug-only mock-up that renders AppStoreScreenshots/
@@ -55,6 +60,7 @@ MenuMines/
 │   ├── HeaderView.swift        # Timer, flag count, reset
 │   ├── MenuContentView.swift   # Game panel content and keyboard handling
 │   ├── SettingsView.swift      # App settings
+│   ├── ShortcutRecorderView.swift # Records the global shortcut in Settings
 │   └── StatsWindow.swift       # Statistics, and the Daily History calendar where past days are picked
 ├── Resources/
 │   ├── Assets.xcassets         # App icons (AppIcon, AppIcon-Dev), accent color
@@ -64,7 +70,8 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── BoardTests.swift, DailyBoardTests.swift, DailyBoardFairnessTests.swift
 ├── DailyCompletionTests.swift, DailyRolloverTests.swift
 ├── DailyHistoryTests.swift     # Launch bound, and which days are playable, practice or unavailable
-├── GamePanelTests.swift        # Real key events sent to a real panel
+├── GamePanelTests.swift        # Real key events sent to a real panel; windows, menus, icon
+├── GlobalShortcutTests.swift   # Shortcut validation, storage and registration
 ├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel
 ├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
 ├── PastDailyTestHelpers.swift
@@ -115,6 +122,36 @@ non-activating game panel, and `AppWindows` builds Stats, Settings and About. Ea
 a new hosting controller, because `MenuContentView`'s `onAppear`/`onDisappear` start and stop the
 game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app must declare a scene.
 `GamePanelTests` sends real key events to a real panel, so run them after changing focus handling.
+
+- **Icon:** `StatusIconUpdater` draws a template `NSImage` per `MenuBarIconState` (an SF Symbol
+  grid with a badge in a punched-out ring) into the square status item, following the game by
+  observation and the settings through user defaults. The button stays highlighted while the panel
+  is up. Only a right-click or a Control-*click* opens the icon's menu: VoiceOver presses with
+  Control held and must open the game. The menu carries the gear menu's app-wide items (keep the
+  two in step); Reset and Back to Today stay in the gear menu.
+- **Panel:** opens instantly and fades out over 0.15s (no fade under Reduce Motion). `isOpen` turns
+  false and the clock pauses the moment it starts closing; input is dropped during the fade, and
+  opening again during the fade brings the same content straight back (a new host there would have
+  the old one's disappear pause the clock after the new one's appear). The content sits on Liquid Glass (`NSGlassEffectView`) on
+  macOS 26 and the popover material with a hairline outline before it (`PanelBackdropController`);
+  `MenuContentView` has no background of its own, and the board has a solid plate. Esc and ⌘W close
+  it. It also closes on a Space change, another app activating, display sleep, screen lock and a
+  user switch, and follows the icon when the screens change.
+- **Position:** the panel always hangs directly under the icon, centred on it and clamped to the
+  icon's screen, whichever way it opens (click, shortcut, relaunch, `openFromWindow`). The icon's
+  frame is read afresh each time (`iconAnchor`), and content that changes height keeps the top edge
+  pinned and grows downwards. Only when the button has no window, its window isn't up, or it lies
+  off every screen (a hidden icon) does it fall back to the top middle of the main screen.
+  `StatusItemController.panelOrigin(for:under:fallbackScreen:)` is pure, and tested as such.
+- **Ways in:** a click, the optional global shortcut (`GlobalHotKey`, off by default, set in
+  Settings, saved under `Constants.SettingsKeys.globalShortcut`), and launching the app again from
+  Finder or Spotlight (`applicationShouldHandleReopen`). The last two leave the app active when one
+  of its windows is in front, so they open as `openFromWindow` does and closing gives focus back.
+- **Windows:** Stats, Settings and About can't be minimised, join the active Space over full-screen
+  apps, and Stats and Settings reopen where they were left. A closed window's controller is let go.
+  `yieldFocusIfNoWindowsRemain` hides the app only when no titled window of any kind (Sparkle,
+  Game Center, alerts) is left besides the closing one. The main menu routes About, ⌘, and ⌘W to
+  the app's own windows, since the SwiftUI `Settings` scene is a placeholder.
 
 Picking a day in Daily History goes through `AppWindows.playPastDay`: Stats closes and the panel
 opens on that board (`StatusItemController.openFromWindow`). The app is still active at that

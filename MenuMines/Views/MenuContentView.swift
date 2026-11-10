@@ -215,7 +215,7 @@ struct MenuContentView: View {
             }
         }
         .frame(width: 300, height: contentHeight, alignment: .top)
-        .background(Color(nsColor: .windowBackgroundColor))
+        // No background of its own: the panel puts it on the system material.
         .onAppear {
             gameState.dayMayHaveChanged()
             gameState.checkContinuousPlaySetting()

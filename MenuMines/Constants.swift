@@ -27,5 +27,9 @@ enum Constants {
 
         /// Whether crash and failure reports are sent. On unless the player turns it off.
         static let sendCrashReports = "com.menumines.sendCrashReports"
+
+        /// The key combination that opens and closes the game from any app, as an encoded
+        /// `GlobalShortcut`. Absent (the default) means there's none.
+        static let globalShortcut = "com.menumines.globalShortcut"
     }
 }
