@@ -97,7 +97,10 @@ final class GameState {
             if isContinuousPlayEnabled && isDailyPuzzleComplete() {
                 return .newGame
             }
-            return puzzleType == .random ? .startToday : .restartToday
+            // Only today's own board is restarted. Anything else, a random board or a daily
+            // carried over from an earlier day and finished since, moves on to today's.
+            let isTodaysBoard = puzzleType == .daily && dailySeed == seedFromDate(Date())
+            return isTodaysBoard ? .restartToday : .startToday
         }
     }
 

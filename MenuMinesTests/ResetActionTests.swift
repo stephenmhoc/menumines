@@ -81,4 +81,29 @@ struct ResetActionTests {
         state.reset()
         #expect(state.puzzleType == .practice)
     }
+
+    @Test("A daily carried over from yesterday and finished today moves on to today's puzzle")
+    func finishedCarriedOverDailyStartsToday() async throws {
+        let cleanup = setupCleanPastDailyState(continuousPlay: true)
+        let yesterday = pastSeed(daysAgo: 1)
+        defer {
+            cleanup()
+            UserDefaults.standard.removeObject(forKey: "dailyStats_\(yesterday)")
+        }
+
+        let state = GameState(board: Board(dailySeed: yesterday), dailySeed: yesterday, puzzleType: .daily)
+        try makeOpeningMove(state)
+        #expect(state.isCarriedOverDaily)
+        winGame(state)
+        try #require(state.status == .won)
+        await waitForRecording()
+
+        #expect(state.canReset)
+        #expect(state.resetAction == .startToday)
+        #expect(state.resetAction.title == "New Game")
+        state.reset()
+        #expect(state.puzzleType == .daily)
+        #expect(state.dailySeed == seedFromDate(Date()))
+        #expect(state.resetAction == .restartToday, "Now it's today's own board")
+    }
 }

@@ -5,7 +5,8 @@ import Foundation
 enum ResetAction: Equatable {
     /// Deals a new random board.
     case newGame
-    /// Leaves a random board for today's puzzle, which hasn't been played.
+    /// Moves on to today's puzzle, which hasn't been played, from a random board or from a daily
+    /// carried over from an earlier day and finished since.
     case startToday
     /// Today's puzzle before its first reveal, which only takes the flags off.
     case restartToday
