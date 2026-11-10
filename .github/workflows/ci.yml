@@ -13,19 +13,25 @@ concurrency:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-
       - name: Show Build Environment
         run: |
           xcodebuild -version
           swift --version
+
+      - name: Verify Xcode 26 or later
+        run: |
+          # The macOS 26 SDK is what gives the app the new window controls (Liquid Glass);
+          # an older Xcode links against the old SDK and the app keeps the old look.
+          XCODE_MAJOR=$(xcodebuild -version | awk '/Xcode/ { split($2, v, "."); print v[1] }')
+          if [ "$XCODE_MAJOR" -lt 26 ]; then
+            echo "Expected Xcode 26 or later, found $(xcodebuild -version | head -1)"; exit 1
+          fi
 
       # Releases inject MARKETING_VERSION from ./VERSION, so a stale project value only
       # misleads locally — which is where it went unnoticed at 1.0 for eighteen releases.

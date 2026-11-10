@@ -33,7 +33,7 @@ env:
 jobs:
   release-direct:
     name: Build, Sign, Notarize, and Release
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
 
     steps:
@@ -57,13 +57,19 @@ jobs:
           # Clean git ignored files
           git clean -fdx -e ".env"
 
-      - name: Select Xcode 16.2
-        run: sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-
       - name: Show Build Environment
         run: |
           xcodebuild -version
           swift --version
+
+      - name: Verify Xcode 26 or later
+        run: |
+          # The macOS 26 SDK is what gives the app the new window controls (Liquid Glass);
+          # an older Xcode links against the old SDK and the app keeps the old look.
+          XCODE_MAJOR=$(xcodebuild -version | awk '/Xcode/ { split($2, v, "."); print v[1] }')
+          if [ "$XCODE_MAJOR" -lt 26 ]; then
+            echo "Expected Xcode 26 or later, found $(xcodebuild -version | head -1)"; exit 1
+          fi
 
       - name: Verify Build Settings
         run: |

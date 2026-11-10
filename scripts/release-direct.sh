@@ -9,7 +9,7 @@ set -euo pipefail
 # distribution (non-App Store) with Sparkle auto-updates.
 #
 # Prerequisites:
-#   - Xcode 16+ installed
+#   - Xcode 26+ installed (the macOS 26 SDK gives the app the current window chrome)
 #   - Developer ID Application certificate in keychain
 #   - gh CLI installed and authenticated
 #   - Environment variables set (see below)
@@ -128,6 +128,12 @@ log_info "Dry run: $DRY_RUN"
 # Check required tools
 if ! command -v xcodebuild &> /dev/null; then
     log_error "xcodebuild not found. Please install Xcode."
+    exit 1
+fi
+
+XCODE_MAJOR="$(xcodebuild -version | awk '/Xcode/ { split($2, v, "."); print v[1] }')"
+if [[ "$XCODE_MAJOR" -lt 26 ]]; then
+    log_error "Xcode 26 or later is required (found $(xcodebuild -version | head -1)). Older SDKs ship the old window chrome."
     exit 1
 fi
 

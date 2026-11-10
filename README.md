@@ -24,7 +24,7 @@ Download the latest release from the Releases page.
 
 ### Build from Source
 
-Requires Xcode 15+ and macOS 14+ (Sonoma).
+Requires Xcode 26+ to build. The app runs on macOS 14+ (Sonoma).
 
 ```bash
 git clone https://github.com/smeriwether/menumines.git
