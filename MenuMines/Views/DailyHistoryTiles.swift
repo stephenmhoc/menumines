@@ -371,30 +371,6 @@ struct CalendarDayCell: View {
 
     private var accessibilityLabel: String {
         guard let date = cell.date, let day else { return "" }
-        let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
-
-        switch day {
-        case .beforeLaunch, .future:
-            return String(localized: "stats_calendar_day_unavailable \(dateString)")
-        case .today:
-            guard let todayResult else {
-                return String(localized: "stats_calendar_day_today_not_played \(dateString)")
-            }
-            return todayResult.won
-                ? String(localized: "stats_calendar_day_today_won \(dateString)")
-                : String(localized: "stats_calendar_day_today_lost \(dateString)")
-        case .unplayed:
-            return String(localized: "stats_calendar_day_not_played \(dateString)")
-        case .inProgress, .carriedOver:
-            return String(localized: "stats_calendar_day_in_progress \(dateString)")
-        case .playedOnTheDay(let result):
-            return result.won
-                ? String(localized: "stats_calendar_day_won \(dateString)")
-                : String(localized: "stats_calendar_day_lost \(dateString)")
-        case .playedLater(let result):
-            return result.won
-                ? String(localized: "stats_calendar_day_won_later \(dateString)")
-                : String(localized: "stats_calendar_day_lost_later \(dateString)")
-        }
+        return day.spokenLabel(on: date, todayResult: todayResult)
     }
 }

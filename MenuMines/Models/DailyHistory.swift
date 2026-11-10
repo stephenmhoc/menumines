@@ -100,3 +100,36 @@ enum DailyHistory {
         dateFromSeed(launchSeed / 100 * 100 + 1) ?? .distantPast
     }
 }
+
+extension DailyHistory.Day {
+    /// What VoiceOver says for a day's tile in Daily History: its date and how it went. Also
+    /// announced as the selection moves onto it.
+    /// - Parameter todayResult: Today's result, for today's tile.
+    func spokenLabel(on date: Date, todayResult: GameResult?) -> String {
+        let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
+
+        switch self {
+        case .beforeLaunch, .future:
+            return String(localized: "stats_calendar_day_unavailable \(dateString)")
+        case .today:
+            guard let todayResult else {
+                return String(localized: "stats_calendar_day_today_not_played \(dateString)")
+            }
+            return todayResult.won
+                ? String(localized: "stats_calendar_day_today_won \(dateString)")
+                : String(localized: "stats_calendar_day_today_lost \(dateString)")
+        case .unplayed:
+            return String(localized: "stats_calendar_day_not_played \(dateString)")
+        case .inProgress, .carriedOver:
+            return String(localized: "stats_calendar_day_in_progress \(dateString)")
+        case .playedOnTheDay(let result):
+            return result.won
+                ? String(localized: "stats_calendar_day_won \(dateString)")
+                : String(localized: "stats_calendar_day_lost \(dateString)")
+        case .playedLater(let result):
+            return result.won
+                ? String(localized: "stats_calendar_day_won_later \(dateString)")
+                : String(localized: "stats_calendar_day_lost_later \(dateString)")
+        }
+    }
+}

@@ -9,6 +9,11 @@ final class AccessibilityAnnouncer {
     /// How long the selection has to rest on a cell before it's announced.
     private let debounceDelay: Duration = .milliseconds(150)
 
+    /// Says a message to VoiceOver. Replaced in tests, to hear what would be said.
+    var post: (String) -> Void = { message in
+        AccessibilityNotification.Announcement(message).post()
+    }
+
     /// Announces a cell selection change for VoiceOver users.
     /// Debounced to prevent overlapping announcements during rapid navigation.
     /// - Parameters:
@@ -17,15 +22,20 @@ final class AccessibilityAnnouncer {
     ///   - cell: The cell at the selected position.
     ///   - isGameLost: Whether the game is over, which is when a flag can be shown to be wrong.
     func announceSelectionChange(row: Int, col: Int, cell: Cell, isGameLost: Bool = false) {
+        let state = cell.accessibilityStateDescription(isGameLost: isGameLost)
+        announceWhenSettled(String(localized: "announcement_selection_changed \(row + 1) \(col + 1) \(state)"))
+    }
+
+    /// Announces a message once nothing newer has come along for a moment, so that moving
+    /// quickly through a grid says only where the player stopped.
+    func announceWhenSettled(_ message: String) {
         announcementTask?.cancel()
 
+        let post = post
         announcementTask = Task { @MainActor in
             try? await Task.sleep(for: debounceDelay)
             guard !Task.isCancelled else { return }
-
-            let state = cell.accessibilityStateDescription(isGameLost: isGameLost)
-            let message = String(localized: "announcement_selection_changed \(row + 1) \(col + 1) \(state)")
-            AccessibilityNotification.Announcement(message).post()
+            post(message)
         }
     }
 

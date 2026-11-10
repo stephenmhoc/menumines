@@ -98,6 +98,7 @@ struct DailyCompletionCalendarView: View {
 
     @State private var cursor: DailyHistoryCursor
     @FocusState private var isGridFocused: Bool
+    @State private var announcer = AccessibilityAnnouncer()
 
     static let rows = 6
     static let spacing: CGFloat = 6
@@ -144,9 +145,10 @@ struct DailyCompletionCalendarView: View {
         .onChange(of: todaySeed) { _, newValue in
             cursor.updateToday(newValue)
         }
-        .onChange(of: cursor.monthStart) {
-            // Paging is silent otherwise, since the month title isn't what has focus.
-            AccessibilityNotification.Announcement(monthTitle).post()
+        .onChange(of: cursor.seed) {
+            // The grid is one control, so moving through it is silent otherwise. The day is
+            // read as its tile is, with its month and year, which covers a change of month.
+            announcer.announceWhenSettled(selectedDayAnnouncement)
         }
         .onAppear {
             // On the next turn, once the grid is in the window and can take focus.
@@ -314,6 +316,11 @@ struct DailyCompletionCalendarView: View {
             return .ignored
         }
         return .handled
+    }
+
+    /// The selected day as VoiceOver reads its tile: the date and how it went.
+    private var selectedDayAnnouncement: String {
+        day(forSeed: cursor.seed).spokenLabel(on: cursor.day, todayResult: onTheDay[todaySeed])
     }
 
     private func day(for cell: CalendarCell) -> DailyHistory.Day? {

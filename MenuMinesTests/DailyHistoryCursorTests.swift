@@ -77,4 +77,32 @@ struct DailyHistoryCursorTests {
         cursor.updateToday(2026_05_11)
         #expect(cursor.seed == 2026_05_02)
     }
+
+    @Test("The selected day is read with its date and how it went")
+    func selectedDayIsSpoken() throws {
+        let date = try #require(dateFromSeed(2026_03_10))
+        let dateString = date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt))
+        let won = GameResult(won: true, elapsedTime: 60, dailySeed: 2026_03_10)
+
+        #expect(DailyHistory.Day.playedOnTheDay(won).spokenLabel(on: date, todayResult: nil)
+            == String(localized: "stats_calendar_day_won \(dateString)"))
+        #expect(DailyHistory.Day.unplayed.spokenLabel(on: date, todayResult: nil)
+            == String(localized: "stats_calendar_day_not_played \(dateString)"))
+        #expect(DailyHistory.Day.unplayed.spokenLabel(on: date, todayResult: nil).contains("2026"))
+    }
+
+    @Test("Moving quickly through the days says only the one the selection rests on")
+    @MainActor
+    func announcementsSettle() async throws {
+        let announcer = AccessibilityAnnouncer()
+        var said: [String] = []
+        announcer.post = { said.append($0) }
+
+        announcer.announceWhenSettled("March 1")
+        announcer.announceWhenSettled("March 2")
+        announcer.announceWhenSettled("March 3")
+        try await Task.sleep(for: .milliseconds(400))
+
+        #expect(said == ["March 3"])
+    }
 }

@@ -231,7 +231,8 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   Up/Down change month, Home goes to today, and Return/Space or a double-click play it. A click
   only selects, and the line under the grid gives the day's result and what playing it records,
   with a default Play, Continue or Replay button. VoiceOver still reaches each tile, with its
-  label and hint, and activating one plays it. Every way in goes through `onPlay`, which is
+  label and hint, and activating one plays it. Moving the selection announces the day it rests on
+  (its tile's label, `DailyHistory.Day.spokenLabel`, debounced). Every way in goes through `onPlay`, which is
   `AppWindows.playPastDay`. Wins are system green and losses system red whatever the accent;
   the accent means playable (today's ring, an unplayed day). Increase Contrast strengthens fills
   and outlines, and days with no board have no tile at all.
