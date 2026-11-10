@@ -48,8 +48,14 @@ struct MenuContentView: View {
     }
 
     /// Handles the board's keys. They only arrive while the board has keyboard focus, so a
-    /// confirmation or a focused button gets Space for itself and can't reveal a hidden cell.
+    /// focused button gets Space for itself and can't reveal a hidden cell.
+    ///
+    /// The board keeps focus under the reset confirmation and lets its keys go by, so Return
+    /// reaches the default button and Escape the cancel action. Making the board unfocusable
+    /// for the confirmation instead detached SwiftUI's key view, and about one time in four
+    /// the board never took the keyboard back.
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
+        guard !showResetConfirmation else { return .ignored }
         guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
 
         switch press.key {
@@ -166,7 +172,7 @@ struct MenuContentView: View {
                         gameState.select(row: row, col: col)
                     }
                 )
-                .focusable(!showResetConfirmation)
+                .focusable()
                 .focusEffectDisabled()
                 .focused($isBoardFocused)
                 .onChange(of: isBoardFocused) { _, focused in
@@ -257,9 +263,8 @@ struct MenuContentView: View {
         }
         .onChange(of: showResetConfirmation) { _, isShowing in
             guard !isShowing else { return }
-            // On the next turn, once the board is focusable again. Asked in the same update,
-            // the board can still be unfocusable and the request is dropped, which left the
-            // keys going nowhere after Return dismissed the confirmation.
+            // A confirmation button may have taken focus (with Keyboard Navigation on), so
+            // the board takes it back, on the next turn once the overlay has gone.
             Task { @MainActor in
                 isBoardFocused = true
             }

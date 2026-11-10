@@ -183,7 +183,8 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
 - **Footer:** icon buttons are 24pt with a hover backing; flag mode is a toggle. Share hands over the
   result's text (and drags it), Copy puts it on the clipboard and keeps its width when it says
   Copied. On a finished past day, Back to Today shrinks to an icon so the footer fits the board.
-  The reset confirmation's default button is Cancel.
+  The reset confirmation's default button is Cancel. The board stays focusable under it and lets its
+  keys go by: toggling `.focusable` detaches SwiftUI's key view, and the board then lost the keyboard.
 
 ### Settings, Statistics and About
 
