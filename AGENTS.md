@@ -158,6 +158,9 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
   Recording a shortcut (`ShortcutRecorder`) turns the shortcut off and takes every key in the app,
   so it ends when its window closes or resigns key, and a key in any other window ends it and goes
   on. SwiftUI's `onDisappear` isn't called when an `AppWindows` window closes.
+  Standard equivalents (⌘Q, ⌘W, ⌘C, the game's ⌘R and so on, `GlobalShortcut.isStandardShortcut`)
+  are turned down, and a saved shortcut another app holds shows as unavailable in Settings
+  (`GlobalHotKey.isSavedShortcutUnavailable`) rather than as set.
 - **Windows:** Stats, Settings and About can't be minimised, join the active Space over full-screen
   apps, and Stats and Settings reopen where they were left. A closed window's controller is let go.
   `yieldFocusIfNoWindowsRemain` hides the app only when no titled window of any kind (Sparkle,

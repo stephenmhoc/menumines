@@ -33,6 +33,43 @@ struct GlobalShortcut: Codable, Equatable {
         self.init(keyCode: event.keyCode, modifierFlags: flags, key: key)
     }
 
+    /// Whether this is a shortcut the system or nearly every app already uses, such as ⌘Q,
+    /// ⌘W, ⌘C or the game's own ⌘R. Taken globally, it would stop working in every app.
+    var isStandardShortcut: Bool {
+        let flags = modifierFlags
+        let code = Int(keyCode)
+        switch flags {
+        case .command:
+            return Self.commandEquivalents.contains(code)
+        case [.command, .shift]:
+            return Self.shiftCommandEquivalents.contains(code)
+        case [.command, .option]:
+            return [kVK_ANSI_H, kVK_ANSI_M, kVK_ANSI_W, kVK_Escape, kVK_Space].contains(code)
+        case [.command, .control]:
+            return [kVK_ANSI_Q, kVK_ANSI_F, kVK_Space].contains(code)
+        case .control:
+            // Switching input sources.
+            return code == kVK_Space
+        default:
+            return false
+        }
+    }
+
+    /// Command and a key: editing, windows, files, the app menu, the game's reset, Spotlight
+    /// and switching apps and windows.
+    private static let commandEquivalents: Set<Int> = [
+        kVK_ANSI_A, kVK_ANSI_C, kVK_ANSI_F, kVK_ANSI_G, kVK_ANSI_H, kVK_ANSI_M, kVK_ANSI_N,
+        kVK_ANSI_O, kVK_ANSI_P, kVK_ANSI_Q, kVK_ANSI_R, kVK_ANSI_S, kVK_ANSI_T, kVK_ANSI_V,
+        kVK_ANSI_W, kVK_ANSI_X, kVK_ANSI_Z, kVK_ANSI_Comma, kVK_ANSI_Grave, kVK_Tab, kVK_Space
+    ]
+
+    /// Shift-Command and a key: redo, find previous, save as, log out, help and the
+    /// screenshot shortcuts.
+    private static let shiftCommandEquivalents: Set<Int> = [
+        kVK_ANSI_Z, kVK_ANSI_G, kVK_ANSI_S, kVK_ANSI_Q, kVK_ANSI_Slash,
+        kVK_ANSI_3, kVK_ANSI_4, kVK_ANSI_5, kVK_Tab
+    ]
+
     /// Written the way menus write shortcuts, such as ⌃⌥M.
     var displayString: String {
         let flags = modifierFlags
@@ -147,12 +184,14 @@ enum GlobalHotKey {
     /// Whether a shortcut is registered right now.
     static var isRegistered: Bool { hotKeyRef != nil }
 
+    /// Whether the saved shortcut couldn't be registered, because another app has it. It
+    /// stays saved, and Settings says so rather than showing it as working.
+    private(set) static var isSavedShortcutUnavailable = false
+
     /// Listens for the saved shortcut. Called once the app is up.
     static func start() {
         installHandler()
-        if let current {
-            _ = register(current)
-        }
+        registerSaved()
     }
 
     /// Saves a new shortcut, or clears it with nil, and listens for it.
@@ -165,15 +204,17 @@ enum GlobalHotKey {
 
         guard let shortcut else {
             GlobalShortcut.save(nil)
+            isSavedShortcutUnavailable = false
             return true
         }
         guard register(shortcut) else {
-            if let previous {
-                _ = register(previous)
+            if previous != nil {
+                registerSaved()
             }
             return false
         }
         GlobalShortcut.save(shortcut)
+        isSavedShortcutUnavailable = false
         return true
     }
 
@@ -184,8 +225,16 @@ enum GlobalHotKey {
     }
 
     static func resume() {
-        guard hotKeyRef == nil, let current else { return }
-        _ = register(current)
+        guard hotKeyRef == nil else { return }
+        registerSaved()
+    }
+
+    private static func registerSaved() {
+        guard let current else {
+            isSavedShortcutUnavailable = false
+            return
+        }
+        isSavedShortcutUnavailable = !register(current)
     }
 
     private static func register(_ shortcut: GlobalShortcut) -> Bool {

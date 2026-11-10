@@ -1243,6 +1243,17 @@
         }
       }
     },
+    "settings_global_shortcut_standard %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is a standard Mac shortcut. Choose another."
+          }
+        }
+      }
+    },
     "settings_global_shortcut_unavailable" : {
       "extractionState" : "manual",
       "localizations" : {

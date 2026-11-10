@@ -72,6 +72,17 @@ final class ShortcutRecorder {
     private(set) var isRecording = false
     private(set) var problem: String?
 
+    init() {
+        showProblemIfUnavailable()
+    }
+
+    /// A saved shortcut another app has taken doesn't work, so it isn't shown as if it did.
+    private func showProblemIfUnavailable() {
+        if GlobalHotKey.isSavedShortcutUnavailable {
+            problem = String(localized: "settings_global_shortcut_unavailable")
+        }
+    }
+
     @ObservationIgnored private var monitor: Any?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private weak var window: NSWindow?
@@ -115,6 +126,7 @@ final class ShortcutRecorder {
         guard isRecording else { return }
         isRecording = false
         GlobalHotKey.resume()
+        showProblemIfUnavailable()
     }
 
     /// Takes a key press while recording.
@@ -141,6 +153,13 @@ final class ShortcutRecorder {
 
         guard let newShortcut = GlobalShortcut(event: event) else {
             problem = String(localized: "settings_global_shortcut_needs_modifier")
+            NSSound.beep()
+            return nil
+        }
+        guard !newShortcut.isStandardShortcut else {
+            let message = String(localized: "settings_global_shortcut_standard \(newShortcut.displayString)")
+            problem = message
+            AccessibilityNotification.Announcement(message).post()
             NSSound.beep()
             return nil
         }
