@@ -34,7 +34,7 @@ jobs:
   release-direct:
     name: Build, Sign, Notarize, and Release
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -262,25 +262,16 @@ jobs:
           echo "block return out quick proto udp from any to any port 443" | sudo pfctl -f -
           sudo pfctl -E
 
+      # notarize.sh puts a time limit on every notarytool and stapler call and retries, because
+      # a notarytool connection once hung until the job was cancelled at 45 minutes.
       - name: Notarize App
-        run: |
-          APP_PATH="$EXPORT_PATH/MenuMinesDirect.app"
-
-          # Create ZIP for notarization
-          ditto -c -k --keepParent "$APP_PATH" "$RUNNER_TEMP/MenuMines.zip"
-
-          # Submit for notarization using stored credentials
-          xcrun notarytool submit "$RUNNER_TEMP/MenuMines.zip" \
-            --keychain-profile "MenuMines" \
-            --wait
-
-          # Staple the notarization ticket. The ticket can take a moment to reach Apple's
-          # servers, so a failed first try gets one retry.
-          xcrun stapler staple "$APP_PATH" || { sleep 30; xcrun stapler staple "$APP_PATH"; }
+        timeout-minutes: 30
+        run: scripts/notarize.sh "$EXPORT_PATH/MenuMinesDirect.app" MenuMines
 
       # ── Create DMG ──
 
       - name: Create DMG
+        timeout-minutes: 30
         run: |
           mkdir -p "$RUNNER_TEMP/dmg-staging"
           cp -R "$EXPORT_PATH/MenuMinesDirect.app" "$RUNNER_TEMP/dmg-staging/MenuMines.app"
@@ -291,12 +282,7 @@ jobs:
             -ov -format UDZO \
             "$DMG_PATH"
 
-          # Notarize DMG using stored credentials
-          xcrun notarytool submit "$DMG_PATH" \
-            --keychain-profile "MenuMines" \
-            --wait
-
-          xcrun stapler staple "$DMG_PATH" || { sleep 30; xcrun stapler staple "$DMG_PATH"; }
+          scripts/notarize.sh "$DMG_PATH" MenuMines
 
       # ── Create ZIP for Sparkle ──
 

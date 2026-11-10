@@ -299,19 +299,9 @@ if [[ ! -d "$APP_PATH" ]]; then
     exit 1
 fi
 
-# Create ZIP for notarization
-log_info "Creating ZIP for notarization..."
-ditto -c -k --keepParent "$APP_PATH" "$BUILD_DIR/MenuMines-notarize.zip"
-
-# Submit for notarization
-log_info "Submitting for notarization (this may take a few minutes)..."
-xcrun notarytool submit "$BUILD_DIR/MenuMines-notarize.zip" \
-    --keychain-profile "MenuMines-Release" \
-    --wait
-
-# Staple the notarization ticket
-log_info "Stapling notarization ticket..."
-xcrun stapler staple "$APP_PATH"
+# Time-limited and retried, see notarize.sh
+log_info "Notarizing the app (this may take a few minutes)..."
+"$PROJECT_DIR/scripts/notarize.sh" "$APP_PATH" "MenuMines-Release"
 
 log_info "App notarized and stapled"
 
@@ -347,13 +337,8 @@ log_info "DMG created at $DMG_PATH"
 
 log_step "Notarizing DMG"
 
-log_info "Submitting DMG for notarization..."
-xcrun notarytool submit "$DMG_PATH" \
-    --keychain-profile "MenuMines-Release" \
-    --wait
-
-log_info "Stapling DMG..."
-xcrun stapler staple "$DMG_PATH"
+log_info "Notarizing the DMG..."
+"$PROJECT_DIR/scripts/notarize.sh" "$DMG_PATH" "MenuMines-Release"
 
 log_info "DMG notarized and stapled"
 
