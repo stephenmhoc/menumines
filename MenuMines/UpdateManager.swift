@@ -2,6 +2,7 @@ import Foundation
 import Security
 
 #if SPARKLE_ENABLED
+import AppKit
 import Combine
 import Sparkle
 #endif
@@ -95,24 +96,51 @@ extension Bundle {
 /// Manages application updates for direct distribution builds.
 /// Other builds update through the App Store, so there `start()` does nothing and the rest
 /// isn't compiled: every other caller is inside `#if SPARKLE_ENABLED`.
+///
+/// MenuMines lives in the menu bar, so an update found on the schedule never puts a window
+/// in front of whatever the player is doing. It's marked on the menu bar icon and in the
+/// menus instead (`isUpdatePending`), and Sparkle's window comes up when they ask for it.
+@MainActor
 enum UpdateManager {
     #if SPARKLE_ENABLED
+    private static let reminder = UpdateReminder()
+
     private static let updaterController = SPUStandardUpdaterController(
         startingUpdater: true,
         updaterDelegate: nil,
-        userDriverDelegate: nil
+        userDriverDelegate: reminder
     )
 
-    /// Mirrors Sparkle's KVO state so SwiftUI redraws when a check begins and ends.
+    /// Mirrors Sparkle's state so SwiftUI and the menu bar icon redraw when it changes.
+    @MainActor
     @Observable
     final class Availability {
         var canCheck = false
-        @ObservationIgnored private var subscription: AnyCancellable?
+        var automaticallyChecks = false
+        var automaticallyDownloads = false
+        var lastCheckDate: Date?
+        /// A scheduled check found an update the player hasn't looked at yet.
+        var isUpdatePending = false
+        @ObservationIgnored private var subscriptions: [AnyCancellable] = []
 
         func observe(_ updater: SPUUpdater) {
-            subscription = updater.publisher(for: \.canCheckForUpdates)
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] in self?.canCheck = $0 }
+            subscriptions = [
+                updater.publisher(for: \.canCheckForUpdates)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self, weak updater] canCheck in
+                        MainActor.assumeIsolated {
+                            self?.canCheck = canCheck
+                            // A check has started or finished, either of which can move this.
+                            self?.lastCheckDate = updater?.lastUpdateCheckDate
+                        }
+                    },
+                updater.publisher(for: \.automaticallyChecksForUpdates)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] value in MainActor.assumeIsolated { self?.automaticallyChecks = value } },
+                updater.publisher(for: \.automaticallyDownloadsUpdates)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] value in MainActor.assumeIsolated { self?.automaticallyDownloads = value } }
+            ]
         }
     }
 
@@ -133,22 +161,55 @@ enum UpdateManager {
         availability.canCheck
     }
 
-    /// Manually trigger an update check.
+    /// Checks for updates now, or brings forward an update that's already been found.
+    ///
+    /// The player asked, so Sparkle's window comes up in front of their app, the way the
+    /// app's own windows do, and the game panel gets out of its way.
     static func checkForUpdates() {
+        AppWindows.onWillShowWindow?()
+        NSApp.activate(ignoringOtherApps: true)
         updaterController.checkForUpdates(nil)
     }
 
     /// Whether to automatically check for updates periodically.
     static var automaticallyChecksForUpdates: Bool {
-        get { updater.automaticallyChecksForUpdates }
+        get { availability.automaticallyChecks }
         set { updater.automaticallyChecksForUpdates = newValue }
+    }
+
+    /// Whether updates are downloaded and installed without asking. Only matters while
+    /// automatic checks are on.
+    static var automaticallyDownloadsUpdates: Bool {
+        get { availability.automaticallyDownloads }
+        set { updater.automaticallyDownloadsUpdates = newValue }
+    }
+
+    /// Whether this build lets updates install on their own (`SUAllowsAutomaticUpdates`).
+    static var allowsAutomaticUpdates: Bool {
+        updater.allowsAutomaticUpdates
+    }
+
+    /// When the last check for updates was made, if ever.
+    static var lastUpdateCheckDate: Date? {
+        availability.lastCheckDate
+    }
+
+    static var isUpdatePending: Bool {
+        availability.isUpdatePending
+    }
+
+    fileprivate static func setUpdatePending(_ isPending: Bool) {
+        availability.isUpdatePending = isPending
     }
     #else
     static func start() {}
+
+    /// Updates come from the App Store, which marks them itself.
+    static var isUpdatePending: Bool { false }
     #endif
 
     /// Returns true if this build supports updates (direct distribution only).
-    static var isUpdateSupported: Bool {
+    nonisolated static var isUpdateSupported: Bool {
         #if SPARKLE_ENABLED
         return true
         #else
@@ -156,3 +217,39 @@ enum UpdateManager {
         #endif
     }
 }
+
+#if SPARKLE_ENABLED
+/// Sparkle's gentle reminders, for an app with no Dock icon and no main window.
+///
+/// Sparkle's own window would come up over the player's app as soon as a scheduled check
+/// found an update. Instead the update waits, marked on the icon and in the menus, until
+/// the player chooses Update Available, which shows it. A check they start themselves is
+/// always shown by Sparkle at once.
+private final class UpdateReminder: NSObject, SPUStandardUserDriverDelegate {
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+
+    func standardUserDriverShouldHandleShowingScheduledUpdate(
+        _ update: SUAppcastItem,
+        andInImmediateFocus immediateFocus: Bool
+    ) -> Bool {
+        false
+    }
+
+    func standardUserDriverWillHandleShowingUpdate(
+        _ handleShowingUpdate: Bool,
+        forUpdate update: SUAppcastItem,
+        state: SPUUserUpdateState
+    ) {
+        guard !state.userInitiated else { return }
+        MainActor.assumeIsolated { UpdateManager.setUpdatePending(true) }
+    }
+
+    func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
+        MainActor.assumeIsolated { UpdateManager.setUpdatePending(false) }
+    }
+
+    func standardUserDriverWillFinishUpdateSession() {
+        MainActor.assumeIsolated { UpdateManager.setUpdatePending(false) }
+    }
+}
+#endif

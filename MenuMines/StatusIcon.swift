@@ -12,6 +12,8 @@ enum StatusIconImage {
     static let badgeMargin: CGFloat = 1.5
     /// Room around the glyph for the badge to sit on its corner.
     static let inset: CGFloat = 1.5
+    /// The dot on the top corner that says an update is waiting (direct build only).
+    static let updateDotDiameter: CGFloat = 5
 
     /// The icon for a state, or nil if a symbol is missing.
     static func make(for state: MenuBarIconState, showingResult: Bool) -> NSImage? {
@@ -21,7 +23,7 @@ enum StatusIconImage {
         )
     }
 
-    static func make(base: String, badge: String?) -> NSImage? {
+    static func make(base: String, badge: String?, updateDot: Bool = false) -> NSImage? {
         let baseConfiguration = NSImage.SymbolConfiguration(pointSize: basePointSize, weight: .regular)
         guard let baseImage = NSImage(systemSymbolName: base, accessibilityDescription: nil)?
             .withSymbolConfiguration(baseConfiguration) else { return nil }
@@ -38,6 +40,18 @@ enum StatusIconImage {
         let image = NSImage(size: size, flipped: false) { _ in
             baseImage.draw(in: NSRect(origin: NSPoint(x: inset, y: inset), size: baseSize))
 
+            if updateDot {
+                let dotRect = NSRect(
+                    x: size.width - updateDotDiameter,
+                    y: size.height - updateDotDiameter,
+                    width: updateDotDiameter,
+                    height: updateDotDiameter
+                )
+                punchRing(around: dotRect)
+                NSColor.black.setFill()
+                NSBezierPath(ovalIn: dotRect).fill()
+            }
+
             guard let badgeImage else { return true }
             let badgeSize = badgeImage.size
             let badgeRect = NSRect(
@@ -47,18 +61,22 @@ enum StatusIconImage {
                 height: badgeSize.height
             )
 
-            if let context = NSGraphicsContext.current {
-                context.saveGraphicsState()
-                context.compositingOperation = .destinationOut
-                NSColor.black.setFill()
-                NSBezierPath(ovalIn: badgeRect.insetBy(dx: -badgeMargin, dy: -badgeMargin)).fill()
-                context.restoreGraphicsState()
-            }
+            punchRing(around: badgeRect)
             badgeImage.draw(in: badgeRect)
             return true
         }
         image.isTemplate = true
         return image
+    }
+
+    /// Clears a ring around a mark, so it stands apart from the grid under it.
+    private static func punchRing(around rect: NSRect) {
+        guard let context = NSGraphicsContext.current else { return }
+        context.saveGraphicsState()
+        context.compositingOperation = .destinationOut
+        NSColor.black.setFill()
+        NSBezierPath(ovalIn: rect.insetBy(dx: -badgeMargin, dy: -badgeMargin)).fill()
+        context.restoreGraphicsState()
     }
 }
 
@@ -74,7 +92,13 @@ final class StatusIconUpdater {
     nonisolated(unsafe) private var defaultsObserver: NSObjectProtocol?
     private var voiceOverObservation: NSKeyValueObservation?
     private var isVoiceOverRunning = NSWorkspace.shared.isVoiceOverEnabled
-    private var shownIcon: (base: String, badge: String?)?
+    private var shownIcon: ShownIcon?
+
+    private struct ShownIcon: Equatable {
+        let base: String
+        let badge: String?
+        let updateDot: Bool
+    }
 
     init(gameState: GameState, button: NSStatusBarButton) {
         self.gameState = gameState
@@ -135,12 +159,18 @@ final class StatusIconUpdater {
         let showsResult = showsResult
         let base = state.baseSymbol(showingResult: showsResult)
         let badge = state.overlaySymbol(showingResult: showsResult)
+        // Observed like the game, so the dot comes and goes as Sparkle finds an update.
+        let updateDot = UpdateManager.isUpdatePending
 
-        if shownIcon?.base != base || shownIcon?.badge != badge {
-            button.image = StatusIconImage.make(base: base, badge: badge)
-            shownIcon = (base, badge)
+        let icon = ShownIcon(base: base, badge: badge, updateDot: updateDot)
+        if shownIcon != icon {
+            button.image = StatusIconImage.make(base: base, badge: badge, updateDot: updateDot)
+            shownIcon = icon
         }
-        button.setAccessibilityLabel(accessibilityLabel(for: state))
+        let label = accessibilityLabel(for: state)
+        button.setAccessibilityLabel(updateDot
+            ? String(format: String(localized: "menu_bar_accessibility_update_available"), label)
+            : label)
     }
 
     /// The elapsed time is only read while VoiceOver is running. Reading it otherwise would

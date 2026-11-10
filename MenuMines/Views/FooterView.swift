@@ -177,7 +177,9 @@ struct FooterView: View {
             #if SPARKLE_ENABLED
             Divider()
 
-            Button(String(localized: "check_for_updates_menu_item")) {
+            Button(String(localized: UpdateManager.isUpdatePending
+                ? "update_available_menu_item"
+                : "check_for_updates_menu_item")) {
                 UpdateManager.checkForUpdates()
             }
             .disabled(!UpdateManager.canCheckForUpdates)

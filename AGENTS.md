@@ -211,6 +211,14 @@ The app ships two variants: **App Store** (MenuMines target) and **Direct** (Men
 - The `appcast.xml` `<enclosure>` points to the ZIP, not the DMG
 - Release notes use inline `<description><![CDATA[...]]></description>` in the appcast (not `<sparkle:releaseNotesLink>` which renders the full GitHub page in Sparkle's WebKit view)
 - Custom release notes can be passed via `RELEASE_NOTES_HTML` env var; defaults to a generic message
+- **Gentle reminders:** `UpdateManager`'s `UpdateReminder` (`SPUStandardUserDriverDelegate`) never
+  lets a scheduled check put Sparkle's window over the player's app. A found update sets
+  `UpdateManager.isUpdatePending`: a dot on the menu bar icon (and "update available" in its
+  VoiceOver label), and "Update Available…" in place of "Check for Updates…" in the gear and
+  right-click menus. Choosing it shows Sparkle's window, in front; attention or the session ending
+  clears the mark. Checks the player starts are shown at once, as before.
+- Settings → Updates: automatic checks, automatic download and install (disabled while checks are
+  off), the last check date and Check for Updates…. Debug and the App Store build compile none of it.
 
 ### Entitlements
 

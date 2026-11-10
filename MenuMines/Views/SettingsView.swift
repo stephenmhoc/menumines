@@ -111,22 +111,7 @@ struct SettingsView: View {
             }
 
             #if SPARKLE_ENABLED
-            Section {
-                Toggle(
-                    String(localized: "settings_auto_check_updates"),
-                    isOn: Binding(
-                        get: { UpdateManager.automaticallyChecksForUpdates },
-                        set: { UpdateManager.automaticallyChecksForUpdates = $0 }
-                    )
-                )
-
-                Button(String(localized: "check_for_updates_button")) {
-                    UpdateManager.checkForUpdates()
-                }
-                .disabled(!UpdateManager.canCheckForUpdates)
-            } header: {
-                sectionHeader("settings_updates_section")
-            }
+            UpdatesSection()
             #endif
 
             // Only a build that isn't what customers run says what it is. A released copy's
@@ -172,6 +157,61 @@ struct SettingsView: View {
         return versionDescription + "\n" + String(localized: "build_info_prerelease_note")
     }
 }
+
+#if SPARKLE_ENABLED
+/// Sparkle's settings, read through `UpdateManager` so the toggles follow changes made
+/// elsewhere, such as Sparkle's own "Automatically download" checkbox.
+private struct UpdatesSection: View {
+    var body: some View {
+        Section {
+            Toggle(
+                String(localized: "settings_auto_check_updates"),
+                isOn: Binding(
+                    get: { UpdateManager.automaticallyChecksForUpdates },
+                    set: { UpdateManager.automaticallyChecksForUpdates = $0 }
+                )
+            )
+
+            if UpdateManager.allowsAutomaticUpdates {
+                Toggle(
+                    String(localized: "settings_auto_download_updates"),
+                    isOn: Binding(
+                        get: { UpdateManager.automaticallyDownloadsUpdates },
+                        set: { UpdateManager.automaticallyDownloadsUpdates = $0 }
+                    )
+                )
+                .disabled(!UpdateManager.automaticallyChecksForUpdates)
+            }
+
+            LabeledContent {
+                Button(String(localized: "check_for_updates_menu_item")) {
+                    UpdateManager.checkForUpdates()
+                }
+                .disabled(!UpdateManager.canCheckForUpdates)
+            } label: {
+                Text(status)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text(String(localized: "settings_updates_section"))
+                .accessibilityAddTraits(.isHeader)
+        }
+    }
+
+    private var status: String {
+        if UpdateManager.isUpdatePending {
+            return String(localized: "settings_update_available")
+        }
+        guard let date = UpdateManager.lastUpdateCheckDate else {
+            return String(localized: "settings_updates_never_checked")
+        }
+        return String(
+            format: String(localized: "settings_updates_last_checked"),
+            date.formatted(date: .abbreviated, time: .shortened)
+        )
+    }
+}
+#endif
 
 private extension View {
     /// Shows the view at its ideal height up to `maxHeight`, and scrolls it beyond that.

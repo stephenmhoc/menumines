@@ -219,7 +219,12 @@
 
 /* Updates (Direct Distribution only) */
 "check_for_updates_menu_item" = "Check for Updates…";
-"check_for_updates_button" = "Check for Updates";
+"update_available_menu_item" = "Update Available…";
+"settings_auto_download_updates" = "Automatically download and install updates";
+"settings_updates_last_checked" = "Last checked %@";
+"settings_updates_never_checked" = "Not checked yet";
+"settings_update_available" = "A new version is available.";
+"menu_bar_accessibility_update_available" = "%@, update available";
 "settings_updates_section" = "Updates";
 "settings_section_general" = "General";
 "settings_section_menu_bar" = "Menu Bar";

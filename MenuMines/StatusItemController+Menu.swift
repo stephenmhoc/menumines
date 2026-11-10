@@ -29,7 +29,10 @@ extension StatusItemController {
 
         #if SPARKLE_ENABLED
         menu.addItem(.separator())
-        let updates = item("check_for_updates_menu_item", #selector(checkForUpdates))
+        let updates = item(
+            UpdateManager.isUpdatePending ? "update_available_menu_item" : "check_for_updates_menu_item",
+            #selector(checkForUpdates)
+        )
         updates.isEnabled = UpdateManager.canCheckForUpdates
         menu.addItem(updates)
         #endif

@@ -253,3 +253,37 @@ struct MenuBarIconStateTests {
             != MenuBarIconState.complete.baseSymbol(showingResult: true))
     }
 }
+
+@Suite("Status icon update dot")
+@MainActor
+struct StatusIconUpdateDotTests {
+    /// The alpha of the icon's top-right corner, where the update dot goes.
+    private func cornerAlpha(_ image: NSImage) throws -> CGFloat {
+        let size = image.size
+        let rep = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width * 2), pixelsHigh: Int(size.height * 2),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+        ))
+        rep.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        image.draw(in: NSRect(origin: .zero, size: size))
+        NSGraphicsContext.restoreGraphicsState()
+        let dot = StatusIconImage.updateDotDiameter
+        // Bitmap rows run top down.
+        let column = Int((size.width - dot / 2) * 2)
+        let row = Int((dot / 2) * 2)
+        return rep.colorAt(x: column, y: row)?.alphaComponent ?? 0
+    }
+
+    @Test("A waiting update adds a dot on the icon's top corner, and keeps its size")
+    func updateDot() throws {
+        let plain = try #require(StatusIconImage.make(base: "square.grid.3x3", badge: "circle.fill"))
+        let dotted = try #require(StatusIconImage.make(base: "square.grid.3x3", badge: "circle.fill", updateDot: true))
+        #expect(plain.size == dotted.size)
+        #expect(dotted.isTemplate)
+        #expect(try cornerAlpha(dotted) > 0.9)
+        #expect(try cornerAlpha(plain) < 0.1)
+    }
+}
