@@ -114,9 +114,9 @@ configurations.
 
 The icons are Icon Composer documents (`MenuMines/Resources/AppIcon.icon`, `AppIcon-Dev.icon`),
 so macOS 26 draws them in Liquid Glass and in its dark, tinted and clear appearances. They're
-layered SVGs (a gradient fill, the tiles, the 1s, the flag) and are generated: change the shapes
+layered SVGs in the original icon's style (a graphite fill, a grey board of bevelled tiles, a blue 1, a red flag) and are generated: change the shapes
 or colours in `scripts/make_app_icon.py` and run it, rather than editing the documents by hand.
-In the tinted appearances the flag and 1s turn white and the tiles fade, because tinting goes by
+In the tinted appearances the flag and 1 turn white and the tiles fade, because tinting goes by
 brightness and the dark flag would otherwise disappear. Xcode makes the `.icns` that macOS 14
 and 15 use from the same document, so there's no separate PNG icon set. Look at a change with
 `ictool` (inside Icon Composer.app), e.g.
