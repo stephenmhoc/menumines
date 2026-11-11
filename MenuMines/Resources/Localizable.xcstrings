@@ -759,17 +759,6 @@
         }
       }
     },
-    "next_puzzle_countdown %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next in %@"
-          }
-        }
-      }
-    },
     "past_daily_description %@" : {
       "extractionState" : "manual",
       "localizations" : {

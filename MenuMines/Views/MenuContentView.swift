@@ -23,13 +23,6 @@ struct MenuContentView: View {
         gameState.status == .won || gameState.status == .lost
     }
 
-    /// The moment the next daily arrives, once there's nothing left to do today.
-    private var nextPuzzleDate: Date? {
-        let isToday = gameState.currentDaySeed == seedFromDate(Date())
-        guard isToday, gameState.puzzleType == .daily, isGameComplete else { return nil }
-        return nextDailyPuzzleDate(after: Date())
-    }
-
     private static let rowSpacing: CGFloat = 12
     private static let margin: CGFloat = 16
 
@@ -196,7 +189,6 @@ struct MenuContentView: View {
                     canReset: gameState.canReset,
                     isFlagMode: isFlagMode,
                     shareText: isGameComplete ? gameState.shareText() : nil,
-                    nextPuzzleDate: nextPuzzleDate,
                     pastDay: gameState.pastDay,
                     resetAction: gameState.resetAction,
                     resetLockedHint: gameState.resetLockedHint,

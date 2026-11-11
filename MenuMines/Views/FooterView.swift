@@ -7,8 +7,6 @@ struct FooterView: View {
     let isFlagMode: Bool
     /// Finished text for the result, once there is one.
     var shareText: String?
-    /// When the next daily arrives, once today's is finished.
-    var nextPuzzleDate: Date?
     /// The day on the board, when it's an earlier one.
     var pastDay: Date?
     /// What the reset command does with this board.
@@ -72,10 +70,6 @@ struct FooterView: View {
                 .fixedSize()
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(puzzleType.accessibilityName)
-            }
-
-            if let nextPuzzleDate {
-                NextPuzzleCountdown(date: nextPuzzleDate)
             }
 
             Spacer(minLength: 0)
@@ -288,34 +282,6 @@ extension PuzzleType {
         return self == .pastDaily
             ? String(localized: "past_daily_description \(day)")
             : String(localized: "replay_description \(day)")
-    }
-}
-
-/// How long until the next daily. Worth stating because puzzles change at midnight UTC, which
-/// for most players isn't midnight, and a streak depends on knowing when that is.
-private struct NextPuzzleCountdown: View {
-    let date: Date
-
-    private var formatter: DateComponentsFormatter {
-        let formatter = DateComponentsFormatter()
-        formatter.allowedUnits = [.hour, .minute]
-        formatter.unitsStyle = .abbreviated
-        return formatter
-    }
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            let remaining = max(60, date.timeIntervalSince(context.date))
-            let countdown = formatter.string(from: remaining) ?? ""
-            Text(String(localized: "next_puzzle_countdown \(countdown)"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-                .lineLimit(1)
-                // The footer leaves room for the longest countdown, "23h 59m", so it never
-                // needs shrinking or cutting short.
-                .fixedSize()
-        }
     }
 }
 
