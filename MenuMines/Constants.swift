@@ -31,5 +31,8 @@ enum Constants {
         /// The key combination that opens and closes the game from any app, as an encoded
         /// `GlobalShortcut`. Absent (the default) means there's none.
         static let globalShortcut = "com.menumines.globalShortcut"
+
+        /// The board's look, as a `BoardTheme` raw value. Absent means Classic.
+        static let boardTheme = "com.menumines.boardTheme"
     }
 }

@@ -20,11 +20,12 @@ MenuMines is a menu bar Minesweeper game for macOS. It features a 9x9 board with
 ```
 MenuMines/
 ├── MenuMinesApp.swift          # App entry point, lifecycle and the menu bar icon view
-├── AppWindows.swift            # Stats and Settings windows
+├── AppWindows.swift            # Stats and Settings windows, and how they're sized
 ├── StatusItemController.swift  # Menu bar icon and game panel: opening and closing
 ├── StatusItemController+Dismissal.swift # What closes the panel: clicks elsewhere, other apps, sleep
 ├── StatusItemController+Position.swift # Where the panel goes: always under the icon
 ├── StatusItemController+Menu.swift # The icon's right-click menu
+├── SettingsTabController.swift # Settings' toolbar pages, window title and height per page
 ├── GamePanel.swift             # The non-activating panel and its material backdrop
 ├── StatusIcon.swift            # Template image for the menu bar icon, kept in step with the game
 ├── GlobalHotKey.swift          # Optional global shortcut that opens the panel (Carbon hot key)
@@ -55,7 +56,9 @@ MenuMines/
 ├── Views/
 │   ├── AboutWindow.swift       # The standard About panel and its credits
 │   ├── CellView.swift          # One cell: state, accessibility, hover/press and motion
-│   ├── CellTile.swift          # Tiles, flag and mine glyphs, number colours, the cell's click view
+│   ├── BoardTheme.swift        # Board themes and their palettes (light, dark, Increase Contrast)
+│   ├── BoardThemePicker.swift  # Settings' theme cards, each with a corner of a themed board
+│   ├── CellTile.swift          # Tiles, flag and mine glyphs, the cell's click view
 │   ├── ConfettiView.swift      # Win celebration animation
 │   ├── ControlsPopoverView.swift # The footer's keyboard and mouse help
 │   ├── FooterView.swift        # Share, flag mode, controls help and the gear menu
@@ -63,7 +66,7 @@ MenuMines/
 │   ├── GameBoardView.swift     # 9x9 grid of cells
 │   ├── HeaderView.swift        # Timer, flag count, reset
 │   ├── MenuContentView.swift   # Game panel content and keyboard handling
-│   ├── SettingsView.swift      # App settings
+│   ├── SettingsView.swift      # Settings' pages (`SettingsPage`) and their forms
 │   ├── ShortcutRecorderView.swift # Records the global shortcut in Settings
 │   ├── StatsWindow.swift       # Statistics: summary, recent results, toolbar tabs
 │   ├── DailyHistoryView.swift  # The Daily History calendar where past days are picked
@@ -83,12 +86,13 @@ MenuMinesTests/                 # XCTest and Swift Testing suites, hosted by the
 ├── GamePanelKeyTests.swift     # Same suite: Return, and the reset confirmation's keys
 ├── GamePanelPastDayTests.swift # Same suite: Daily History to the panel
 ├── GamePanelShortcutTests.swift # Same suite: recording the global shortcut in Settings
+├── GamePanelSettingsPagesTests.swift # Same suite: Settings' tabs, titles and heights
 ├── GamePanelCloseTests.swift   # Same suite: closing from a key skips the fade
 ├── PastDaily*Tests.swift       # Play, recording, progress, replays, stats, iCloud, rules and compatibility
 ├── PastDailyTestHelpers.swift
 ├── GameState*Tests.swift       # Basic, chord, Codable, pause, persistence, selection, share, timer, win/lose
 ├── GameStateTestHelpers.swift
-├── MenuBarIconStateTests.swift, SettingsTests.swift, SettingsViewLayoutTests.swift
+├── BoardThemeTests.swift, MenuBarIconStateTests.swift, SettingsTests.swift, SettingsViewLayoutTests.swift
 └── StatsStoreTests.swift
 scripts/                        # test.sh, set-version.sh, release-direct.sh, notarize.sh, make_app_icon.py
 Tools/app_store_connect_signing.rb # Signing assets for the App Store release workflow
@@ -189,10 +193,18 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
 
 - **Look:** covered cells are raised tiles (`RaisedTile`, continuous corners, top highlight), opened
   cells flat (`RecessedTile`: lighter than the plate in light mode, set into it in dark), on a solid
-  `BoardPlate`. Numbers are SF Rounded bold in system colours (`NumberPalette`); the flag is the
-  `flag.fill` symbol in system red everywhere (`FlagGlyph`) and the mine is drawn (`MineGlyph`).
-  After a loss a flag on a safe cell shows as `flag.slash.fill`, and VoiceOver says so. With
-  Increase Contrast, tile edges and digits get heavier. Nothing on the board is colour-only.
+  `BoardPlate`. Numbers are SF Rounded bold; the flag is the `flag.fill` symbol (`FlagGlyph`) and
+  the mine is drawn (`MineGlyph`). After a loss a flag on a safe cell shows as `flag.slash.fill`,
+  and VoiceOver says so. With Increase Contrast, tile edges and digits get heavier. Nothing on the
+  board is colour-only.
+- **Themes:** every colour and corner on the board comes from the `BoardPalette` of the player's
+  `BoardTheme` (Classic, Retro, Forest, Midnight; stored under `Constants.SettingsKeys.boardTheme`,
+  Classic when absent or unknown). `MenuContentView` puts the theme in the environment
+  (`\.boardTheme`) and tiles and glyphs read it through `BoardPaletteReader`, which also gives the
+  light, dark and Increase Contrast version. Classic is the system look: system number colours and
+  red flag. Themes change only the board; the panel, header and footer keep the system's look, so
+  the header's flag stays system red. Every theme needs eight distinct number colours in every
+  appearance (`BoardThemeTests`). Stored names are players' settings: never rename a case.
 - **Hit areas:** cells sit edge to edge (`CellMetrics.size` 29pt) and draw their gap inside, so no
   click lands between cells. `ClickableNSView` accepts the first mouse; left click reveals on
   release, right/Control-click flags on press, middle click chords. A covered cell draws sunken
@@ -213,11 +225,16 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
 
 ### Settings, Statistics and About
 
-- **Settings** is titled "MenuMines Settings" (`AppWindows.settingsTitle`, with the build's own
-  name) and grouped like System Settings: General, Menu Bar, Game, Statistics, Privacy (when crash
-  reporting is compiled in), Updates (direct build only), and Build, which only a pre-release
-  channel shows. Labels are sentence case with a one-line description in plain HIG voice. The
-  window is as tall as the form and scrolls only when the screen is shorter.
+- **Settings** is a Mac settings window of pages (`SettingsPage`), a toolbar tab each in an
+  `NSTabViewController` (`SettingsTabController`, `.preference` toolbar style): General (launch at
+  login, shortcut, Menu Bar), Game (continuous play, confirm reset, Statistics), Appearance (the
+  board theme, `BoardThemePicker`) and Advanced (Privacy when crash reporting is compiled in,
+  Updates in the direct build, Build on a pre-release channel; the page is left out when a build
+  has none). The window is titled for its page, as the HIG asks, so tests find it by
+  `AppWindows.settingsIdentifier`, not its title. It reopens on the last page for the session.
+  Each page is a grouped form; labels are sentence case with a one-line description in plain HIG
+  voice. The window is as tall as the page, follows it when the page changes (`AppWindows.fit`,
+  top edge pinned) and scrolls only when the screen is shorter.
 - **About** is AppKit's standard About panel (`NSApp.orderFrontStandardAboutPanel`): name, version
   and copyright come from the Info dictionary, the credits add the description, support address
   and build channel. `AboutWindow.show` treats it like the app's own windows (panel out of the way,
@@ -228,7 +245,7 @@ game clock. The SwiftUI `Settings` scene is an empty placeholder, since an app m
 - **Window size** is always set by `AppWindows.show`, never taken from a saved frame (only the
   position comes back) and never below the window's `minimumContentSize`. Content that scrolls,
   such as Settings' grouped form, reports next to no fitting height, so it passes
-  `idealContentSize` (Settings measures a non-scrolling copy, `SettingsView.idealContentSize`), its
+  `idealContentSize` (Settings measures a non-scrolling copy, `SettingsView.idealContentSize(for:)`), its
   host has no `sizingOptions`, and the form fills and scrolls in the window.
   `GamePanelWindowSizeTests` covers it, including a tiny saved frame.
 - **Statistics** has its tabs (Summary, History, Recent) as a segmented control in a unified

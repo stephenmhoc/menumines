@@ -47,12 +47,20 @@ extension GamePanelTests {
         return window.contentLayoutRect.size
     }
 
+    private func openedSettingsSize() async throws -> NSSize {
+        let window = try await openSettings()
+        try await settle()
+        defer { window.close() }
+        return window.contentLayoutRect.size
+    }
+
     private func checkWindowSizes() async throws {
-        let settings = try await openedContentSize(AppWindows.showSettings, titled: AppWindows.settingsTitle)
+        let page = SettingsTabController.openingPage
+        let settings = try await openedSettingsSize()
         #expect(settings.width >= SettingsView.Layout.minimumSize.width)
         #expect(settings.height >= SettingsView.Layout.minimumSize.height, "Settings is \(settings.height)pt tall")
-        // Every section shows, unless the screen is too short for them.
-        let ideal = min(SettingsView.idealContentSize.height, AppWindows.screenLimitedContentHeight)
+        // Every section of the page shows, unless the screen is too short for them.
+        let ideal = min(SettingsView.idealContentSize(for: page).height, AppWindows.screenLimitedContentHeight)
         #expect(settings.height >= ideal - 1, "Settings is \(settings.height)pt, wants \(ideal)pt")
         try await settle()
 

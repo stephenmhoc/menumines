@@ -183,30 +183,31 @@ struct CellView: View {
 
     // MARK: - Content
 
-    @ViewBuilder
     private var content: some View {
-        if cell.isExploded {
-            MineGlyph(color: .white)
-        } else {
-            switch cell.state {
-            case .hidden:
-                EmptyView()
-            case .flagged where isWrongFlag:
-                Image(systemName: "flag.slash.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-            case .flagged:
-                FlagGlyph()
-                    .transition(.scale(scale: 0.4).combined(with: .opacity))
-            case .revealed(let adjacentMines):
-                if cell.hasMine {
-                    MineGlyph()
-                        .transition(.scale(scale: 0.5).combined(with: .opacity))
-                } else if adjacentMines > 0 {
-                    // A game glyph, like the clock and the mine counter, so not localized.
-                    Text(verbatim: String(adjacentMines))
-                        .font(.system(size: 16, weight: contrast == .increased ? .heavy : .bold, design: .rounded))
-                        .foregroundStyle(NumberPalette.color(for: adjacentMines))
+        BoardPaletteReader { palette in
+            if cell.isExploded {
+                MineGlyph(color: .white)
+            } else {
+                switch cell.state {
+                case .hidden:
+                    EmptyView()
+                case .flagged where isWrongFlag:
+                    Image(systemName: "flag.slash.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(palette.wrongFlag)
+                case .flagged:
+                    FlagGlyph(color: palette.flag)
+                        .transition(.scale(scale: 0.4).combined(with: .opacity))
+                case .revealed(let adjacentMines):
+                    if cell.hasMine {
+                        MineGlyph(color: palette.mine)
+                            .transition(.scale(scale: 0.5).combined(with: .opacity))
+                    } else if adjacentMines > 0 {
+                        // A game glyph, like the clock and the mine counter, so not localized.
+                        Text(verbatim: String(adjacentMines))
+                            .font(.system(size: 16, weight: contrast == .increased ? .heavy : .bold, design: .rounded))
+                            .foregroundStyle(palette.number(adjacentMines))
+                    }
                 }
             }
         }

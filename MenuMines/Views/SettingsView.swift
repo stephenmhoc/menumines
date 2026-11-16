@@ -2,33 +2,79 @@ import AppKit
 import ServiceManagement
 import SwiftUI
 
-/// The Settings window, grouped as System Settings groups its panes: each section has a
-/// header, and each control a sentence-case label with a one-line description under it.
+/// The pages of the Settings window, one per toolbar tab, as a Mac app's settings are laid out.
+enum SettingsPage: String, CaseIterable, Identifiable {
+    case general
+    case game
+    case appearance
+    case advanced
+
+    var id: String { rawValue }
+
+    /// The pages this build has something to show on. Advanced holds crash reporting, updates
+    /// and the build channel, and a build can have none of them.
+    static var available: [SettingsPage] {
+        allCases.filter(\.isAvailable)
+    }
+
+    var isAvailable: Bool {
+        switch self {
+        case .general, .game, .appearance:
+            return true
+        case .advanced:
+            #if SPARKLE_ENABLED
+            return true
+            #else
+            return Telemetry.isAvailable || BuildChannel.current.isPreRelease
+            #endif
+        }
+    }
+
+    /// The tab's label, and the window's title while the page is up.
+    var title: String {
+        switch self {
+        case .general: String(localized: "settings_page_general")
+        case .game: String(localized: "settings_page_game")
+        case .appearance: String(localized: "settings_page_appearance")
+        case .advanced: String(localized: "settings_page_advanced")
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .general: "gearshape"
+        case .game: "square.grid.3x3"
+        case .appearance: "paintpalette"
+        case .advanced: "gearshape.2"
+        }
+    }
+}
+
+/// One page of Settings, grouped as System Settings groups its panes: sections with headers,
+/// and each control a sentence-case label with a one-line description under it.
 struct SettingsView: View {
     enum Layout {
         static let width: CGFloat = 420
-        /// The smallest the window's content gets, whatever the form reports.
-        static let minimumSize = NSSize(width: width, height: 360)
-        /// Ceiling enforced by `SettingsViewLayoutTests`, not a fixed window size.
-        ///
-        /// The height is left to the content because the form is not the same size in every
-        /// build: the direct-distribution build carries an extra Updates section. Pinning the
-        /// window to one height meant whichever configuration was taller quietly scrolled.
-        static let maxHeight: CGFloat = 820
+        /// The smallest the window's content gets, whatever the page reports.
+        static let minimumSize = NSSize(width: width, height: 200)
+        /// Ceiling enforced by `SettingsViewLayoutTests` for every page, not a fixed size.
+        static let maxHeight: CGFloat = 640
     }
 
-    /// Lays the form out at its full height, which is how tall the window wants to be.
+    /// Lays a page out at its full height, which is how tall the window wants to be for it.
     ///
     /// Measured apart from the window's own copy, because a grouped form scrolls and so has
     /// no height of its own to give: in the window it fills what it's given and scrolls when
     /// the screen is too short for all of it.
     @MainActor
-    static var idealContentSize: NSSize {
-        let measuring = NSHostingView(rootView: SettingsView(isMeasuring: true))
+    static func idealContentSize(for page: SettingsPage) -> NSSize {
+        let measuring = NSHostingView(rootView: SettingsView(page: page, isMeasuring: true))
         return measuring.fittingSize
     }
 
-    /// Whether this copy is only being laid out to find the form's height.
+    let page: SettingsPage
+
+    /// Whether this copy is only being laid out to find the page's height.
     var isMeasuring = false
 
     @AppStorage(Constants.SettingsKeys.showMenuBarIndicators) private var showMenuBarIndicators = true
@@ -50,100 +96,125 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                LaunchAtLoginRow()
-
-                LabeledContent {
-                    ShortcutRecorderView()
-                } label: {
-                    Text(String(localized: "settings_global_shortcut"))
-                    Text(String(localized: "settings_global_shortcut_footer"))
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                sectionHeader("settings_section_general")
-            }
-
-            Section {
-                Toggle(isOn: $showMenuBarIndicators) {
-                    Text(String(localized: "settings_show_menu_bar_indicators"))
-                    Text(String(localized: "settings_show_menu_bar_indicators_footer"))
-                        .foregroundStyle(.secondary)
-                }
-
-                Toggle(isOn: $showMenuBarResult) {
-                    Text(String(localized: "settings_show_menu_bar_result"))
-                    Text(String(localized: "settings_show_menu_bar_result_footer"))
-                        .foregroundStyle(.secondary)
-                }
-                .disabled(!showMenuBarIndicators)
-            } header: {
-                sectionHeader("settings_section_menu_bar")
-            }
-
-            Section {
-                Toggle(isOn: $continuousPlay) {
-                    Text(String(localized: "settings_continuous_play"))
-                    Text(String(localized: "settings_continuous_play_footer"))
-                        .foregroundStyle(.secondary)
-                }
-
-                Toggle(isOn: $confirmBeforeReset) {
-                    Text(String(localized: "settings_confirm_before_reset"))
-                    Text(String(localized: "settings_confirm_before_reset_footer"))
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                sectionHeader("settings_section_game")
-            }
-
-            Section {
-                Toggle(isOn: $showStreaks) {
-                    Text(String(localized: "settings_show_streaks"))
-                    Text(String(localized: "settings_show_streaks_footer"))
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                sectionHeader("settings_section_statistics")
-            }
-
-            if Telemetry.isAvailable {
-                Section {
-                    Toggle(isOn: sendCrashReports) {
-                        Text(String(localized: "settings_send_crash_reports"))
-                        Text(String(localized: "settings_send_crash_reports_footer"))
-                            .foregroundStyle(.secondary)
-                    }
-                } header: {
-                    sectionHeader("settings_section_privacy")
-                }
-            }
-
-            #if SPARKLE_ENABLED
-            UpdatesSection()
-            #endif
-
-            // Only a build that isn't what customers run says what it is. A released copy's
-            // version is in About.
-            if channel.isPreRelease {
-                Section {
-                    LabeledContent(String(localized: "build_info_channel")) {
-                        Text(channel.displayName)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Color.orange)
-                    }
-                } header: {
-                    sectionHeader("build_info_section")
-                } footer: {
-                    Text(buildFooter)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
+            switch page {
+            case .general: general
+            case .game: game
+            case .appearance: appearance
+            case .advanced: advanced
             }
         }
         .formStyle(.grouped)
         .fixedSize(horizontal: false, vertical: isMeasuring)
         .frame(width: Layout.width)
+    }
+
+    // MARK: - Pages
+
+    @ViewBuilder
+    private var general: some View {
+        Section {
+            LaunchAtLoginRow()
+
+            LabeledContent {
+                ShortcutRecorderView()
+            } label: {
+                Text(String(localized: "settings_global_shortcut"))
+                Text(String(localized: "settings_global_shortcut_footer"))
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        Section {
+            Toggle(isOn: $showMenuBarIndicators) {
+                Text(String(localized: "settings_show_menu_bar_indicators"))
+                Text(String(localized: "settings_show_menu_bar_indicators_footer"))
+                    .foregroundStyle(.secondary)
+            }
+
+            Toggle(isOn: $showMenuBarResult) {
+                Text(String(localized: "settings_show_menu_bar_result"))
+                Text(String(localized: "settings_show_menu_bar_result_footer"))
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!showMenuBarIndicators)
+        } header: {
+            sectionHeader("settings_section_menu_bar")
+        }
+    }
+
+    @ViewBuilder
+    private var game: some View {
+        Section {
+            Toggle(isOn: $continuousPlay) {
+                Text(String(localized: "settings_continuous_play"))
+                Text(String(localized: "settings_continuous_play_footer"))
+                    .foregroundStyle(.secondary)
+            }
+
+            Toggle(isOn: $confirmBeforeReset) {
+                Text(String(localized: "settings_confirm_before_reset"))
+                Text(String(localized: "settings_confirm_before_reset_footer"))
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        Section {
+            Toggle(isOn: $showStreaks) {
+                Text(String(localized: "settings_show_streaks"))
+                Text(String(localized: "settings_show_streaks_footer"))
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            sectionHeader("settings_section_statistics")
+        }
+    }
+
+    private var appearance: some View {
+        Section {
+            BoardThemePicker()
+        } header: {
+            sectionHeader("settings_section_board_theme")
+        } footer: {
+            Text(String(localized: "settings_board_theme_footer"))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var advanced: some View {
+        if Telemetry.isAvailable {
+            Section {
+                Toggle(isOn: sendCrashReports) {
+                    Text(String(localized: "settings_send_crash_reports"))
+                    Text(String(localized: "settings_send_crash_reports_footer"))
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                sectionHeader("settings_section_privacy")
+            }
+        }
+
+        #if SPARKLE_ENABLED
+        UpdatesSection()
+        #endif
+
+        // Only a build that isn't what customers run says what it is. A released copy's
+        // version is in About.
+        if channel.isPreRelease {
+            Section {
+                LabeledContent(String(localized: "build_info_channel")) {
+                    Text(channel.displayName)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Color.orange)
+                }
+            } header: {
+                sectionHeader("build_info_section")
+            } footer: {
+                Text(buildFooter)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+        }
     }
 
     private func sectionHeader(_ key: String.LocalizationValue) -> some View {
@@ -276,5 +347,5 @@ private struct LaunchAtLoginRow: View {
 }
 
 #Preview {
-    SettingsView()
+    SettingsView(page: .general)
 }

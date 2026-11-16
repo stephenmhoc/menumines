@@ -53,7 +53,7 @@ extension GamePanelTests {
 
         try await pressCommand(Key.commandComma, in: controller)
 
-        let window = NSApp.windows.first { $0.isVisible && $0.title == AppWindows.settingsTitle }
+        let window = settingsWindow
         #expect(window != nil)
         #expect(!controller.isOpen)
         window?.close()
@@ -209,13 +209,24 @@ extension GamePanelTests {
         return try #require(NSApp.windows.first { $0.isVisible && $0.title == title })
     }
 
+    /// The Settings window, if it's up. Found by its identifier, since its title is its page's.
+    var settingsWindow: NSWindow? {
+        NSApp.windows.first { $0.isVisible && $0.identifier == AppWindows.settingsIdentifier }
+    }
+
+    func openSettings() async throws -> NSWindow {
+        AppWindows.showSettings()
+        try await settle()
+        return try #require(settingsWindow)
+    }
+
     @Test("Windows can't be minimised, and open over a full-screen app on its Space")
     func windowBehaviour() async throws {
         let cleanup = setupCleanPersistenceState(continuousPlay: true)
         defer { cleanup() }
 
         let opens: [(() -> Void, String)] = [
-            (AppWindows.showSettings, AppWindows.settingsTitle),
+            (AppWindows.showSettings, SettingsTabController.openingPage.title),
             // The standard About panel has no title of its own.
             (AboutWindow.show, ""),
             ({ AppWindows.showStats(gameState: todaysDaily()) }, String(localized: "stats_window_title"))
@@ -257,7 +268,7 @@ extension GamePanelTests {
         #expect(NSApp.mainMenu?.performKeyEquivalent(with: event) == true)
         try await settle()
 
-        let settings = NSApp.windows.first { $0.isVisible && $0.title == AppWindows.settingsTitle }
+        let settings = settingsWindow
         #expect(settings != nil)
         settings?.close()
         stats.close()

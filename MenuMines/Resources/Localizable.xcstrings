@@ -1100,6 +1100,28 @@
         }
       }
     },
+    "settings_board_theme_footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes the colours of the board. The rest of the panel follows your Mac’s appearance."
+          }
+        }
+      }
+    },
+    "settings_board_theme_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draws the board in this theme."
+          }
+        }
+      }
+    },
     "settings_confirm_before_reset" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1309,7 +1331,29 @@
         }
       }
     },
-    "settings_section_game" : {
+    "settings_page_advanced" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        }
+      }
+    },
+    "settings_page_appearance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        }
+      }
+    },
+    "settings_page_game" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1320,13 +1364,24 @@
         }
       }
     },
-    "settings_section_general" : {
+    "settings_page_general" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "General"
+          }
+        }
+      }
+    },
+    "settings_section_board_theme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Board Theme"
           }
         }
       }
@@ -1492,17 +1547,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Updates"
-          }
-        }
-      }
-    },
-    "settings_window_title %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ Settings"
           }
         }
       }
@@ -2711,6 +2755,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You won"
+          }
+        }
+      }
+    },
+    "theme_classic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classic"
+          }
+        }
+      }
+    },
+    "theme_forest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forest"
+          }
+        }
+      }
+    },
+    "theme_midnight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Midnight"
+          }
+        }
+      }
+    },
+    "theme_retro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retro"
           }
         }
       }

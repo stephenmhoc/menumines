@@ -5,6 +5,7 @@ struct MenuContentView: View {
     var gameState: GameState
 
     @AppStorage(Constants.SettingsKeys.confirmBeforeReset) private var confirmBeforeReset = false
+    @AppStorage(Constants.SettingsKeys.boardTheme) private var boardTheme = BoardTheme.defaultTheme.rawValue
     @State private var showResetConfirmation = false
     @State private var showCelebration = false
     @State private var isFlagMode = false
@@ -170,6 +171,7 @@ struct MenuContentView: View {
                         gameState.select(row: row, col: col)
                     }
                 )
+                .environment(\.boardTheme, BoardTheme(storedValue: boardTheme))
                 .focusable()
                 .focusEffectDisabled()
                 .focused($isBoardFocused)

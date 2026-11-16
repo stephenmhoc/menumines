@@ -87,21 +87,22 @@ enum AppWindows {
         }
     }
 
-    /// "MenuMines Settings", as the HIG titles a single-pane settings window, with the name
-    /// this build goes by.
-    static var settingsTitle: String {
-        let name = Bundle.main.appName
-        return String(localized: "settings_window_title \(name)")
-    }
+    /// The identifier of the Settings window, whose title changes with its page.
+    static let settingsIdentifier = NSUserInterfaceItemIdentifier("settings")
 
     static func showSettings() {
+        let page = SettingsTabController.openingPage
         show(
-            id: "settings",
-            title: settingsTitle,
+            id: settingsIdentifier.rawValue,
+            title: page.title,
             remembersPosition: true,
             minimumContentSize: SettingsView.Layout.minimumSize,
-            idealContentSize: { SettingsView.idealContentSize },
-            content: { SettingsView() }
+            idealContentSize: { SettingsView.idealContentSize(for: page) },
+            configure: { window in
+                // The pages' tabs, with their labels, as a settings window's toolbar has them.
+                window.toolbarStyle = .preference
+            },
+            controller: { SettingsTabController() }
         )
     }
 
@@ -126,7 +127,53 @@ enum AppWindows {
         minimumContentSize: NSSize = NSSize(width: 300, height: 200),
         idealContentSize: (() -> NSSize)? = nil,
         hasToolbar: Bool = false,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        show(
+            id: id,
+            title: title,
+            remembersPosition: remembersPosition,
+            minimumContentSize: minimumContentSize,
+            idealContentSize: idealContentSize,
+            configure: { window in
+                guard hasToolbar else { return }
+                window.toolbarStyle = .unified
+                // The tabs are the toolbar, centred, and there isn't room for the title beside
+                // them. The title is still the window's name in the Window menu and to VoiceOver.
+                window.titleVisibility = .hidden
+            },
+            fitsAfterShowing: hasToolbar,
+            controller: {
+                let host = NSHostingController(rootView: content())
+                if idealContentSize != nil {
+                    // Content that scrolls fills whatever size the window is given, and the
+                    // window's size is ours. Left to the hosting controller, a scroll view's
+                    // lack of a height could shrink the window to nothing.
+                    host.sizingOptions = []
+                }
+                if hasToolbar {
+                    host.sceneBridgingOptions = [.toolbars]
+                }
+                return host
+            }
+        )
+    }
+
+    /// Brings forward a window whose content is a view controller of its own, such as
+    /// Settings' tabs. See the other `show` for the parameters.
+    /// - Parameters:
+    ///   - configure: Sets the window up before it's sized and shown.
+    ///   - fitsAfterShowing: Whether a unified toolbar covers the top of the content once the
+    ///     window is up, so it has to grow by that much.
+    static func show(
+        id: String,
+        title: String,
+        remembersPosition: Bool = false,
+        minimumContentSize: NSSize = NSSize(width: 300, height: 200),
+        idealContentSize: (() -> NSSize)? = nil,
+        configure: (NSWindow) -> Void = { _ in },
+        fitsAfterShowing: Bool = false,
+        controller makeController: () -> NSViewController
     ) {
         onWillShowWindow?()
 
@@ -135,16 +182,7 @@ enum AppWindows {
             return
         }
 
-        let host = NSHostingController(rootView: content())
-        if idealContentSize != nil {
-            // Content that scrolls fills whatever size the window is given, and the window's
-            // size is ours. Left to the hosting controller, a scroll view's lack of a height
-            // could shrink the window to nothing.
-            host.sizingOptions = []
-        }
-        if hasToolbar {
-            host.sceneBridgingOptions = [.toolbars]
-        }
+        let host = makeController()
         // A closed window of the same kind may not have been let go yet (the close notice
         // is only heard through the app delegate, which tests don't have, and it lets go a
         // turn later). It still holds the autosave name, and a name can only belong to one
@@ -155,13 +193,9 @@ enum AppWindows {
         }
 
         let window = NSWindow(contentViewController: host)
+        window.identifier = NSUserInterfaceItemIdentifier(id)
         window.title = title
-        if hasToolbar {
-            window.toolbarStyle = .unified
-            // The tabs are the toolbar, centred, and there isn't room for the title beside
-            // them. The title is still the window's name in the Window menu and to VoiceOver.
-            window.titleVisibility = .hidden
-        }
+        configure(window)
         // Not miniaturizable: an agent app has no Dock icon to bring a minimised window
         // back from, and these are small utility windows that close instead.
         window.styleMask = [.titled, .closable]
@@ -183,7 +217,7 @@ enum AppWindows {
         controllers[id] = controller
         controller.showWindow(nil)
         openedAt[ObjectIdentifier(window)] = ProcessInfo.processInfo.systemUptime
-        if hasToolbar {
+        if fitsAfterShowing {
             // A unified toolbar is put in place once the window is up, and covers the top of
             // the content, which is inset below it. The window then grows by that much.
             DispatchQueue.main.async { [weak window] in

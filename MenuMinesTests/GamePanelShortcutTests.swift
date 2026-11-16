@@ -33,7 +33,7 @@ extension GamePanelTests {
         defer { cleanup() }
 
         try await withTestShortcut { shortcut in
-            let settings = try await openWindow(AppWindows.showSettings, titled: AppWindows.settingsTitle)
+            let settings = try await openSettings()
             let recorder = ShortcutRecorder()
             recorder.start(in: settings)
             #expect(recorder.isRecording)
@@ -63,7 +63,7 @@ extension GamePanelTests {
         defer { cleanup() }
 
         try await withTestShortcut { shortcut in
-            let settings = try await openWindow(AppWindows.showSettings, titled: AppWindows.settingsTitle)
+            let settings = try await openSettings()
             defer { settings.close() }
             let controller = try await openPanel(for: todaysDaily())
             defer { controller.close() }
