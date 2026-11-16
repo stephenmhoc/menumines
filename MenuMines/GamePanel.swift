@@ -102,7 +102,16 @@ final class PanelBackdropController: NSViewController {
             let glass = NSGlassEffectView(frame: frame)
             glass.cornerRadius = Self.cornerRadius
             glass.contentView = contentView
-            view = glass
+            glass.autoresizingMask = [.width, .height]
+            // The glass leaves a faint square edge past its rounded corners, and the window
+            // shadow follows it. Clipping it to the panel's shape keeps the corners clear.
+            let clip = NSView(frame: frame)
+            clip.wantsLayer = true
+            clip.layer?.cornerRadius = Self.cornerRadius
+            clip.layer?.cornerCurve = .continuous
+            clip.layer?.masksToBounds = true
+            clip.addSubview(glass)
+            view = clip
             return
         }
 
