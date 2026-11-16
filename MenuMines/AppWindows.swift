@@ -253,7 +253,19 @@ enum AppWindows {
         let openedAt = openedAt[ObjectIdentifier(window)]
         let isSettled = openedAt.map { ProcessInfo.processInfo.systemUptime - $0 > 0.5 } ?? true
         let animate = window.isVisible && isSettled && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        window.setFrame(frame, display: true, animate: animate)
+        guard animate else {
+            window.setFrame(frame, display: true)
+            return
+        }
+        // Through the animator, which runs alongside everything else. `setFrame(_:display:animate:)`
+        // holds the main thread for the whole resize, about 0.3s, and froze the toolbar's tab
+        // control halfway through its own slide. A second call mid-resize aims for the same
+        // frame, since the target comes from the content, not the window's size at the time.
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(frame, display: true)
+        }
     }
 
     /// The content size a window opens at: what the content wants, no smaller than the
